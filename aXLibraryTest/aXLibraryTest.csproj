@@ -78,7 +78,7 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\AutomationXLib\AutomationXLib.vcxproj">
+    <ProjectReference Include="..\AutomationX\Automation.vcxproj">
       <Project>{fa5bb940-f1c9-489e-8722-159a313ac2d5}</Project>
       <Name>AutomationXLib</Name>
       <EmbedInteropTypes>False</EmbedInteropTypes>
