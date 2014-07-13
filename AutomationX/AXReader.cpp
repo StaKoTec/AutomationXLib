@@ -25,7 +25,7 @@ namespace AutomationX
 		if (!AxGet(handle, &data))
 		{
 			AxFreeExecData(handle);
-			throw (AXException^)(gcnew AXException("Could not set variable."));
+			throw (AXException^)(gcnew AXException("The data handle is invalid or does not represent a variable type."));
 		}
 		bool value = (bool)data.AXVAL.btBOOL;
 		AxFreeExecData(handle);
@@ -49,7 +49,7 @@ namespace AutomationX
 		if (!AxGetArray(handle, &data, index))
 		{
 			AxFreeExecData(handle);
-			throw (AXException^)(gcnew AXException("Could not set variable."));
+			throw (AXException^)(gcnew AXException("The data handle is invalid, does not represent a variable type or the index was out of range."));
 		}
 		bool value = (bool)data.AXVAL.btBOOL;
 		AxFreeExecData(handle);
@@ -73,7 +73,7 @@ namespace AutomationX
 		if (!AxGet(handle, &data))
 		{
 			AxFreeExecData(handle);
-			throw (AXException^)(gcnew AXException("Could not set variable."));
+			throw (AXException^)(gcnew AXException("The data handle is invalid or does not represent a variable type."));
 		}
 		Byte value = data.AXVAL.btBYTE;
 		AxFreeExecData(handle);
@@ -97,7 +97,7 @@ namespace AutomationX
 		if (!AxGetArray(handle, &data, index))
 		{
 			AxFreeExecData(handle);
-			throw (AXException^)(gcnew AXException("Could not set variable."));
+			throw (AXException^)(gcnew AXException("The data handle is invalid, does not represent a variable type or the index was out of range."));
 		}
 		Byte value = data.AXVAL.btBYTE;
 		AxFreeExecData(handle);
@@ -121,7 +121,7 @@ namespace AutomationX
 		if (!AxGet(handle, &data))
 		{
 			AxFreeExecData(handle);
-			throw (AXException^)(gcnew AXException("Could not set variable."));
+			throw (AXException^)(gcnew AXException("The data handle is invalid or does not represent a variable type."));
 		}
 		Int16 value = data.AXVAL.btINT;
 		AxFreeExecData(handle);
@@ -145,7 +145,7 @@ namespace AutomationX
 		if (!AxGetArray(handle, &data, index))
 		{
 			AxFreeExecData(handle);
-			throw (AXException^)(gcnew AXException("Could not set variable."));
+			throw (AXException^)(gcnew AXException("The data handle is invalid, does not represent a variable type or the index was out of range."));
 		}
 		Int16 value = data.AXVAL.btINT;
 		AxFreeExecData(handle);
@@ -169,7 +169,7 @@ namespace AutomationX
 		if (!AxGet(handle, &data))
 		{
 			AxFreeExecData(handle);
-			throw (AXException^)(gcnew AXException("Could not set variable."));
+			throw (AXException^)(gcnew AXException("The data handle is invalid or does not represent a variable type."));
 		}
 		Int32 value = data.AXVAL.btDINT;
 		AxFreeExecData(handle);
@@ -193,7 +193,7 @@ namespace AutomationX
 		if (!AxGetArray(handle, &data, index))
 		{
 			AxFreeExecData(handle);
-			throw (AXException^)(gcnew AXException("Could not set variable."));
+			throw (AXException^)(gcnew AXException("The data handle is invalid, does not represent a variable type or the index was out of range."));
 		}
 		Int32 value = data.AXVAL.btDINT;
 		AxFreeExecData(handle);
@@ -217,7 +217,7 @@ namespace AutomationX
 		if (!AxGet(handle, &data))
 		{
 			AxFreeExecData(handle);
-			throw (AXException^)(gcnew AXException("Could not set variable."));
+			throw (AXException^)(gcnew AXException("The data handle is invalid or does not represent a variable type."));
 		}
 		UInt16 value = data.AXVAL.btUINT;
 		AxFreeExecData(handle);
@@ -241,7 +241,7 @@ namespace AutomationX
 		if (!AxGetArray(handle, &data, index))
 		{
 			AxFreeExecData(handle);
-			throw (AXException^)(gcnew AXException("Could not set variable."));
+			throw (AXException^)(gcnew AXException("The data handle is invalid, does not represent a variable type or the index was out of range."));
 		}
 		UInt16 value = data.AXVAL.btUINT;
 		AxFreeExecData(handle);
@@ -265,7 +265,7 @@ namespace AutomationX
 		if (!AxGet(handle, &data))
 		{
 			AxFreeExecData(handle);
-			throw (AXException^)(gcnew AXException("Could not set variable."));
+			throw (AXException^)(gcnew AXException("The data handle is invalid or does not represent a variable type."));
 		}
 		UInt32 value = data.AXVAL.btUDINT;
 		AxFreeExecData(handle);
@@ -289,7 +289,7 @@ namespace AutomationX
 		if (!AxGetArray(handle, &data, index))
 		{
 			AxFreeExecData(handle);
-			throw (AXException^)(gcnew AXException("Could not set variable."));
+			throw (AXException^)(gcnew AXException("The data handle is invalid, does not represent a variable type or the index was out of range."));
 		}
 		UInt32 value = data.AXVAL.btUDINT;
 		AxFreeExecData(handle);
@@ -313,7 +313,7 @@ namespace AutomationX
 		if (!AxGet(handle, &data))
 		{
 			AxFreeExecData(handle);
-			throw (AXException^)(gcnew AXException("Could not set variable."));
+			throw (AXException^)(gcnew AXException("The data handle is invalid or does not represent a variable type."));
 		}
 		Single value = data.AXVAL.btREAL;
 		AxFreeExecData(handle);
@@ -337,7 +337,7 @@ namespace AutomationX
 		if (!AxGetArray(handle, &data, index))
 		{
 			AxFreeExecData(handle);
-			throw (AXException^)(gcnew AXException("Could not set variable."));
+			throw (AXException^)(gcnew AXException("The data handle is invalid, does not represent a variable type or the index was out of range."));
 		}
 		Single value = data.AXVAL.btREAL;
 		AxFreeExecData(handle);
@@ -361,7 +361,7 @@ namespace AutomationX
 		if (!AxGet(handle, &data))
 		{
 			AxFreeExecData(handle);
-			throw (AXException^)(gcnew AXException("Could not set variable."));
+			throw (AXException^)(gcnew AXException("The data handle is invalid or does not represent a variable type."));
 		}
 		String^ value = gcnew String(data.AXVAL.btSTRING);
 		AxFreeExecData(handle);
@@ -385,7 +385,7 @@ namespace AutomationX
 		if (!AxGetArray(handle, &data, index))
 		{
 			AxFreeExecData(handle);
-			throw (AXException^)(gcnew AXException("Could not set variable."));
+			throw (AXException^)(gcnew AXException("The data handle is invalid, does not represent a variable type or the index was out of range."));
 		}
 		String^ value = gcnew String(data.AXVAL.btSTRING);
 		AxFreeExecData(handle);
@@ -439,6 +439,7 @@ namespace AutomationX
 		Marshal::FreeHGlobal(IntPtr((void*)cName)); //Always free memory!
 		if (!handle) throw (AXException^)(gcnew AXException("Could not get data handle."));
 		UInt16 arrayLength = AxGetArrayCnt(handle);
+		if (arrayLength == 0) throw (AXException^)(gcnew AXException("The data handle is invalid."));
 		AxFreeExecData(handle);
 		return arrayLength;
 	}
@@ -473,7 +474,7 @@ namespace AutomationX
 		Marshal::FreeHGlobal(IntPtr((void*)cName)); //Always free memory!
 		if (!result) throw (AXException^)(gcnew AXException("Variable or object was not found."));
 		const char* reference = AxGetVarReference(&execData);
-		if (!reference) throw (AXException^)(gcnew AXException("The executable data is invalid, the variable is not a reference type variable or the variable is not connected."));
+		if (!reference) throw (AXException^)(gcnew AXException("The data handle is invalid, the variable is not a reference type variable or the variable is not connected."));
 		return gcnew String(reference);
 	}
 

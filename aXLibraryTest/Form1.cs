@@ -28,7 +28,6 @@ namespace aXLibraryTest
             System.Collections.Generic.List<String> instanceNames = reader.GetInstanceNames("Aktor_1fach");
             MessageBox.Show(reader.GetInstanceRemark("Tannenbaum3"));
             MessageBox.Show(reader.GetVariableRemark("Tannenbaum", "STATE"));
-            bla.Shutdown();
         }
 
         void bla_OnStatus(string statusText)

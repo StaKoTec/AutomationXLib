@@ -26,7 +26,7 @@ namespace AutomationX
 		if (!AxSet(handle, &data))
 		{
 			AxFreeExecData(handle);
-			throw (AXException^)(gcnew AXException("Could not set variable."));
+			throw (AXException^)(gcnew AXException("The executable data is invalid or does not represent a variable type."));
 		}
 		AxFreeExecData(handle);
 	}
@@ -49,7 +49,7 @@ namespace AutomationX
 		if (!AxSetArray(handle, &data, index))
 		{
 			AxFreeExecData(handle);
-			throw (AXException^)(gcnew AXException("Could not set variable."));
+			throw (AXException^)(gcnew AXException("The executable data is invalid, does not represent a variable type or the index was out of range."));
 		}
 		AxFreeExecData(handle);
 	}
@@ -72,7 +72,7 @@ namespace AutomationX
 		if (!AxSet(handle, &data))
 		{
 			AxFreeExecData(handle);
-			throw (AXException^)(gcnew AXException("Could not set variable."));
+			throw (AXException^)(gcnew AXException("The executable data is invalid or does not represent a variable type."));
 		}
 		AxFreeExecData(handle);
 	}
@@ -95,7 +95,7 @@ namespace AutomationX
 		if (!AxSetArray(handle, &data, index))
 		{
 			AxFreeExecData(handle);
-			throw (AXException^)(gcnew AXException("Could not set variable."));
+			throw (AXException^)(gcnew AXException("The executable data is invalid, does not represent a variable type or the index was out of range."));
 		}
 		AxFreeExecData(handle);
 	}
@@ -118,7 +118,7 @@ namespace AutomationX
 		if (!AxSet(handle, &data))
 		{
 			AxFreeExecData(handle);
-			throw (AXException^)(gcnew AXException("Could not set variable."));
+			throw (AXException^)(gcnew AXException("The executable data is invalid or does not represent a variable type."));
 		}
 		AxFreeExecData(handle);
 	}
@@ -141,7 +141,7 @@ namespace AutomationX
 		if (!AxSetArray(handle, &data, index))
 		{
 			AxFreeExecData(handle);
-			throw (AXException^)(gcnew AXException("Could not set variable."));
+			throw (AXException^)(gcnew AXException("The executable data is invalid, does not represent a variable type or the index was out of range."));
 		}
 		AxFreeExecData(handle);
 	}
@@ -164,7 +164,7 @@ namespace AutomationX
 		if (!AxSet(handle, &data))
 		{
 			AxFreeExecData(handle);
-			throw (AXException^)(gcnew AXException("Could not set variable."));
+			throw (AXException^)(gcnew AXException("The executable data is invalid or does not represent a variable type."));
 		}
 		AxFreeExecData(handle);
 	}
@@ -187,7 +187,7 @@ namespace AutomationX
 		if (!AxSetArray(handle, &data, index))
 		{
 			AxFreeExecData(handle);
-			throw (AXException^)(gcnew AXException("Could not set variable."));
+			throw (AXException^)(gcnew AXException("The executable data is invalid, does not represent a variable type or the index was out of range."));
 		}
 		AxFreeExecData(handle);
 	}
@@ -210,7 +210,7 @@ namespace AutomationX
 		if (!AxSet(handle, &data))
 		{
 			AxFreeExecData(handle);
-			throw (AXException^)(gcnew AXException("Could not set variable."));
+			throw (AXException^)(gcnew AXException("The executable data is invalid or does not represent a variable type."));
 		}
 		AxFreeExecData(handle);
 	}
@@ -233,7 +233,7 @@ namespace AutomationX
 		if (!AxSetArray(handle, &data, index))
 		{
 			AxFreeExecData(handle);
-			throw (AXException^)(gcnew AXException("Could not set variable."));
+			throw (AXException^)(gcnew AXException("The executable data is invalid, does not represent a variable type or the index was out of range."));
 		}
 		AxFreeExecData(handle);
 	}
@@ -256,7 +256,7 @@ namespace AutomationX
 		if (!AxSet(handle, &data))
 		{
 			AxFreeExecData(handle);
-			throw (AXException^)(gcnew AXException("Could not set variable."));
+			throw (AXException^)(gcnew AXException("The executable data is invalid or does not represent a variable type."));
 		}
 		AxFreeExecData(handle);
 	}
@@ -279,7 +279,7 @@ namespace AutomationX
 		if (!AxSetArray(handle, &data, index))
 		{
 			AxFreeExecData(handle);
-			throw (AXException^)(gcnew AXException("Could not set variable."));
+			throw (AXException^)(gcnew AXException("The executable data is invalid, does not represent a variable type or the index was out of range."));
 		}
 		AxFreeExecData(handle);
 	}
@@ -302,7 +302,7 @@ namespace AutomationX
 		if (!AxSet(handle, &data))
 		{
 			AxFreeExecData(handle);
-			throw (AXException^)(gcnew AXException("Could not set variable."));
+			throw (AXException^)(gcnew AXException("The executable data is invalid or does not represent a variable type."));
 		}
 		AxFreeExecData(handle);
 	}
@@ -325,7 +325,7 @@ namespace AutomationX
 		if (!AxSetArray(handle, &data, index))
 		{
 			AxFreeExecData(handle);
-			throw (AXException^)(gcnew AXException("Could not set variable."));
+			throw (AXException^)(gcnew AXException("The executable data is invalid, does not represent a variable type or the index was out of range."));
 		}
 		AxFreeExecData(handle);
 	}
@@ -348,7 +348,7 @@ namespace AutomationX
 		if (!AxSet(handle, &data))
 		{
 			AxFreeExecData(handle);
-			throw (AXException^)(gcnew AXException("Could not set variable."));
+			throw (AXException^)(gcnew AXException("The executable data is invalid or does not represent a variable type."));
 		}
 		AxFreeExecData(handle);
 	}
@@ -371,7 +371,7 @@ namespace AutomationX
 		if (!AxSetArray(handle, &data, index))
 		{
 			AxFreeExecData(handle);
-			throw (AXException^)(gcnew AXException("Could not set variable."));
+			throw (AXException^)(gcnew AXException("The executable data is invalid, does not represent a variable type or the index was out of range."));
 		}
 		AxFreeExecData(handle);
 	}
