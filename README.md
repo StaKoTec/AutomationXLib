@@ -3,12 +3,12 @@ AutomationXLib
 
 This is a .NET library for AutomationX 4.
 
-Small usage example
+Small C# usage example
 -------------------
 
 First add AutomationX.dll as reference to your project.
 
-### Then to create a new AutomationX object, do:
+### Then to create a new AutomationX object, do
 
 ```
 AutomationX.AX aX = new AutomationX.AX("MyInstanceName", "Status", "err");
