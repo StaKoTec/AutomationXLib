@@ -4,7 +4,7 @@
 
 namespace AutomationX
 {
-	ref class AXNotRunningException : public AXException
+	public ref class AXNotRunningException : public AXException
 	{
 	public:
 		AXNotRunningException();

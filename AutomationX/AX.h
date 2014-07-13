@@ -8,9 +8,9 @@ using namespace System;
 
 namespace AutomationX
 {
-	public delegate void ShutdownEventHandler();
-	public delegate void StatusEventHandler(String^ statusText);
-	public delegate void ErrorEventHandler(String^ errorText);
+	public delegate void ShutdownEventHandler(AX^ sender);
+	public delegate void StatusEventHandler(AX^ sender, String^ statusText);
+	public delegate void ErrorEventHandler(AX^ sender, String^ errorText);
 
 	/// Class to read and write AutomationX variables.
 	public ref class AX

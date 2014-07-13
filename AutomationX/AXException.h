@@ -4,7 +4,7 @@ using namespace System;
 
 namespace AutomationX
 {
-	ref class AXException : public System::Exception
+	public ref class AXException : public System::Exception
 	{
 	public:
 		AXException();

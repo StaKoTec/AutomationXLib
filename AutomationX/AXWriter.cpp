@@ -284,12 +284,12 @@ namespace AutomationX
 		AxFreeExecData(handle);
 	}
 
-	void AXWriter::WriteReal(String^ variableName, Single value)
+	void AXWriter::WriteReal(String^ variableName, Double value)
 	{
 		WriteReal(_ax->GetInstanceName(), variableName, value);
 	}
 
-	void AXWriter::WriteReal(String^ instanceName, String^ variableName, Single value)
+	void AXWriter::WriteReal(String^ instanceName, String^ variableName, Double value)
 	{
 		_ax->CheckRunning();
 		char* cName = _converter.GetCString(instanceName + "." + variableName);
@@ -307,12 +307,12 @@ namespace AutomationX
 		AxFreeExecData(handle);
 	}
 
-	void AXWriter::WriteRealArray(String^ variableName, UInt16 index, Single value)
+	void AXWriter::WriteRealArray(String^ variableName, UInt16 index, Double value)
 	{
 		WriteRealArray(_ax->GetInstanceName(), variableName, index, value);
 	}
 
-	void AXWriter::WriteRealArray(String^ instanceName, String^ variableName, UInt16 index, Single value)
+	void AXWriter::WriteRealArray(String^ instanceName, String^ variableName, UInt16 index, Double value)
 	{
 		_ax->CheckRunning();
 		char* cName = _converter.GetCString(instanceName + "." + variableName);

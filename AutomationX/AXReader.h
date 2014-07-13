@@ -54,10 +54,10 @@ namespace AutomationX
 		UInt32 ReadUnsignedLongInteger(String^ instanceName, String^ variableName);
 		UInt32 ReadUnsignedLongIntegerArray(String^ variableName, UInt16 index);
 		UInt32 ReadUnsignedLongIntegerArray(String^ instanceName, String^ variableName, UInt16 index);
-		Single ReadReal(String^ variableName);
-		Single ReadReal(String^ instanceName, String^ variableName);
-		Single ReadRealArray(String^ variableName, UInt16 index);
-		Single ReadRealArray(String^ instanceName, String^ variableName, UInt16 index);
+		Double ReadReal(String^ variableName);
+		Double ReadReal(String^ instanceName, String^ variableName);
+		Double ReadRealArray(String^ variableName, UInt16 index);
+		Double ReadRealArray(String^ instanceName, String^ variableName, UInt16 index);
 		String^ ReadString(String^ variableName);
 		String^ ReadString(String^ instanceName, String^ variableName);
 		String^ ReadStringArray(String^ variableName, UInt16 index);

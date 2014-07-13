@@ -18,7 +18,10 @@ namespace AutomationX
 		_workerTimer->Start();
 		if (instanceName->Length == 0) throw (AXException^)(gcnew AXException("Instance name is empty."));
 		_instanceName = instanceName;
+		AxInit(); //First function to call
+		//AxOmAttachToObjectMemory must be called after AxInit
 		if (!AxOmAttachToObjectMemory()) throw (AXException^)(gcnew AXException("Could not attach to shared memory."));
+		AxOmQueryProcessGroupInfo(); //No interpretable return value, must be called after AxOmAttachToObjectMemory
 	}
 
 	/// <summary>Constructor taking names of status variables.</summary>
@@ -33,10 +36,10 @@ namespace AutomationX
 
 	void AX::OnWorkerTimerElapsed(System::Object ^sender, System::Timers::ElapsedEventArgs ^e)
 	{
-		if (AxShutdownEvent() == 1) OnShutdown();
+		if (AxShutdownEvent() == 1 || !IsRunning()) OnShutdown(this);
 	}
 
-	/// <summary>Checks if aX is running.</summary>
+	/// <summary>Checks if aX is running and if the local computer is running as the master of a redundant master slave server configuration.</summary>
 	/// <returns>true when aX is running, otherwise false.</returns>
 	Boolean AX::IsRunning()
 	{
@@ -55,7 +58,7 @@ namespace AutomationX
 	/// <param name='statusText'>Text to set.</param>
 	void AX::SetStatus(String^ statusText)
 	{
-		OnStatus(statusText);
+		OnStatus(this, statusText);
 		if (_statusVariableName->Length == 0) return;
 		_writer->WriteString(_instanceName, _statusVariableName, statusText);
 	}
@@ -64,7 +67,7 @@ namespace AutomationX
 	/// <param name='errorText'>Text to set.</param>
 	void AX::SetError(String^ errorText)
 	{
-		OnError(errorText);
+		OnError(this, errorText);
 		if (_alarmVariableName->Length == 0) return;
 		_writer->WriteBool(_instanceName, _alarmVariableName, true);
 		_writer->WriteString(_instanceName, _alarmVariableName + ".TEXT", errorText);
@@ -73,7 +76,7 @@ namespace AutomationX
 	/// <summary>Tell aX to shut down.</summary>
 	void AX::Shutdown()
 	{
-		OnShutdown();
+		OnShutdown(this);
 		AxSendShutdownEvent();
 	}
 }

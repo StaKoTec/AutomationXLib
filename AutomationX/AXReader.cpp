@@ -296,12 +296,12 @@ namespace AutomationX
 		return value;
 	}
 
-	Single AXReader::ReadReal(String^ variableName)
+	Double AXReader::ReadReal(String^ variableName)
 	{
 		return ReadReal(_ax->GetInstanceName(), variableName);
 	}
 
-	Single AXReader::ReadReal(String^ instanceName, String^ variableName)
+	Double AXReader::ReadReal(String^ instanceName, String^ variableName)
 	{
 		_ax->CheckRunning();
 		char* cName = _converter.GetCString(instanceName + "." + variableName);
@@ -315,17 +315,17 @@ namespace AutomationX
 			AxFreeExecData(handle);
 			throw (AXException^)(gcnew AXException("The data handle is invalid or does not represent a variable type."));
 		}
-		Single value = data.AXVAL.btREAL;
+		Double value = data.AXVAL.btREAL;
 		AxFreeExecData(handle);
 		return value;
 	}
 
-	Single AXReader::ReadRealArray(String^ variableName, UInt16 index)
+	Double AXReader::ReadRealArray(String^ variableName, UInt16 index)
 	{
 		return ReadRealArray(_ax->GetInstanceName(), variableName, index);
 	}
 
-	Single AXReader::ReadRealArray(String^ instanceName, String^ variableName, UInt16 index)
+	Double AXReader::ReadRealArray(String^ instanceName, String^ variableName, UInt16 index)
 	{
 		_ax->CheckRunning();
 		char* cName = _converter.GetCString(instanceName + "." + variableName);
@@ -339,7 +339,7 @@ namespace AutomationX
 			AxFreeExecData(handle);
 			throw (AXException^)(gcnew AXException("The data handle is invalid, does not represent a variable type or the index was out of range."));
 		}
-		Single value = data.AXVAL.btREAL;
+		Double value = data.AXVAL.btREAL;
 		AxFreeExecData(handle);
 		return value;
 	}

@@ -40,10 +40,10 @@ namespace AutomationX
 		void WriteUnsignedLongInteger(String^ instanceName, String^ variableName, UInt32 value);
 		void WriteUnsignedLongIntegerArray(String^ variableName, UInt16 index, UInt32 value);
 		void WriteUnsignedLongIntegerArray(String^ instanceName, String^ variableName, UInt16 index, UInt32 value);
-		void WriteReal(String^ variableName, Single value);
-		void WriteReal(String^ instanceName, String^ variableName, Single value);
-		void WriteRealArray(String^ variableName, UInt16 index, Single value);
-		void WriteRealArray(String^ instanceName, String^ variableName, UInt16 index, Single value);
+		void WriteReal(String^ variableName, Double value);
+		void WriteReal(String^ instanceName, String^ variableName, Double value);
+		void WriteRealArray(String^ variableName, UInt16 index, Double value);
+		void WriteRealArray(String^ instanceName, String^ variableName, UInt16 index, Double value);
 		void WriteString(String^ variableName, String^ value);
 		void WriteString(String^ instanceName, String^ variableName, String^ value);
 		void WriteStringArray(String^ variableName, UInt16 index, String^ value);
