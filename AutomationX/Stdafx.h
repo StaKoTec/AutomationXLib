@@ -6,8 +6,9 @@
 #pragma comment(lib, "axsapi32.lib")
 
 #include "AXException.h"
-#include "AXNotRunningException.h"
 #include "AX.h"
+#include "AXInstance.h"
+#include "AXVariable.h"
 
 #include "axsapi32.h"
 #include <string>

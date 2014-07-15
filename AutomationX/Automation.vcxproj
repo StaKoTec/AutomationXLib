@@ -88,9 +88,8 @@
   <ItemGroup>
     <ClInclude Include="AX.h" />
     <ClInclude Include="AXException.h" />
-    <ClInclude Include="AXNotRunningException.h" />
-    <ClInclude Include="AXReader.h" />
-    <ClInclude Include="AXWriter.h" />
+    <ClInclude Include="AXInstance.h" />
+    <ClInclude Include="AXVariable.h" />
     <ClInclude Include="ManagedTypeConverter.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="Stdafx.h" />
@@ -100,9 +99,8 @@
     <ClCompile Include="AssemblyInfo.cpp" />
     <ClCompile Include="AX.cpp" />
     <ClCompile Include="AXException.cpp" />
-    <ClCompile Include="AXNotRunningException.cpp" />
-    <ClCompile Include="AXReader.cpp" />
-    <ClCompile Include="AXWriter.cpp" />
+    <ClCompile Include="AXInstance.cpp" />
+    <ClCompile Include="AXVariable.cpp" />
     <ClCompile Include="ManagedTypeConverter.cpp" />
     <ClCompile Include="Stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

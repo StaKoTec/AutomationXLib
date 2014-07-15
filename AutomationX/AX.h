@@ -4,41 +4,38 @@
 
 using namespace System;
 
-#include "AXWriter.h"
+#include "ManagedTypeConverter.h"
 
 namespace AutomationX
 {
-	public delegate void ShutdownEventHandler(AX^ sender);
-	public delegate void StatusEventHandler(AX^ sender, String^ statusText);
-	public delegate void ErrorEventHandler(AX^ sender, String^ errorText);
-
-	/// Class to read and write AutomationX variables.
 	public ref class AX
 	{
 	private:
-		String^ _instanceName;
-		String^ _statusVariableName;
-		String^ _alarmVariableName;
-		AXWriter^ _writer;
+		ManagedTypeConverter _converter;
 		Timers::Timer^ _workerTimer;
 
 		void OnWorkerTimerElapsed(System::Object ^sender, System::Timers::ElapsedEventArgs ^e);
 	public:
+		delegate void ShutdownEventHandler(AX^ sender);
+
 		/// <summary>Fired when aX is shutting down.</summary>
 		event ShutdownEventHandler^ OnShutdown;
-		/// <summary>Fired when aX status variable provided with constructor is being set.</summary>
-		event StatusEventHandler^ OnStatus;
-		/// <summary>Fired when aX alarm variable provided with constructor is being set.</summary>
-		event ErrorEventHandler^ OnError;
 
-		AX(String^ instanceName);
-		AX(String^ instanceName, String^ statusVariableName, String^ alarmVariableName);
+		/// <summary>Checks if aX is running and if the local computer is running as the master of a redundant master slave server configuration.</summary>
+		/// <returns>true when aX is running, otherwise false.</returns>
+		property bool Connected { bool get(); }
 
-		String^ GetInstanceName() { return _instanceName; }
-		Boolean IsRunning();
+		/// <summary>Constructor</summary>
+		AX();
+		
+		/// <summary>Checks if aX is running and throws AXNotRunningException if not.</summary>
+		/// <exception cref="AXNotRunningException">Thrown when aX is not running.</exception>
 		void CheckRunning();
-		void SetStatus(String^ statusText);
-		void SetError(String^ errorText);
+
+		/// <summary>Tell aX to shut down.</summary>
 		void Shutdown();
+
+		/// <summary>Returns all instance names of the specified class.</summary>
+		System::Collections::Generic::List<String^>^ GetInstanceNames(String^ className);
 	};
 }
