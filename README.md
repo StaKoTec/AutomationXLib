@@ -64,7 +64,7 @@ void OnValueChanged(AXVariable sender)
 
 ### Write an aX variable
 ```
-AXVariable aXVar1 = axInstance2.Get("STATE");
+AutomationX.AXVariable aXVar1 = axInstance2.Get("STATE");
 aXVar1.Set(true);
 ```
 
