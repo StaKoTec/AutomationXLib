@@ -13,15 +13,15 @@ namespace AutomationX
 		_statusVariableName = gcnew String("");
 		_alarmVariableName = gcnew String("");
 		_writer = gcnew AXWriter(this);
-		_workerTimer = gcnew Timers::Timer(1000);
-		_workerTimer->Elapsed += gcnew System::Timers::ElapsedEventHandler(this, &AutomationX::AX::OnWorkerTimerElapsed);
-		_workerTimer->Start();
 		if (instanceName->Length == 0) throw (AXException^)(gcnew AXException("Instance name is empty."));
 		_instanceName = instanceName;
 		AxInit(); //First function to call
 		//AxOmAttachToObjectMemory must be called after AxInit
-		if (!AxOmAttachToObjectMemory()) throw (AXException^)(gcnew AXException("Could not attach to shared memory."));
+		if (!AxOmAttachToObjectMemory()) throw (AXException^)(gcnew AXException("Could not attach to shared memory. Make sure AutomationX is running and the user running this program has enough privileges."));
 		AxOmQueryProcessGroupInfo(); //No interpretable return value, must be called after AxOmAttachToObjectMemory
+		_workerTimer = gcnew Timers::Timer(1000);
+		_workerTimer->Elapsed += gcnew System::Timers::ElapsedEventHandler(this, &AutomationX::AX::OnWorkerTimerElapsed);
+		_workerTimer->Start();
 	}
 
 	/// <summary>Constructor taking names of status variables.</summary>

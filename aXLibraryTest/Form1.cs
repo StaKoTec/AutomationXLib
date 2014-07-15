@@ -13,17 +13,33 @@ namespace aXLibraryTest
 {
     public partial class Form1 : Form
     {
-        AX _aX1 = new AutomationX.AX("Tannenbaum", "Status", "err");
-        AX _aX2 = new AutomationX.AX("Tannenbaum2", "Status", "err");
+        AX _aX1 = null;
+        AX _aX2 = null;
 
         public Form1()
         {
             InitializeComponent();
 
-            _aX1.OnStatus += bla_OnStatus;
-            _aX1.OnError += bla_OnError;
-            _aX2.OnStatus += bla_OnStatus;
-            _aX2.OnError += bla_OnError;
+            try
+            {
+                _aX1 = new AutomationX.AX("Tannenbaum", "Status", "err");
+                _aX2 = new AutomationX.AX("Tannenbaum2", "Status", "err");
+                _aX1.OnStatus += bla_OnStatus;
+                _aX1.OnError += bla_OnError;
+                _aX2.OnStatus += bla_OnStatus;
+                _aX2.OnError += bla_OnError;
+                _aX1.OnShutdown += _aX1_OnShutdown;
+            }
+            catch(Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                Environment.Exit(1);
+            }
+        }
+
+        void _aX1_OnShutdown(AX sender)
+        {
+            Environment.Exit(0);
         }
 
         private void Form1_Load(object sender, EventArgs e)
