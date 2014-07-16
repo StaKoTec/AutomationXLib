@@ -4,6 +4,102 @@
 
 namespace AutomationX
 {
+	bool AXVariable::Retentive::get()
+	{
+		_ax->SpsIdChanged();
+		static AX_EXEC_DATA execData;
+		int result = AxQueryVariable(_cName, &execData);
+		if (!result) throw gcnew AXVariableException("Variable or object was not found.");
+		result = AxGetRetentiveFlag(&execData);
+		if (result == -1) throw gcnew AXVariableException("The variable data handle is invalid.");
+		if (result == 0) return false;
+		return true;
+	}
+
+	bool AXVariable::Constant::get()
+	{
+		_ax->SpsIdChanged();
+		static AX_EXEC_DATA execData;
+		int result = AxQueryVariable(_cName, &execData);
+		if (!result) throw gcnew AXVariableException("Variable or object was not found.");
+		result = AxGetConstantFlag(&execData);
+		if (result == -1) throw gcnew AXVariableException("The variable data handle is invalid.");
+		if (result == 0) return false;
+		return true;
+	}
+
+	bool AXVariable::Private::get()
+	{
+		_ax->SpsIdChanged();
+		static AX_EXEC_DATA execData;
+		int result = AxQueryVariable(_cName, &execData);
+		if (!result) throw gcnew AXVariableException("Variable or object was not found.");
+		result = AxGetPrivateFlag(&execData);
+		if (result == -1) throw gcnew AXVariableException("The variable data handle is invalid.");
+		if (result == 0) return false;
+		return true;
+	}
+
+	bool AXVariable::Local::get()
+	{
+		_ax->SpsIdChanged();
+		static AX_EXEC_DATA execData;
+		int result = AxQueryVariable(_cName, &execData);
+		if (!result) throw gcnew AXVariableException("Variable or object was not found.");
+		result = AxGetLocalFlag(&execData);
+		if (result == -1) throw gcnew AXVariableException("The variable data handle is invalid.");
+		if (result == 0) return false;
+		return true;
+	}
+
+	bool AXVariable::ConfigurationValue::get()
+	{
+		_ax->SpsIdChanged();
+		static AX_EXEC_DATA execData;
+		int result = AxQueryVariable(_cName, &execData);
+		if (!result) throw gcnew AXVariableException("Variable or object was not found.");
+		result = AxGetConfValueFlag(&execData);
+		if (result == -1) throw gcnew AXVariableException("The variable data handle is invalid.");
+		if (result == 0) return false;
+		return true;
+	}
+
+	bool AXVariable::Parameter::get()
+	{
+		_ax->SpsIdChanged();
+		static AX_EXEC_DATA execData;
+		int result = AxQueryVariable(_cName, &execData);
+		if (!result) throw gcnew AXVariableException("Variable or object was not found.");
+		result = AxGetParameterFlag(&execData);
+		if (result == -1) throw gcnew AXVariableException("The variable data handle is invalid.");
+		if (result == 0) return false;
+		return true;
+	}
+
+	bool AXVariable::Remote::get()
+	{
+		_ax->SpsIdChanged();
+		static AX_EXEC_DATA execData;
+		int result = AxQueryVariable(_cName, &execData);
+		if (!result) throw gcnew AXVariableException("Variable or object was not found.");
+		result = AxGetRemoteFlag(&execData);
+		if (result == -1) throw gcnew AXVariableException("The variable data handle is invalid.");
+		if (result == 0) return false;
+		return true;
+	}
+
+	bool AXVariable::NotConnected::get()
+	{
+		_ax->SpsIdChanged();
+		static AX_EXEC_DATA execData;
+		int result = AxQueryVariable(_cName, &execData);
+		if (!result) throw gcnew AXVariableException("Variable or object was not found.");
+		result = AxGetNcFlag(&execData);
+		if (result == -1) throw gcnew AXVariableException("The variable data handle is invalid.");
+		if (result == 0) return false;
+		return true;
+	}
+
 	String^ AXVariable::ReferenceName::get()
 	{
 		_ax->SpsIdChanged();
@@ -34,16 +130,6 @@ namespace AutomationX
 		if (arrayLength == 0) throw gcnew AXVariableException("The variable data handle is invalid.");
 		AxFreeExecData(handle);
 		return arrayLength;
-	}
-
-	Int32 AXVariable::DecimalPoints::get()
-	{
-		_ax->SpsIdChanged();
-		if (Type != AXVariableType::axReal) throw gcnew AXVariableTypeException("Variable is not of type REAL.");
-		static AX_EXEC_DATA execData;
-		int result = AxQueryVariable(_cName, &execData);
-		if (!result) throw gcnew AXVariableException("Variable or object was not found.");
-		return AxGetDecPoint(&execData);
 	}
 
 	AXVariable::AXVariable(AXInstance^ instance, String^ name)
@@ -121,6 +207,7 @@ namespace AutomationX
 			if (_length == 0) _length = 1;
 			_isArray = _length > 1;
 			Clear();
+			GetAttributes();
 		}
 		for (UInt16 i = 0; i < _length; i++)
 		{
@@ -351,19 +438,19 @@ namespace AutomationX
 		Set(data, index);
 	}
 
-	Char AXVariable::GetShortInteger()
+	char AXVariable::GetShortInteger()
 	{
 		_ax->SpsIdChanged();
 		if (_type != AXVariableType::axShortInteger) throw gcnew AXVariableTypeException("Variable is not of type INT.");
 		if (_isArray) throw gcnew AXVariableTypeException("Variable is an array. Please specify the element index.");
 		Refresh((UInt16)0);
-		return (Char)_integerValues[0];
+		return (char)_integerValues[0];
 	}
 
-	void AXVariable::Set(Char value)
+	void AXVariable::Set(char value)
 	{
 		_ax->SpsIdChanged();
-		if (_type != AXVariableType::axShortInteger) throw gcnew AXVariableTypeException("Variable is not of type INT.");
+		if (_type != AXVariableType::axShortInteger) throw gcnew AXVariableTypeException("Variable is not of type SINT.");
 		if (_isArray) throw gcnew AXVariableTypeException("Variable is an array. Please specify the element index.");
 		struct tagAxVariant data;
 		data.ucVarType = (unsigned char)_type;
@@ -372,19 +459,19 @@ namespace AutomationX
 		Set(data, 0);
 	}
 
-	Char AXVariable::GetShortInteger(UInt16 index)
+	char AXVariable::GetShortInteger(UInt16 index)
 	{
 		_ax->SpsIdChanged();
-		if (_type != AXVariableType::axShortInteger) throw gcnew AXVariableTypeException("Variable is not of type INT.");
+		if (_type != AXVariableType::axShortInteger) throw gcnew AXVariableTypeException("Variable is not of type SINT.");
 		if (!_isArray) throw gcnew AXVariableTypeException("Variable is no array.");
 		Refresh((UInt16)index);
-		return (Char)_integerValues[index];
+		return (char)_integerValues[index];
 	}
 
-	void AXVariable::Set(UInt16 index, Char value)
+	void AXVariable::Set(UInt16 index, char value)
 	{
 		_ax->SpsIdChanged();
-		if (_type != AXVariableType::axShortInteger) throw gcnew AXVariableTypeException("Variable is not of type INT.");
+		if (_type != AXVariableType::axShortInteger) throw gcnew AXVariableTypeException("Variable is not of type SINT.");
 		if (!_isArray) throw gcnew AXVariableTypeException("Variable is no array.");
 		struct tagAxVariant data;
 		data.ucVarType = (unsigned char)_type;
@@ -396,7 +483,7 @@ namespace AutomationX
 	Int16 AXVariable::GetInteger()
 	{
 		_ax->SpsIdChanged();
-		if (_type != AXVariableType::axInteger) throw gcnew AXVariableTypeException("Variable is not of type INT.");
+		if (_type != AXVariableType::axInteger) throw gcnew AXVariableTypeException("Variable is not of type SINT.");
 		if (_isArray) throw gcnew AXVariableTypeException("Variable is an array. Please specify the element index.");
 		Refresh((UInt16)0);
 		return (Int16)_integerValues[0];
@@ -690,5 +777,19 @@ namespace AutomationX
 	void AXVariable::OnSpsIdChanged(AX^ sender)
 	{
 		Refresh();
+	}
+
+	void AXVariable::GetAttributes()
+	{
+		_ax->SpsIdChanged();
+		static AX_EXEC_DATA execData;
+		int result = AxQueryVariable(_cName, &execData);
+		if (!result) throw gcnew AXVariableException("Variable or object was not found.");
+		AX_ATTR attrs;
+		if (AxGetAttributes(&execData, &attrs) == -1) throw gcnew AXVariableException("The variable data handle is invalid.");
+		_decimalPoints = attrs.dec_point;
+		if (attrs.dim) _dimension = gcnew String(attrs.dim);
+		if (attrs.rem == 0) _global = false; else _global = true;
+		if (attrs.trend == 0) _trending = false; else _trending = true;
 	}
 }

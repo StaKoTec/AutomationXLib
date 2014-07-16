@@ -34,6 +34,11 @@ namespace AutomationX
 		String^ _name = "";
 		AXVariableType _type;
 		UInt16 _length = 1;
+		Int32 _decimalPoints = 0;
+		String^ _dimension = "";
+		bool _io = false;
+		bool _global = false;
+		bool _trending = false;
 
 		List<bool>^ _boolValues = nullptr;
 		List<Int64>^ _integerValues = nullptr;
@@ -43,6 +48,7 @@ namespace AutomationX
 		int GetRawType();
 		void Set(tagAxVariant& data, UInt16 index);
 		void OnSpsIdChanged(AX^ sender);
+		void GetAttributes();
 	public:
 		delegate void ValueChangedEventHandler(AXVariable^ sender);
 		delegate void ArrayValueChangedEventHandler(AXVariable^ sender, UInt16 index);
@@ -81,9 +87,43 @@ namespace AutomationX
 		property UInt16 Length { UInt16 get(); }
 
 		/// <summary>Gets the number of decimal places of a variable of type REAL.</summary>
-		/// <exception cref="AXVariableException">Thrown when variable was not found.</exception>
-		/// <exception cref="AXVariableTypeException">Thrown when variable is not of type REAL.</exception>
-		property Int32 DecimalPoints { Int32 get(); }
+		property Int32 DecimalPoints { Int32 get() { return _decimalPoints; } }
+
+		/// <summary>Gets the dimension of a variable.</summary>
+		property String^ Dimension { String^ get() { return _dimension; } }
+
+		/// <summary>Determine if the variable is an IO variable.</summary>
+		property bool IO { bool get() { return _io; } }
+
+		/// <summary>Determine if the not connected flag is set.</summary>
+		property bool NotConnected { bool get(); }
+
+		/// <summary>Determine if the variable is a global variable.</summary>
+		property bool Global { bool get() { return _global; } }
+
+		/// <summary>Determine if the trending flag is set.</summary>
+		property bool Trending { bool get() { return _trending; } }
+
+		/// <summary>Determine if the retentive flag is set.</summary>
+		property bool Retentive { bool get(); }
+
+		/// <summary>Determine if the constant flag is set.</summary>
+		property bool Constant { bool get(); }
+
+		/// <summary>Determine if the private flag is set.</summary>
+		property bool Private { bool get(); }
+
+		/// <summary>Determine if the local flag is set.</summary>
+		property bool Local { bool get(); }
+
+		/// <summary>Determine if the configuration value flag is set.</summary>
+		property bool ConfigurationValue { bool get(); }
+
+		/// <summary>Determine if the parameter flag is set.</summary>
+		property bool Parameter { bool get(); }
+
+		/// <summary>Determine if the remote flag is set.</summary>
+		property bool Remote { bool get(); }
 
 		/// <summary>Concstructor.</summary>
 		/// <param name="instance">The instance the variable belongs to.</param>
@@ -157,22 +197,22 @@ namespace AutomationX
 		/// <summary>Gets the value of a variable of type SINT.</summary>
 		/// <exception cref="AXVariableException">Thrown on handle errors.</exception>
 		/// <exception cref="AXVariableTypeException">Thrown when variable is not of type SINT.</exception>
-		Char GetShortInteger();
+		char GetShortInteger();
 
 		/// <summary>Sets the value of a variable of type SINT.</summary>
 		/// <exception cref="AXVariableException">Thrown on handle errors.</exception>
 		/// <exception cref="AXVariableTypeException">Thrown when variable is not of type SINT.</exception>
-		void Set(Char value);
+		void Set(char value);
 
 		/// <summary>Gets the value of an array element of type SINT.</summary>
 		/// <exception cref="AXVariableException">Thrown on handle errors.</exception>
 		/// <exception cref="AXVariableTypeException">Thrown when variable is not of type SINT.</exception>
-		Char GetShortInteger(UInt16 index);
+		char GetShortInteger(UInt16 index);
 
 		/// <summary>Sets the value of an array element of type SINT.</summary>
 		/// <exception cref="AXVariableException">Thrown on handle errors.</exception>
 		/// <exception cref="AXVariableTypeException">Thrown when variable is not of type SINT.</exception>
-		void Set(UInt16 index, Char value);
+		void Set(UInt16 index, char value);
 
 		/// <summary>Gets the value of a variable of type INT.</summary>
 		/// <exception cref="AXVariableException">Thrown on handle errors.</exception>

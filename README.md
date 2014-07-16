@@ -29,7 +29,7 @@ aXInstance2.OnError += aXInstance_OnError;
 ```
 void EnableVariableEvents()
 {
-	aXInstance1.EnableVariableEvents();
+	aXInstance1.VariableEvents = true;
 	aXInstance1.Get("STATE").OnValueChanged += OnValueChanged;
 	aXInstance1.Get("MY_ARRAY").OnArrayValueChanged += OnArrayValueChanged;
 }

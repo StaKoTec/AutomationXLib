@@ -28,6 +28,7 @@ namespace AutomationX
 		List<String^>^ _variableNames = gcnew List<String^>();
 		List<AXVariable^>^ _variableList = gcnew List<AXVariable^>();
 		Dictionary<String^, AXVariable^>^ _variables = gcnew Dictionary<String^, AXVariable^>();
+		bool _variableEvents = false;
 
 		void GetVariables();
 		void Worker(System::Object ^sender, System::Timers::ElapsedEventArgs ^e);
@@ -44,11 +45,20 @@ namespace AutomationX
 		property AX^ AutomationX { AX^ get() { return _ax; } }
 		property String^ Name { String^ get() { return _name; } }
 		property String^ Remark { String^ get(); }
+
+		/// <summary>Sets the aX status variable provided with the constructor.</summary>
+		/// <param name='value'>Text to set.</param>
 		property String^ Status { String^ get() { return _statusText; } void set(String^ value); }
+
+		/// <summary>Sets the aX alarm variable provided with the constructor.</summary>
+		/// <param name='value'>Text to set.</param>
 		property String^ Error { String^ get() { return _errorText; } void set(String^ value); }
 
 		/// <summary>Sets the worker threads polling interval in milliseconds. Only used when events are enabled.</summary>
 		property UInt32 PollingInterval { UInt32 get() { return _pollingInterval; } void set(UInt32 value) { _pollingInterval = value; } }
+
+		/// <summary>Set to true to enable checking variables for changes.</summary>
+		property bool VariableEvents { bool get(); void set(bool value); }
 
 		/// <summary>Returns a collection of all variables.</summary>
 		property array<AXVariable^>^ Variables { array<AXVariable^>^ get(); }
@@ -80,9 +90,6 @@ namespace AutomationX
 		/// <summary>Checks if a variable exists.</summary>
 		/// <returns>True when the variable name was found, otherwise false.</returns>
 		bool VariableExists(String^ variableName);
-
-		void EnableVariableEvents();
-		void DisableVariableEvents();
 	};
 }
 

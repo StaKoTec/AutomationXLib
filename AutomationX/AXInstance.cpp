@@ -14,8 +14,6 @@ namespace AutomationX
 		return value;
 	}
 
-	/// <summary>Sets the aX status variable provided with the constructor.</summary>
-	/// <param name='value'>Text to set.</param>
 	void AXInstance::Status::set(String^ value)
 	{
 		_ax->SpsIdChanged();
@@ -24,8 +22,6 @@ namespace AutomationX
 		_statusVariable->Set(value);
 	}
 
-	/// <summary>Sets the aX alarm variable provided with the constructor.</summary>
-	/// <param name='value'>Text to set.</param>
 	void AXInstance::Error::set(String^ value)
 	{
 		_ax->SpsIdChanged();
@@ -34,6 +30,32 @@ namespace AutomationX
 		_alarmVariable->Set(true);
 		if (_alarmTextVariable == nullptr) return;
 		_alarmTextVariable->Set(value);
+	}
+
+	bool AXInstance::VariableEvents::get()
+	{
+		return _variableEvents;
+	}
+
+	void AXInstance::VariableEvents::set(bool value)
+	{
+		if (value)
+		{
+			_variableEvents = true;
+			GetVariables();
+			if (_workerTimer) _workerTimer->Stop();
+			_stopWorkerTimer = false;
+			_workerTimer = gcnew Timers::Timer(PollingInterval);
+			_workerTimer->AutoReset = true;
+			_workerTimer->Elapsed += gcnew System::Timers::ElapsedEventHandler(this, &AXInstance::Worker);
+			_workerTimer->Start();
+		}
+		else
+		{
+			_variableEvents = false;
+			_stopWorkerTimer = true;
+			if (_workerTimer) _workerTimer->Stop();
+		}
 	}
 
 	array<AXVariable^>^ AXInstance::Variables::get()
@@ -81,19 +103,22 @@ namespace AutomationX
 	{
 		try
 		{
-			_statusVariable = Get(statusVariableName);
+			if(statusVariableName->Length > 0) _statusVariable = Get(statusVariableName);
 		}
 		catch (const AXVariableException^) { throw gcnew AXInstanceException("Could not get status variable.");	}
-		try
+		if (alarmVariableName->Length > 0)
 		{
-			_alarmVariable = Get(alarmVariableName);
+			try
+			{
+				_alarmVariable = Get(alarmVariableName);
+			}
+			catch (const AXVariableException^) { throw gcnew AXInstanceException("Could not get alarm variable."); }
+			try
+			{
+				_alarmTextVariable = Get(alarmVariableName + ".TEXT");
+			}
+			catch (const AXVariableException^) { throw gcnew AXInstanceException("Could not get alarm variable's \"TEXT\"."); }
 		}
-		catch (const AXVariableException^) { throw gcnew AXInstanceException("Could not get alarm variable."); }
-		try
-		{
-			_alarmTextVariable = Get(alarmVariableName + ".TEXT");
-		}
-		catch (const AXVariableException^) { throw gcnew AXInstanceException("Could not get alarm variable's \"TEXT\"."); }
 	}
 
 	AXInstance::~AXInstance()
@@ -195,25 +220,8 @@ namespace AutomationX
 		return true;
 	}
 
-	void AXInstance::EnableVariableEvents()
+	void AXInstance::OnSpsIdChanged(AX ^sender)
 	{
 		GetVariables();
-		if(_workerTimer) _workerTimer->Stop();
-		_stopWorkerTimer = false;
-		_workerTimer = gcnew Timers::Timer(PollingInterval);
-		_workerTimer->AutoReset = true;
-		_workerTimer->Elapsed += gcnew System::Timers::ElapsedEventHandler(this, &AXInstance::Worker);
-		_workerTimer->Start();
 	}
-
-	void AXInstance::DisableVariableEvents()
-	{
-		_stopWorkerTimer = true;
-		if (_workerTimer) _workerTimer->Stop();
-	}
-}
-
-void AutomationX::AXInstance::OnSpsIdChanged(AX ^sender)
-{
-	GetVariables();
 }
