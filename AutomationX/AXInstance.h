@@ -15,7 +15,7 @@ namespace AutomationX
 	private:
 		AX^ _ax;
 		ManagedTypeConverter _converter;
-		volatile UInt32 _pollingInterval = 5000;
+		volatile UInt32 _pollingInterval = 100;
 		volatile bool _stopWorkerTimer = false;
 		Timers::Timer^ _workerTimer;
 		String^ _name = "";
@@ -31,6 +31,7 @@ namespace AutomationX
 
 		void GetVariables();
 		void Worker(System::Object ^sender, System::Timers::ElapsedEventArgs ^e);
+		void OnSpsIdChanged(AX^ sender);
 	public:
 		delegate void StatusEventHandler(AXInstance^ sender, String^ statusText);
 		delegate void ErrorEventHandler(AXInstance^ sender, String^ errorText);

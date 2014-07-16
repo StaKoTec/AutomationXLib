@@ -7,7 +7,21 @@ namespace AutomationX
 {
 	ref class AXInstance;
 
-	public enum class AXVariableType { axBool = 2, axByte = 3, axInteger = 6, axLongInteger = 8, axUnsignedInteger = 7, axUnsignedLongInteger = 9, axReal = 10, axString = 13 };
+	public enum class AXVariableType
+	{
+		axBool = AX_BT_BOOL,
+		axByte = AX_BT_BYTE,
+		axShortInteger = AX_BT_SINT,
+		axInteger = AX_BT_INT,
+		axLongInteger = AX_BT_DINT,
+		axUnsignedShortInteger = AX_BT_USINT,
+		axUnsignedInteger = AX_BT_UINT,
+		axUnsignedLongInteger = AX_BT_UDINT,
+		axReal = AX_BT_REAL,
+		axLongReal = AX_BT_LREAL,
+		axString = AX_BT_STRING,
+		axAlarm = AX_BT_ALARM
+	};
 
 	public ref class AXVariable
 	{
@@ -23,11 +37,12 @@ namespace AutomationX
 
 		List<bool>^ _boolValues = nullptr;
 		List<Int64>^ _integerValues = nullptr;
-		List<Single>^ _realValues = nullptr;
+		List<Double>^ _realValues = nullptr;
 		List<String^>^ _stringValues = nullptr;
 
 		int GetRawType();
 		void Set(tagAxVariant& data, UInt16 index);
+		void OnSpsIdChanged(AX^ sender);
 	public:
 		delegate void ValueChangedEventHandler(AXVariable^ sender);
 		delegate void ArrayValueChangedEventHandler(AXVariable^ sender, UInt16 index);
@@ -139,6 +154,26 @@ namespace AutomationX
 		/// <exception cref="AXVariableTypeException">Thrown when variable is not of type BYTE.</exception>
 		void Set(UInt16 index, Byte value);
 
+		/// <summary>Gets the value of a variable of type SINT.</summary>
+		/// <exception cref="AXVariableException">Thrown on handle errors.</exception>
+		/// <exception cref="AXVariableTypeException">Thrown when variable is not of type SINT.</exception>
+		Char GetShortInteger();
+
+		/// <summary>Sets the value of a variable of type SINT.</summary>
+		/// <exception cref="AXVariableException">Thrown on handle errors.</exception>
+		/// <exception cref="AXVariableTypeException">Thrown when variable is not of type SINT.</exception>
+		void Set(Char value);
+
+		/// <summary>Gets the value of an array element of type SINT.</summary>
+		/// <exception cref="AXVariableException">Thrown on handle errors.</exception>
+		/// <exception cref="AXVariableTypeException">Thrown when variable is not of type SINT.</exception>
+		Char GetShortInteger(UInt16 index);
+
+		/// <summary>Sets the value of an array element of type SINT.</summary>
+		/// <exception cref="AXVariableException">Thrown on handle errors.</exception>
+		/// <exception cref="AXVariableTypeException">Thrown when variable is not of type SINT.</exception>
+		void Set(UInt16 index, Char value);
+
 		/// <summary>Gets the value of a variable of type INT.</summary>
 		/// <exception cref="AXVariableException">Thrown on handle errors.</exception>
 		/// <exception cref="AXVariableTypeException">Thrown when variable is not of type INT.</exception>
@@ -239,6 +274,26 @@ namespace AutomationX
 		/// <exception cref="AXVariableTypeException">Thrown when variable is not of type REAL.</exception>
 		void Set(UInt16 index, Single value);
 
+		/// <summary>Gets the value of a variable of type LREAL.</summary>
+		/// <exception cref="AXVariableException">Thrown on handle errors.</exception>
+		/// <exception cref="AXVariableTypeException">Thrown when variable is not of type LREAL.</exception>
+		Double GetLongReal();
+
+		/// <summary>Sets the value of a variable of type LREAL.</summary>
+		/// <exception cref="AXVariableException">Thrown on handle errors.</exception>
+		/// <exception cref="AXVariableTypeException">Thrown when variable is not of type LREAL.</exception>
+		void Set(Double value);
+
+		/// <summary>Gets the value of an array element of type LREAL.</summary>
+		/// <exception cref="AXVariableException">Thrown on handle errors.</exception>
+		/// <exception cref="AXVariableTypeException">Thrown when variable is not of type LREAL.</exception>
+		Double GetLongReal(UInt16 index);
+
+		/// <summary>Sets the value of an array element of type LREAL.</summary>
+		/// <exception cref="AXVariableException">Thrown on handle errors.</exception>
+		/// <exception cref="AXVariableTypeException">Thrown when variable is not of type LREAL.</exception>
+		void Set(UInt16 index, Double value);
+
 		/// <summary>Gets the value of a variable of type STRING.</summary>
 		/// <exception cref="AXVariableException">Thrown on handle errors.</exception>
 		/// <exception cref="AXVariableTypeException">Thrown when variable is not of type STRING.</exception>
@@ -258,6 +313,6 @@ namespace AutomationX
 		/// <exception cref="AXVariableException">Thrown on handle errors.</exception>
 		/// <exception cref="AXVariableTypeException">Thrown when variable is not of type STRING.</exception>
 		void Set(UInt16 index, String^ value);
-	};
+};
 
 }

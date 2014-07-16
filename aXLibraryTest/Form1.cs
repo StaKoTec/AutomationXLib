@@ -25,6 +25,7 @@ namespace aXLibraryTest
             {
                 _aX = new AX();
                 _aX.OnShutdown += _aX_OnShutdown;
+                _aX.OnSpsIdChanged += _aX_OnSpsIdChanged;
                 _aXInstance1 = new AXInstance(_aX, "Tannenbaum", "Status", "err");
                 _aXInstance2 = new AXInstance(_aX, "Tannenbaum2", "Status", "err");
                 _aXInstance1.OnStatus += _aXInstance_OnStatus;
@@ -37,6 +38,11 @@ namespace aXLibraryTest
                 MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
                 Environment.Exit(1);
             }
+        }
+
+        void _aX_OnSpsIdChanged(AX sender)
+        {
+            MessageBox.Show("SPS ID has changed.", "AX", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         void _aXInstance_OnError(AXInstance sender, string errorText)
@@ -63,9 +69,13 @@ namespace aXLibraryTest
         {
             try
             {
+                _aXInstance1.PollingInterval = 10;
                 _aXInstance1.EnableVariableEvents();
                 _aXInstance1.Get("STATE").OnValueChanged += OnValueChanged;
                 _aXInstance1.Get("aint").OnArrayValueChanged += OnArrayValueChanged;
+                _aXInstance1.Get("MyLReal").OnValueChanged += OnValueChanged;
+                _aXInstance1.Get("MyByte").OnValueChanged += OnValueChanged;
+                _aXInstance1.Get("MySInt").OnValueChanged += OnValueChanged;
             }
             catch (AXNotRunningException ex)
             {
@@ -102,6 +112,33 @@ namespace aXLibraryTest
                     "Value: " + sender.GetBool().ToString()
                 );
             }
+            else if (sender.Type == AXVariableType.axByte)
+            {
+                MessageBox.Show
+                (
+                    "Instance: " + sender.Instance.Name + "\r\n" +
+                    "Name: " + sender.Name + "\r\n" +
+                    "Value: " + sender.GetByte().ToString()
+                );
+            }
+            else if (sender.Type == AXVariableType.axShortInteger)
+            {
+                MessageBox.Show
+                (
+                    "Instance: " + sender.Instance.Name + "\r\n" +
+                    "Name: " + sender.Name + "\r\n" +
+                    "Value: " + sender.GetShortInteger().ToString()
+                );
+            }
+            else if (sender.Type == AXVariableType.axLongReal)
+            {
+                MessageBox.Show
+                (
+                    "Instance: " + sender.Instance.Name + "\r\n" +
+                    "Name: " + sender.Name + "\r\n" +
+                    "Value: " + sender.GetLongReal().ToString()
+                );
+            }
         }
 
         private void button2_Click(object sender, EventArgs e)
@@ -110,6 +147,9 @@ namespace aXLibraryTest
             {
                 MessageBox.Show(_aXInstance1.Get("STATE").GetBool().ToString());
                 MessageBox.Show(_aXInstance1.Get("aint").GetInteger(5).ToString());
+                MessageBox.Show(_aXInstance1.Get("MyLReal").GetLongReal().ToString());
+                MessageBox.Show(_aXInstance1.Get("MyByte").GetByte().ToString());
+                MessageBox.Show(((Int32)_aXInstance1.Get("MySInt").GetShortInteger()).ToString());
             }
             catch (AXNotRunningException ex)
             {

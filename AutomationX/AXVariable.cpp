@@ -6,6 +6,7 @@ namespace AutomationX
 {
 	String^ AXVariable::ReferenceName::get()
 	{
+		_ax->SpsIdChanged();
 		static AX_EXEC_DATA execData;
 		int result = AxQueryVariable(_cName, &execData);
 		if (!result) throw gcnew AXVariableException("Variable or object was not found.");
@@ -16,6 +17,7 @@ namespace AutomationX
 
 	String^ AXVariable::Remark::get()
 	{
+		_ax->SpsIdChanged();
 		void* handle = AxQueryExecDataEx(_cName);
 		if (!handle) throw gcnew AXVariableException("Could not get variable data handle.");
 		String^ value = gcnew String(AxGetRemark(handle));
@@ -25,6 +27,7 @@ namespace AutomationX
 
 	UInt16 AXVariable::Length::get()
 	{
+		_ax->SpsIdChanged();
 		void* handle = AxQueryExecDataEx(_cName);
 		if (!handle) throw gcnew AXVariableException("Could not get data handle.");
 		UInt16 arrayLength = AxGetArrayCnt(handle);
@@ -35,6 +38,7 @@ namespace AutomationX
 
 	Int32 AXVariable::DecimalPoints::get()
 	{
+		_ax->SpsIdChanged();
 		if (Type != AXVariableType::axReal) throw gcnew AXVariableTypeException("Variable is not of type REAL.");
 		static AX_EXEC_DATA execData;
 		int result = AxQueryVariable(_cName, &execData);
@@ -49,6 +53,7 @@ namespace AutomationX
 		_cName = _converter.GetCString(_instance->Name + "." + _name);
 		_ax = instance->AutomationX;
 		Refresh();
+		_ax->OnSpsIdChanged += gcnew AX::SpsIdChangedEventHandler(this, &AXVariable::OnSpsIdChanged);
 	}
 
 	AXVariable::~AXVariable()
@@ -58,6 +63,7 @@ namespace AutomationX
 
 	int AXVariable::GetRawType()
 	{
+		_ax->SpsIdChanged();
 		static AX_EXEC_DATA execData;
 		int result = AxQueryVariable(_cName, &execData);
 		if (!result) throw gcnew AXVariableException("Variable or object was not found.");
@@ -80,14 +86,14 @@ namespace AutomationX
 			_boolValues = gcnew List<bool>(_length);
 			for (int i = 0; i < _length; i++) _boolValues->Add(false);
 		}
-		else if (type == AX_BT_INT || type == AX_BT_DINT || type == AX_BT_UINT || type == AX_BT_UDINT)
+		else if (type == AX_BT_BYTE || type == AX_BT_SINT || type == AX_BT_INT || type == AX_BT_DINT || type == AX_BT_USINT || type == AX_BT_UINT || type == AX_BT_UDINT)
 		{
 			_integerValues = gcnew List<Int64>(_length);
 			for (int i = 0; i < _length; i++) _integerValues->Add(0);
 		}
-		else if (type == AX_BT_REAL)
+		else if (type == AX_BT_REAL || type == AX_BT_LREAL)
 		{
-			_realValues = gcnew List<Single>(_length);
+			_realValues = gcnew List<Double>(_length);
 			for (int i = 0; i < _length; i++) _realValues->Add(0);
 		}
 		else if (type == AX_BT_STRING)
@@ -129,6 +135,7 @@ namespace AutomationX
 
 	void AXVariable::Refresh(UInt16 index, bool raiseEvents)
 	{
+		_ax->SpsIdChanged();
 		if (index >= _length) throw gcnew AXArrayIndexOutOfRangeException("The index exceeds the array boundaries.");
 		void* handle = AxQueryExecDataEx(_cName);
 		if (!handle) throw gcnew AXVariableException("Could not get variable data handle.");
@@ -142,7 +149,7 @@ namespace AutomationX
 		bool valueChanged = false;
 		if (data.ucVarType == AX_BT_BOOL || data.ucVarType == AX_BT_ALARM)
 		{
-			_type = AXVariableType::axBool;
+			_type = (AXVariableType)data.ucVarType;
 #pragma warning (disable: 4800)
 			bool newValue = data.AXVAL.btBOOL;
 #pragma warning (default: 4800)
@@ -152,12 +159,21 @@ namespace AutomationX
 				valueChanged = true;
 			}
 		}
-		else if (data.ucVarType == AX_BT_BYTE)
+		else if (data.ucVarType == AX_BT_BYTE || data.ucVarType == AX_BT_USINT)
 		{
 			_type = (AXVariableType)data.ucVarType;
 			if (_integerValues[index] != data.AXVAL.btBYTE)
 			{
 				_integerValues[index] = data.AXVAL.btBYTE;
+				valueChanged = true;
+			}
+		}
+		else if (data.ucVarType == AX_BT_SINT)
+		{
+			_type = (AXVariableType)data.ucVarType;
+			if (_integerValues[index] != data.AXVAL.btSINT)
+			{
+				_integerValues[index] = data.AXVAL.btSINT;
 				valueChanged = true;
 			}
 		}
@@ -206,6 +222,15 @@ namespace AutomationX
 				valueChanged = true;
 			}
 		}
+		else if (data.ucVarType == AX_BT_LREAL)
+		{
+			_type = (AXVariableType)data.ucVarType;
+			if (_realValues[index] != data.AXVAL.btLREAL)
+			{
+				_realValues[index] = data.AXVAL.btLREAL;
+				valueChanged = true;
+			}
+		}
 		else if (data.ucVarType == AX_BT_STRING)
 		{
 			_type = (AXVariableType)data.ucVarType;
@@ -230,6 +255,7 @@ namespace AutomationX
 
 	void AXVariable::Set(tagAxVariant& data, UInt16 index)
 	{
+		_ax->SpsIdChanged();
 		void* handle = AxQueryExecDataEx(_cName);
 		if (!handle) throw (AXException^)(gcnew AXVariableException("Could not get variable data handle."));
 		int result = _isArray ? AxSetArray(handle, &data, index) : AxSet(handle, &data);
@@ -243,7 +269,8 @@ namespace AutomationX
 
 	bool AXVariable::GetBool()
 	{
-		if (_type != AXVariableType::axBool) throw gcnew AXVariableTypeException("Variable is not of type BOOL.");
+		_ax->SpsIdChanged();
+		if (_type != AXVariableType::axBool && _type != AXVariableType::axAlarm) throw gcnew AXVariableTypeException("Variable is not of type BOOL.");
 		if (_isArray) throw gcnew AXVariableTypeException("Variable is an array. Please specify the element index.");
 		Refresh((UInt16)0);
 		return _boolValues[0];
@@ -251,10 +278,11 @@ namespace AutomationX
 
 	void AXVariable::Set(bool value)
 	{
-		if (_type != AXVariableType::axBool) throw gcnew AXVariableTypeException("Variable is not of type BOOL.");
+		_ax->SpsIdChanged();
+		if (_type != AXVariableType::axBool && _type != AXVariableType::axAlarm) throw gcnew AXVariableTypeException("Variable is not of type BOOL.");
 		if (_isArray) throw gcnew AXVariableTypeException("Variable is an array. Please specify the element index.");
 		struct tagAxVariant data;
-		data.ucVarType = AX_BT_BOOL;
+		data.ucVarType = (unsigned char)_type;
 		data.AXVAL.btBOOL = value;
 		_boolValues[0] = value;
 		Set(data, 0);
@@ -262,7 +290,8 @@ namespace AutomationX
 
 	bool AXVariable::GetBool(UInt16 index)
 	{
-		if (_type != AXVariableType::axBool) throw gcnew AXVariableTypeException("Variable is not of type BOOL.");
+		_ax->SpsIdChanged();
+		if (_type != AXVariableType::axBool && _type != AXVariableType::axAlarm) throw gcnew AXVariableTypeException("Variable is not of type BOOL.");
 		if (!_isArray) throw gcnew AXVariableTypeException("Variable is no array.");
 		Refresh((UInt16)index);
 		return _boolValues[index];
@@ -270,10 +299,11 @@ namespace AutomationX
 
 	void AXVariable::Set(UInt16 index, bool value)
 	{
-		if (_type != AXVariableType::axBool) throw gcnew AXVariableTypeException("Variable is not of type BOOL.");
+		_ax->SpsIdChanged();
+		if (_type != AXVariableType::axBool && _type != AXVariableType::axAlarm) throw gcnew AXVariableTypeException("Variable is not of type BOOL.");
 		if (!_isArray) throw gcnew AXVariableTypeException("Variable is no array.");
 		struct tagAxVariant data;
-		data.ucVarType = AX_BT_BOOL;
+		data.ucVarType = (unsigned char)_type;
 		data.AXVAL.btBOOL = value;
 		_boolValues[index] = value;
 		Set(data, index);
@@ -281,7 +311,8 @@ namespace AutomationX
 
 	Byte AXVariable::GetByte()
 	{
-		if (_type != AXVariableType::axByte) throw gcnew AXVariableTypeException("Variable is not of type BYTE.");
+		_ax->SpsIdChanged();
+		if (_type != AXVariableType::axByte && _type != AXVariableType::axUnsignedShortInteger) throw gcnew AXVariableTypeException("Variable is not of type BYTE.");
 		if (_isArray) throw gcnew AXVariableTypeException("Variable is an array. Please specify the element index.");
 		Refresh((UInt16)0);
 		return (Byte)_integerValues[0];
@@ -289,10 +320,11 @@ namespace AutomationX
 
 	void AXVariable::Set(Byte value)
 	{
-		if (_type != AXVariableType::axByte) throw gcnew AXVariableTypeException("Variable is not of type BYTE.");
+		_ax->SpsIdChanged();
+		if (_type != AXVariableType::axByte && _type != AXVariableType::axUnsignedShortInteger) throw gcnew AXVariableTypeException("Variable is not of type BYTE.");
 		if (_isArray) throw gcnew AXVariableTypeException("Variable is an array. Please specify the element index.");
 		struct tagAxVariant data;
-		data.ucVarType = AX_BT_BYTE;
+		data.ucVarType = (unsigned char)_type;
 		data.AXVAL.btBYTE = value;
 		_integerValues[0] = value;
 		Set(data, 0);
@@ -300,7 +332,8 @@ namespace AutomationX
 
 	Byte AXVariable::GetByte(UInt16 index)
 	{
-		if (_type != AXVariableType::axByte) throw gcnew AXVariableTypeException("Variable is not of type BYTE.");
+		_ax->SpsIdChanged();
+		if (_type != AXVariableType::axByte && _type != AXVariableType::axUnsignedShortInteger) throw gcnew AXVariableTypeException("Variable is not of type BYTE.");
 		if (!_isArray) throw gcnew AXVariableTypeException("Variable is no array.");
 		Refresh((UInt16)index);
 		return (Byte)_integerValues[index];
@@ -308,17 +341,61 @@ namespace AutomationX
 
 	void AXVariable::Set(UInt16 index, Byte value)
 	{
-		if (_type != AXVariableType::axByte) throw gcnew AXVariableTypeException("Variable is not of type BYTE.");
+		_ax->SpsIdChanged();
+		if (_type != AXVariableType::axByte && _type != AXVariableType::axUnsignedShortInteger) throw gcnew AXVariableTypeException("Variable is not of type BYTE.");
 		if (!_isArray) throw gcnew AXVariableTypeException("Variable is no array.");
 		struct tagAxVariant data;
-		data.ucVarType = AX_BT_BYTE;
+		data.ucVarType = (unsigned char)_type;
 		data.AXVAL.btBYTE = value;
+		_integerValues[index] = value;
+		Set(data, index);
+	}
+
+	Char AXVariable::GetShortInteger()
+	{
+		_ax->SpsIdChanged();
+		if (_type != AXVariableType::axShortInteger) throw gcnew AXVariableTypeException("Variable is not of type INT.");
+		if (_isArray) throw gcnew AXVariableTypeException("Variable is an array. Please specify the element index.");
+		Refresh((UInt16)0);
+		return (Char)_integerValues[0];
+	}
+
+	void AXVariable::Set(Char value)
+	{
+		_ax->SpsIdChanged();
+		if (_type != AXVariableType::axShortInteger) throw gcnew AXVariableTypeException("Variable is not of type INT.");
+		if (_isArray) throw gcnew AXVariableTypeException("Variable is an array. Please specify the element index.");
+		struct tagAxVariant data;
+		data.ucVarType = (unsigned char)_type;
+		data.AXVAL.btSINT = value;
+		_integerValues[0] = value;
+		Set(data, 0);
+	}
+
+	Char AXVariable::GetShortInteger(UInt16 index)
+	{
+		_ax->SpsIdChanged();
+		if (_type != AXVariableType::axShortInteger) throw gcnew AXVariableTypeException("Variable is not of type INT.");
+		if (!_isArray) throw gcnew AXVariableTypeException("Variable is no array.");
+		Refresh((UInt16)index);
+		return (Char)_integerValues[index];
+	}
+
+	void AXVariable::Set(UInt16 index, Char value)
+	{
+		_ax->SpsIdChanged();
+		if (_type != AXVariableType::axShortInteger) throw gcnew AXVariableTypeException("Variable is not of type INT.");
+		if (!_isArray) throw gcnew AXVariableTypeException("Variable is no array.");
+		struct tagAxVariant data;
+		data.ucVarType = (unsigned char)_type;
+		data.AXVAL.btSINT = value;
 		_integerValues[index] = value;
 		Set(data, index);
 	}
 
 	Int16 AXVariable::GetInteger()
 	{
+		_ax->SpsIdChanged();
 		if (_type != AXVariableType::axInteger) throw gcnew AXVariableTypeException("Variable is not of type INT.");
 		if (_isArray) throw gcnew AXVariableTypeException("Variable is an array. Please specify the element index.");
 		Refresh((UInt16)0);
@@ -327,10 +404,11 @@ namespace AutomationX
 
 	void AXVariable::Set(Int16 value)
 	{
+		_ax->SpsIdChanged();
 		if (_type != AXVariableType::axInteger) throw gcnew AXVariableTypeException("Variable is not of type INT.");
 		if (_isArray) throw gcnew AXVariableTypeException("Variable is an array. Please specify the element index.");
 		struct tagAxVariant data;
-		data.ucVarType = AX_BT_INT;
+		data.ucVarType = (unsigned char)_type;
 		data.AXVAL.btINT = value;
 		_integerValues[0] = value;
 		Set(data, 0);
@@ -338,6 +416,7 @@ namespace AutomationX
 
 	Int16 AXVariable::GetInteger(UInt16 index)
 	{
+		_ax->SpsIdChanged();
 		if (_type != AXVariableType::axInteger) throw gcnew AXVariableTypeException("Variable is not of type INT.");
 		if (!_isArray) throw gcnew AXVariableTypeException("Variable is no array.");
 		Refresh((UInt16)index);
@@ -346,10 +425,11 @@ namespace AutomationX
 
 	void AXVariable::Set(UInt16 index, Int16 value)
 	{
+		_ax->SpsIdChanged();
 		if (_type != AXVariableType::axInteger) throw gcnew AXVariableTypeException("Variable is not of type INT.");
 		if (!_isArray) throw gcnew AXVariableTypeException("Variable is no array.");
 		struct tagAxVariant data;
-		data.ucVarType = AX_BT_INT;
+		data.ucVarType = (unsigned char)_type;
 		data.AXVAL.btINT = value;
 		_integerValues[index] = value;
 		Set(data, index);
@@ -357,6 +437,7 @@ namespace AutomationX
 
 	Int32 AXVariable::GetLongInteger()
 	{
+		_ax->SpsIdChanged();
 		if (_type != AXVariableType::axLongInteger) throw gcnew AXVariableTypeException("Variable is not of type DINT.");
 		if (_isArray) throw gcnew AXVariableTypeException("Variable is an array. Please specify the element index.");
 		Refresh((UInt16)0);
@@ -365,10 +446,11 @@ namespace AutomationX
 
 	void AXVariable::Set(Int32 value)
 	{
+		_ax->SpsIdChanged();
 		if (_type != AXVariableType::axLongInteger) throw gcnew AXVariableTypeException("Variable is not of type DINT.");
 		if (_isArray) throw gcnew AXVariableTypeException("Variable is an array. Please specify the element index.");
 		struct tagAxVariant data;
-		data.ucVarType = AX_BT_DINT;
+		data.ucVarType = (unsigned char)_type;
 		data.AXVAL.btDINT = value;
 		_integerValues[0] = value;
 		Set(data, 0);
@@ -376,6 +458,7 @@ namespace AutomationX
 
 	Int32 AXVariable::GetLongInteger(UInt16 index)
 	{
+		_ax->SpsIdChanged();
 		if (_type != AXVariableType::axLongInteger) throw gcnew AXVariableTypeException("Variable is not of type DINT.");
 		if (!_isArray) throw gcnew AXVariableTypeException("Variable is no array.");
 		Refresh((UInt16)index);
@@ -384,10 +467,11 @@ namespace AutomationX
 
 	void AXVariable::Set(UInt16 index, Int32 value)
 	{
+		_ax->SpsIdChanged();
 		if (_type != AXVariableType::axLongInteger) throw gcnew AXVariableTypeException("Variable is not of type DINT.");
 		if (!_isArray) throw gcnew AXVariableTypeException("Variable is no array.");
 		struct tagAxVariant data;
-		data.ucVarType = AX_BT_DINT;
+		data.ucVarType = (unsigned char)_type;
 		data.AXVAL.btDINT = value;
 		_integerValues[index] = value;
 		Set(data, index);
@@ -395,6 +479,7 @@ namespace AutomationX
 
 	UInt16 AXVariable::GetUnsignedInteger()
 	{
+		_ax->SpsIdChanged();
 		if (_type != AXVariableType::axUnsignedInteger) throw gcnew AXVariableTypeException("Variable is not of type UINT.");
 		if (_isArray) throw gcnew AXVariableTypeException("Variable is an array. Please specify the element index.");
 		Refresh((UInt16)0);
@@ -403,10 +488,11 @@ namespace AutomationX
 
 	void AXVariable::Set(UInt16 value)
 	{
+		_ax->SpsIdChanged();
 		if (_type != AXVariableType::axUnsignedInteger) throw gcnew AXVariableTypeException("Variable is not of type UINT.");
 		if (_isArray) throw gcnew AXVariableTypeException("Variable is an array. Please specify the element index.");
 		struct tagAxVariant data;
-		data.ucVarType = AX_BT_UINT;
+		data.ucVarType = (unsigned char)_type;
 		data.AXVAL.btUINT = value;
 		_integerValues[0] = value;
 		Set(data, 0);
@@ -414,6 +500,7 @@ namespace AutomationX
 
 	UInt16 AXVariable::GetUnsignedInteger(UInt16 index)
 	{
+		_ax->SpsIdChanged();
 		if (_type != AXVariableType::axUnsignedInteger) throw gcnew AXVariableTypeException("Variable is not of type UINT.");
 		if (!_isArray) throw gcnew AXVariableTypeException("Variable is no array.");
 		Refresh((UInt16)index);
@@ -422,10 +509,11 @@ namespace AutomationX
 
 	void AXVariable::Set(UInt16 index, UInt16 value)
 	{
+		_ax->SpsIdChanged();
 		if (_type != AXVariableType::axUnsignedInteger) throw gcnew AXVariableTypeException("Variable is not of type UINT.");
 		if (!_isArray) throw gcnew AXVariableTypeException("Variable is no array.");
 		struct tagAxVariant data;
-		data.ucVarType = AX_BT_UINT;
+		data.ucVarType = (unsigned char)_type;
 		data.AXVAL.btUINT = value;
 		_integerValues[index] = value;
 		Set(data, index);
@@ -433,6 +521,7 @@ namespace AutomationX
 
 	UInt32 AXVariable::GetUnsignedLongInteger()
 	{
+		_ax->SpsIdChanged();
 		if (_type != AXVariableType::axUnsignedLongInteger) throw gcnew AXVariableTypeException("Variable is not of type UDINT.");
 		if (_isArray) throw gcnew AXVariableTypeException("Variable is an array. Please specify the element index.");
 		Refresh((UInt16)0);
@@ -441,10 +530,11 @@ namespace AutomationX
 
 	void AXVariable::Set(UInt32 value)
 	{
+		_ax->SpsIdChanged();
 		if (_type != AXVariableType::axUnsignedLongInteger) throw gcnew AXVariableTypeException("Variable is not of type UDINT.");
 		if (_isArray) throw gcnew AXVariableTypeException("Variable is an array. Please specify the element index.");
 		struct tagAxVariant data;
-		data.ucVarType = AX_BT_UDINT;
+		data.ucVarType = (unsigned char)_type;
 		data.AXVAL.btUDINT = value;
 		_integerValues[0] = value;
 		Set(data, 0);
@@ -452,6 +542,7 @@ namespace AutomationX
 
 	UInt32 AXVariable::GetUnsignedLongInteger(UInt16 index)
 	{
+		_ax->SpsIdChanged();
 		if (_type != AXVariableType::axUnsignedLongInteger) throw gcnew AXVariableTypeException("Variable is not of type UDINT.");
 		if (!_isArray) throw gcnew AXVariableTypeException("Variable is no array.");
 		Refresh((UInt16)index);
@@ -460,10 +551,11 @@ namespace AutomationX
 
 	void AXVariable::Set(UInt16 index, UInt32 value)
 	{
+		_ax->SpsIdChanged();
 		if (_type != AXVariableType::axUnsignedLongInteger) throw gcnew AXVariableTypeException("Variable is not of type UDINT.");
 		if (!_isArray) throw gcnew AXVariableTypeException("Variable is no array.");
 		struct tagAxVariant data;
-		data.ucVarType = AX_BT_UDINT;
+		data.ucVarType = (unsigned char)_type;
 		data.AXVAL.btUDINT = value;
 		_integerValues[index] = value;
 		Set(data, index);
@@ -471,18 +563,20 @@ namespace AutomationX
 
 	Single AXVariable::GetReal()
 	{
+		_ax->SpsIdChanged();
 		if (_type != AXVariableType::axReal) throw gcnew AXVariableTypeException("Variable is not of type REAL.");
 		if (_isArray) throw gcnew AXVariableTypeException("Variable is an array. Please specify the element index.");
 		Refresh((UInt16)0);
-		return _realValues[0];
+		return (Single)_realValues[0];
 	}
 
 	void AXVariable::Set(Single value)
 	{
+		_ax->SpsIdChanged();
 		if (_type != AXVariableType::axReal) throw gcnew AXVariableTypeException("Variable is not of type REAL.");
 		if (_isArray) throw gcnew AXVariableTypeException("Variable is an array. Please specify the element index.");
 		struct tagAxVariant data;
-		data.ucVarType = AX_BT_REAL;
+		data.ucVarType = (unsigned char)_type;
 		data.AXVAL.btREAL = value;
 		_realValues[0] = value;
 		Set(data, 0);
@@ -490,25 +584,70 @@ namespace AutomationX
 
 	Single AXVariable::GetReal(UInt16 index)
 	{
+		_ax->SpsIdChanged();
 		if (_type != AXVariableType::axReal) throw gcnew AXVariableTypeException("Variable is not of type REAL.");
+		if (!_isArray) throw gcnew AXVariableTypeException("Variable is no array.");
+		Refresh((UInt16)index);
+		return (Single)_realValues[index];
+	}
+
+	void AXVariable::Set(UInt16 index, Single value)
+	{
+		_ax->SpsIdChanged();
+		if (_type != AXVariableType::axReal) throw gcnew AXVariableTypeException("Variable is not of type REAL.");
+		if (!_isArray) throw gcnew AXVariableTypeException("Variable is no array.");
+		struct tagAxVariant data;
+		data.ucVarType = (unsigned char)_type;
+		data.AXVAL.btREAL = value;
+		_realValues[index] = value;
+		Set(data, index);
+	}
+
+	Double AXVariable::GetLongReal()
+	{
+		_ax->SpsIdChanged();
+		if (_type != AXVariableType::axLongReal) throw gcnew AXVariableTypeException("Variable is not of type REAL.");
+		if (_isArray) throw gcnew AXVariableTypeException("Variable is an array. Please specify the element index.");
+		Refresh((UInt16)0);
+		return _realValues[0];
+	}
+
+	void AXVariable::Set(Double value)
+	{
+		_ax->SpsIdChanged();
+		if (_type != AXVariableType::axLongReal) throw gcnew AXVariableTypeException("Variable is not of type REAL.");
+		if (_isArray) throw gcnew AXVariableTypeException("Variable is an array. Please specify the element index.");
+		struct tagAxVariant data;
+		data.ucVarType = (unsigned char)_type;
+		data.AXVAL.btLREAL = value;
+		_realValues[0] = value;
+		Set(data, 0);
+	}
+
+	Double AXVariable::GetLongReal(UInt16 index)
+	{
+		_ax->SpsIdChanged();
+		if (_type != AXVariableType::axLongReal) throw gcnew AXVariableTypeException("Variable is not of type REAL.");
 		if (!_isArray) throw gcnew AXVariableTypeException("Variable is no array.");
 		Refresh((UInt16)index);
 		return _realValues[index];
 	}
 
-	void AXVariable::Set(UInt16 index, Single value)
+	void AXVariable::Set(UInt16 index, Double value)
 	{
-		if (_type != AXVariableType::axReal) throw gcnew AXVariableTypeException("Variable is not of type REAL.");
+		_ax->SpsIdChanged();
+		if (_type != AXVariableType::axLongReal) throw gcnew AXVariableTypeException("Variable is not of type REAL.");
 		if (!_isArray) throw gcnew AXVariableTypeException("Variable is no array.");
 		struct tagAxVariant data;
-		data.ucVarType = AX_BT_REAL;
-		data.AXVAL.btREAL = value;
+		data.ucVarType = (unsigned char)_type;
+		data.AXVAL.btLREAL = value;
 		_realValues[index] = value;
 		Set(data, index);
 	}
 
 	String^ AXVariable::GetString()
 	{
+		_ax->SpsIdChanged();
 		if (_type != AXVariableType::axString) throw gcnew AXVariableTypeException("Variable is not of type STRING.");
 		if (_isArray) throw gcnew AXVariableTypeException("Variable is an array. Please specify the element index.");
 		Refresh((UInt16)0);
@@ -517,10 +656,11 @@ namespace AutomationX
 
 	void AXVariable::Set(String^ value)
 	{
+		_ax->SpsIdChanged();
 		if (_type != AXVariableType::axString) throw gcnew AXVariableTypeException("Variable is not of type STRING.");
 		if (_isArray) throw gcnew AXVariableTypeException("Variable is an array. Please specify the element index.");
 		struct tagAxVariant data;
-		data.ucVarType = AX_BT_STRING;
+		data.ucVarType = (unsigned char)_type;
 		strcpy_s(data.AXVAL.btSTRING, _converter.GetString(value).c_str());
 		_stringValues[0] = value;
 		Set(data, 0);
@@ -528,6 +668,7 @@ namespace AutomationX
 
 	String^ AXVariable::GetString(UInt16 index)
 	{
+		_ax->SpsIdChanged();
 		if (_type != AXVariableType::axString) throw gcnew AXVariableTypeException("Variable is not of type STRING.");
 		if (!_isArray) throw gcnew AXVariableTypeException("Variable is no array.");
 		Refresh((UInt16)index);
@@ -536,12 +677,18 @@ namespace AutomationX
 
 	void AXVariable::Set(UInt16 index, String^ value)
 	{
+		_ax->SpsIdChanged();
 		if (_type != AXVariableType::axString) throw gcnew AXVariableTypeException("Variable is not of type STRING.");
 		if (!_isArray) throw gcnew AXVariableTypeException("Variable is no array.");
 		struct tagAxVariant data;
-		data.ucVarType = AX_BT_STRING;
+		data.ucVarType = (unsigned char)_type;
 		strcpy_s(data.AXVAL.btSTRING, _converter.GetString(value).c_str());
 		_stringValues[index] = value;
 		Set(data, index);
+	}
+
+	void AXVariable::OnSpsIdChanged(AX^ sender)
+	{
+		Refresh();
 	}
 }

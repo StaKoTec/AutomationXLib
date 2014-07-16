@@ -5,6 +5,7 @@ namespace AutomationX
 {
 	String^ AXInstance::Remark::get()
 	{
+		_ax->SpsIdChanged();
 		char* cName = _converter.GetCString(_name);
 		void* handle = AxQueryInstance(cName);
 		Marshal::FreeHGlobal(IntPtr((void*)cName)); //Always free memory!
@@ -17,6 +18,7 @@ namespace AutomationX
 	/// <param name='value'>Text to set.</param>
 	void AXInstance::Status::set(String^ value)
 	{
+		_ax->SpsIdChanged();
 		OnStatus(this, value);
 		if (_statusVariable == nullptr) return;
 		_statusVariable->Set(value);
@@ -26,6 +28,7 @@ namespace AutomationX
 	/// <param name='value'>Text to set.</param>
 	void AXInstance::Error::set(String^ value)
 	{
+		_ax->SpsIdChanged();
 		OnError(this, value);
 		if (_alarmVariable == nullptr) return;
 		_alarmVariable->Set(true);
@@ -35,6 +38,7 @@ namespace AutomationX
 
 	array<AXVariable^>^ AXInstance::Variables::get()
 	{
+		_ax->SpsIdChanged();
 		if (_variableList->Count == 0) GetVariables();
 
 		array<AXVariable^>^ variables = nullptr;
@@ -70,6 +74,7 @@ namespace AutomationX
 		void* handle = AxQueryInstance(cName);
 		Marshal::FreeHGlobal(IntPtr((void*)cName)); //Always free memory!
 		if (!handle) throw (AXException^)(gcnew AXInstanceException("Could not get instance handle."));
+		_ax->OnSpsIdChanged += gcnew AX::SpsIdChangedEventHandler(this, &AXInstance::OnSpsIdChanged);
 	}
 
 	AXInstance::AXInstance(AX^ ax, String^ name, String^ statusVariableName, String^ alarmVariableName) : AXInstance(ax, name)
@@ -102,6 +107,7 @@ namespace AutomationX
 		time = DateTime::Now;
 		try
 		{
+			_ax->SpsIdChanged();
 			if (_variableListMutex.WaitOne(1000))
 			{
 				for (int i = 0; i < _variableList->Count; i++)
@@ -135,7 +141,7 @@ namespace AutomationX
 				void* handle = AxQueryInstance(cName);
 				Marshal::FreeHGlobal(IntPtr((void*)cName)); //Always free memory!
 				if (!handle) throw gcnew AXInstanceException("Could not get instance handle.");
-
+				//Don't call _ax->SpsIdChanged here as it causes a call to GetVariables again!
 				AX_VAR_DSC data = 0;
 				while (data = AxVarDscFromInstance(handle, data))
 				{
@@ -163,6 +169,7 @@ namespace AutomationX
 
 	AXVariable^ AXInstance::Get(String^ variableName)
 	{
+		_ax->SpsIdChanged();
 		if (_variables->Count == 0) GetVariables();
 		if (_variables->ContainsKey(variableName)) return _variables[variableName];
 		if (variableName->IndexOf('.') > -1)
@@ -179,6 +186,7 @@ namespace AutomationX
 
 	bool AXInstance::VariableExists(String^ variableName)
 	{
+		_ax->SpsIdChanged();
 		char* cName = _converter.GetCString(_name + "." + variableName);
 		void* handle = AxQueryExecDataEx(cName);
 		Marshal::FreeHGlobal(IntPtr((void*)cName)); //Always free memory!
@@ -203,4 +211,9 @@ namespace AutomationX
 		_stopWorkerTimer = true;
 		if (_workerTimer) _workerTimer->Stop();
 	}
+}
+
+void AutomationX::AXInstance::OnSpsIdChanged(AX ^sender)
+{
+	GetVariables();
 }

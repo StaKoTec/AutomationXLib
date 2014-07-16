@@ -13,13 +13,18 @@ namespace AutomationX
 	private:
 		ManagedTypeConverter _converter;
 		Timers::Timer^ _workerTimer;
+		int* _spsId = nullptr;
 
 		void OnWorkerTimerElapsed(System::Object ^sender, System::Timers::ElapsedEventArgs ^e);
 	public:
 		delegate void ShutdownEventHandler(AX^ sender);
+		delegate void SpsIdChangedEventHandler(AX^ sender);
 
 		/// <summary>Fired when aX is shutting down.</summary>
 		event ShutdownEventHandler^ OnShutdown;
+
+		/// <summary>Fired when the SPS ID has changed.</summary>
+		event SpsIdChangedEventHandler^ OnSpsIdChanged;
 
 		/// <summary>Checks if aX is running and if the local computer is running as the master of a redundant master slave server configuration.</summary>
 		/// <returns>true when aX is running, otherwise false.</returns>
@@ -27,6 +32,8 @@ namespace AutomationX
 
 		/// <summary>Constructor</summary>
 		AX();
+
+		virtual ~AX();
 		
 		/// <summary>Checks if aX is running and throws AXNotRunningException if not.</summary>
 		/// <exception cref="AXNotRunningException">Thrown when aX is not running.</exception>
@@ -37,5 +44,9 @@ namespace AutomationX
 
 		/// <summary>Returns all instance names of the specified class.</summary>
 		System::Collections::Generic::List<String^>^ GetInstanceNames(String^ className);
+
+		/// <summary>Checks if the SPS ID has changed since the last call.</summary>
+		/// <returns>"true", when the SPS ID has changed, otherwise false.</returns>
+		bool SpsIdChanged(); //TODO: Somehow handle sps id changes
 	};
 }
