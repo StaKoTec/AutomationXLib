@@ -14,6 +14,20 @@ namespace AutomationX
 		return value;
 	}
 
+	/*void AXInstance::Remark::set(String^ value)
+	{
+		_ax->SpsIdChanged();
+		char* cName = _converter.GetCString(_name);
+		void* handle = AxQueryInstance(cName);
+		Marshal::FreeHGlobal(IntPtr((void*)cName)); //Always free memory!
+		if (!handle) throw gcnew AXVariableException("Could not get instance handle.");
+		std::string temp = _converter.GetString(value);
+		char* remark = new char[temp.size() + 1];
+		strcpy_s(remark, temp.size() + 1, temp.c_str());
+		if (!AxSetInstanceRemark(handle, remark)) throw gcnew AXVariableException("Could not set remark.");
+		delete[] remark;
+	}*/
+
 	void AXInstance::Status::set(String^ value)
 	{
 		_ax->SpsIdChanged();

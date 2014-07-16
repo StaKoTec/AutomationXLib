@@ -111,6 +111,17 @@ namespace AutomationX
 		return gcnew String(reference);
 	}
 
+	AXVariableDeclaration AXVariable::Declaration::get()
+	{
+		_ax->SpsIdChanged();
+		static AX_EXEC_DATA execData;
+		int result = AxQueryVariable(_cName, &execData);
+		if (!result) throw gcnew AXVariableException("Variable or object was not found.");
+		int declaration = AxGetVarDeclaration(&execData);
+		if (declaration == -1) throw gcnew AXVariableException("The data handle is invalid.");
+		return (AXVariableDeclaration)declaration;
+	}
+
 	String^ AXVariable::Remark::get()
 	{
 		_ax->SpsIdChanged();
@@ -120,6 +131,23 @@ namespace AutomationX
 		AxFreeExecData(handle);
 		return value;
 	}
+
+	/*void AXVariable::Remark::set(String^ value)
+	{
+		_ax->SpsIdChanged();
+		static AX_EXEC_DATA execData;
+		int result = AxQueryVariable(_cName, &execData);
+		if (!result) throw gcnew AXVariableException("Variable or object was not found.");
+		std::string temp = _converter.GetString(value);
+		char* remark = new char[temp.size() + 1];
+		strcpy_s(remark, temp.size() + 1, temp.c_str());
+		if (!AxSetRemark(&execData, remark))
+		{
+			delete[] remark;
+			throw gcnew AXVariableException("The variable was not found or the name was found but not a variable type.");
+		}
+		delete[] remark;
+	}*/
 
 	UInt16 AXVariable::Length::get()
 	{

@@ -23,6 +23,16 @@ namespace AutomationX
 		axAlarm = AX_BT_ALARM
 	};
 
+	public enum class AXVariableDeclaration
+	{
+		axVar = 0,
+		axVarInput = 1,
+		axVarOutput = 2,
+		axVarInputOutput = 3,
+		axVarExternal = 4,
+		axVarGlobal = 5
+	};
+
 	public ref class AXVariable
 	{
 	private:
@@ -74,7 +84,11 @@ namespace AutomationX
 		/// <exception cref="AXVariableException">Thrown on handle errors.</exception>
 		property String^ ReferenceName { String^ get(); }
 
-		/// <summary>Returns the remark of the variable</summary>
+		/// <summary>Returns the declaration of the variable (INPUT, OUTPUT, EXTERNAL, ...).</summary>
+		/// <exception cref="AXVariableException">Thrown on handle errors.</exception>
+		property AXVariableDeclaration Declaration { AXVariableDeclaration get(); }
+
+		/// <summary>Returns or sets the remark of the variable</summary>
 		/// <exception cref="AXVariableException">Thrown on handle errors.</exception>
 		property String^ Remark { String^ get(); }
 
