@@ -84,7 +84,7 @@ namespace AutomationX
 		/// <exception cref="AXVariableException">Thrown on handle errors.</exception>
 		property String^ ReferenceName { String^ get(); }
 
-		/// <summary>Returns the declaration of the variable (INPUT, OUTPUT, EXTERNAL, ...).</summary>
+		/// <summary>Returns the declaration of the variable (VAR, VAR_INPUT, VAR_OUTPUT, VAR_IN_OUT, VAR_EXTERNAL or VAR_GLOBAL).</summary>
 		/// <exception cref="AXVariableException">Thrown on handle errors.</exception>
 		property AXVariableDeclaration Declaration { AXVariableDeclaration get(); }
 

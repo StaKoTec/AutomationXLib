@@ -35,6 +35,14 @@ namespace AutomationX
 	{
 	}
 
+	AXVariableReadOnlyException::AXVariableReadOnlyException() : AXVariableException()
+	{
+	}
+
+	AXVariableReadOnlyException::AXVariableReadOnlyException(String^ message) : AXVariableException(message)
+	{
+	}
+
 	AXVariableTypeException::AXVariableTypeException() : AXVariableException()
 	{
 	}

@@ -53,22 +53,32 @@ namespace AutomationX
 
 	void AXInstance::VariableEvents::set(bool value)
 	{
-		if (value)
+		try
 		{
-			_variableEvents = true;
-			GetVariables();
-			if (_workerTimer) _workerTimer->Stop();
-			_stopWorkerTimer = false;
-			_workerTimer = gcnew Timers::Timer(PollingInterval);
-			_workerTimer->AutoReset = true;
-			_workerTimer->Elapsed += gcnew System::Timers::ElapsedEventHandler(this, &AXInstance::Worker);
-			_workerTimer->Start();
+			_workerTimerMutex.WaitOne();
+			if (value)
+			{
+				_variableEvents = true;
+				GetVariables();
+				if (_workerTimer) _workerTimer->Stop();
+				_stopWorkerTimer = false;
+				_workerTimer = gcnew Timers::Timer(PollingInterval);
+				_workerTimer->AutoReset = true;
+				_workerTimer->Elapsed += gcnew System::Timers::ElapsedEventHandler(this, &AXInstance::Worker);
+				_workerTimer->Start();
+			}
+			else
+			{
+				_variableEvents = false;
+				_stopWorkerTimer = true;
+				if (_workerTimer) _workerTimer->Stop();
+			}
+			_workerTimerMutex.ReleaseMutex();
 		}
-		else
+		catch (const Exception^ ex)
 		{
-			_variableEvents = false;
-			_stopWorkerTimer = true;
-			if (_workerTimer) _workerTimer->Stop();
+			_workerTimerMutex.ReleaseMutex();
+			throw ex;
 		}
 	}
 
@@ -141,31 +151,41 @@ namespace AutomationX
 
 	void AXInstance::Worker(System::Object ^sender, System::Timers::ElapsedEventArgs ^e)
 	{
-		DateTime time;
-		Int32 timeToSleep = 0;
-		time = DateTime::Now;
 		try
 		{
-			_ax->SpsIdChanged();
-			if (_variableListMutex.WaitOne(1000))
+			_workerTimerMutex.WaitOne();
+			DateTime time;
+			Int32 timeToSleep = 0;
+			time = DateTime::Now;
+			try
 			{
-				for (int i = 0; i < _variableList->Count; i++)
+				_ax->SpsIdChanged();
+				if (_variableListMutex.WaitOne(1000))
 				{
-					_variableList[i]->Refresh(true);
+					for (int i = 0; i < _variableList->Count; i++)
+					{
+						_variableList[i]->Refresh(true);
+					}
+					_variableListMutex.ReleaseMutex();
 				}
-				_variableListMutex.ReleaseMutex();
 			}
+			catch (const Exception^ ex)
+			{
+				_variableListMutex.ReleaseMutex();
+				throw ex;
+			}
+
+			timeToSleep = _pollingInterval - DateTime::Now.Subtract(time).Milliseconds;
+			if (timeToSleep < 10) timeToSleep = 10;
+			_workerTimer->Interval = timeToSleep;
+			if (!_stopWorkerTimer) _workerTimer->Start();
+			_workerTimerMutex.ReleaseMutex();
 		}
 		catch (const Exception^ ex)
 		{
-			_variableListMutex.ReleaseMutex();
+			_workerTimerMutex.ReleaseMutex();
 			throw ex;
 		}
-
-		timeToSleep = _pollingInterval - DateTime::Now.Subtract(time).Milliseconds;
-		if (timeToSleep < 10) timeToSleep = 10;
-		_workerTimer->Interval = timeToSleep;
-		if(!_stopWorkerTimer) _workerTimer->Start();
 	}
 
 	void AXInstance::GetVariables()
@@ -174,7 +194,6 @@ namespace AutomationX
 		{
 			if (_variableListMutex.WaitOne(10000))
 			{
-				_variables->Clear();
 				_variableList->Clear();
 				char* cName = _converter.GetCString(_name);
 				void* handle = AxQueryInstance(cName);
@@ -187,14 +206,42 @@ namespace AutomationX
 					String^ name = gcnew String(AxGetNameFromVarDSC(data));
 					if (name->Length == 0) continue;
 					AXVariable^ variable;
-					try
+					if (_variables->ContainsKey(name))
 					{
-						variable = gcnew AXVariable(this, name);
+						variable = _variables[name];
 					}
-					catch (const AXVariableTypeException^) { continue; }
-					_variables->Add(name, variable);
+					else
+					{
+						try
+						{
+							variable = gcnew AXVariable(this, name);
+						}
+						catch (const AXVariableTypeException^) { continue; }
+						variable->Refresh();
+						variable->OnValueChanged += gcnew AXVariable::ValueChangedEventHandler(this, &AXInstance::ValueChanged);
+						variable->OnArrayValueChanged += gcnew AXVariable::ArrayValueChangedEventHandler(this, &AXInstance::ArrayValueChanged);
+						_variables->Add(name, variable);
+					}
 					_variableList->Add(variable);
-					variable->Refresh();
+					
+				}
+				//Remove variables from _variables that don't exist anymore
+				//We do this, so all already existing variables are not invalidated
+				if (_variables->Count != _variableList->Count)
+				{
+					List<String^>^ elementsToRemove = gcnew List<String^>();
+					for each (KeyValuePair<String^, AXVariable^> element in _variables)
+					{
+						if (!VariableExists(element.Key))
+						{
+							//Don't remove elements from _variables while we are iterating through it
+							elementsToRemove->Add(element.Key);
+						}
+					}
+					for each (String^ element in elementsToRemove)
+					{
+						_variables->Remove(element);
+					}
 				}
 				_variableListMutex.ReleaseMutex();
 			}
@@ -204,6 +251,17 @@ namespace AutomationX
 			_variableListMutex.ReleaseMutex();
 			throw ex;
 		}
+	}
+
+	void AXInstance::ArrayValueChanged(AXVariable ^sender, UInt16 index)
+	{
+		OnArrayValueChanged(sender, index);
+	}
+
+
+	void AXInstance::ValueChanged(AXVariable ^sender)
+	{
+		OnVariableValueChanged(sender);
 	}
 
 	AXVariable^ AXInstance::Get(String^ variableName)

@@ -17,6 +17,7 @@ namespace AutomationX
 		ManagedTypeConverter _converter;
 		volatile UInt32 _pollingInterval = 100;
 		volatile bool _stopWorkerTimer = false;
+		Mutex _workerTimerMutex;
 		Timers::Timer^ _workerTimer;
 		String^ _name = "";
 		AXVariable^ _statusVariable = nullptr;
@@ -33,6 +34,8 @@ namespace AutomationX
 		void GetVariables();
 		void Worker(System::Object ^sender, System::Timers::ElapsedEventArgs ^e);
 		void OnSpsIdChanged(AX^ sender);
+		void ArrayValueChanged(AXVariable ^sender, UInt16 index);
+		void ValueChanged(AXVariable ^sender);
 	public:
 		delegate void StatusEventHandler(AXInstance^ sender, String^ statusText);
 		delegate void ErrorEventHandler(AXInstance^ sender, String^ errorText);
@@ -41,6 +44,10 @@ namespace AutomationX
 		event StatusEventHandler^ OnStatus;
 		/// <summary>Fired when aX alarm variable provided with constructor is being set.</summary>
 		event ErrorEventHandler^ OnError;
+		/// <summary>Fired when the value of one the instance's a variable is changed in aX. Only raised, after "VariableEvents" has been enabled or after manually calling "Refresh".</summary>
+		event AXVariable::ValueChangedEventHandler^ OnVariableValueChanged;
+		/// <summary>Fired when the value of an array element is changed in aX. Only raised, after "VariableEvents" has been enabled or after manually calling "Refresh".</summary>
+		event AXVariable::ArrayValueChangedEventHandler^ OnArrayValueChanged;
 
 		property AX^ AutomationX { AX^ get() { return _ax; } }
 		property String^ Name { String^ get() { return _name; } }

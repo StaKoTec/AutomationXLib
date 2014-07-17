@@ -32,6 +32,13 @@ namespace AutomationX
 		AXVariableException(String^ message);
 	};
 
+	public ref class AXVariableReadOnlyException : public AXVariableException
+	{
+	public:
+		AXVariableReadOnlyException();
+		AXVariableReadOnlyException(String^ message);
+	};
+
 	public ref class AXVariableTypeException : public AXVariableException
 	{
 	public:
