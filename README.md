@@ -1,10 +1,14 @@
-AutomationXLib
-==============
+# AutomationXLib
 
 This is a .NET library for AutomationX 4.
 
-Small C# usage example
--------------------
+## Requirements
+
+* AutomationX Version 4.8
+* Microsoft .NET-Framework 4.5
+* Microsoft Visual C++ Redistributable Packages for Visual Studio 2013 (x86)
+
+## Small C# usage example
 
 First add AutomationX.dll as reference to your project.
 
@@ -37,7 +41,7 @@ void EnableVariableEvents()
 	//aXInstance1.OnArrayValueChanged += OnArrayValueChanged;
 }
 
-private void OnArrayValueChanged(AXVariable sender, ushort index)
+void OnArrayValueChanged(AXVariable sender, ushort index)
 {
 	if(sender.Type == AXVariableType.axInteger)
 	{
