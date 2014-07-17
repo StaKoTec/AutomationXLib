@@ -10,7 +10,7 @@ using namespace System::Threading;
 
 namespace AutomationX
 {
-	public ref class AXInstance
+	public ref class AXInstance : IDisposable
 	{
 	private:
 		AX^ _ax;

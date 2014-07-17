@@ -11,12 +11,12 @@ using namespace System::Security::Permissions;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 //
-[assembly:AssemblyTitleAttribute(L"AutomationXLib")];
+[assembly:AssemblyTitleAttribute(L"AutomationX .NET Library")];
 [assembly:AssemblyDescriptionAttribute(L"")];
 [assembly:AssemblyConfigurationAttribute(L"")];
-[assembly:AssemblyCompanyAttribute(L"")];
-[assembly:AssemblyProductAttribute(L"AutomationXLib")];
-[assembly:AssemblyCopyrightAttribute(L"Copyright (c)  2014")];
+[assembly:AssemblyCompanyAttribute(L"Lopeware")];
+[assembly:AssemblyProductAttribute(L"AutomationX .NET Library")];
+[assembly:AssemblyCopyrightAttribute(L"Copyright (c) Lopeware 2014")];
 [assembly:AssemblyTrademarkAttribute(L"")];
 [assembly:AssemblyCultureAttribute(L"")];
 
@@ -31,7 +31,8 @@ using namespace System::Security::Permissions;
 // You can specify all the value or you can default the Revision and Build Numbers
 // by using the '*' as shown below:
 
-[assembly:AssemblyVersionAttribute("1.0.*")];
+// You need to change the version number in app.rc, too!!!
+[assembly:AssemblyVersionAttribute("0.1.5.0")];
 
 [assembly:ComVisible(false)];
 

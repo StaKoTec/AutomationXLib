@@ -155,7 +155,11 @@ namespace AutomationX
 		void* handle = AxQueryExecDataEx(_cName);
 		if (!handle) throw gcnew AXVariableException("Could not get data handle.");
 		UInt16 arrayLength = AxGetArrayCnt(handle);
-		if (arrayLength == 0) throw gcnew AXVariableException("The variable data handle is invalid.");
+		if (arrayLength == 0)
+		{
+			AxFreeExecData(handle);
+			throw gcnew AXVariableException("The variable data handle is invalid.");
+		}
 		AxFreeExecData(handle);
 		return arrayLength;
 	}
@@ -173,8 +177,25 @@ namespace AutomationX
 
 	AXVariable::~AXVariable()
 	{
-		if(_cName) Marshal::FreeHGlobal(IntPtr((void*)_cName)); //Always free memory!
+		if (_cName) Marshal::FreeHGlobal(IntPtr((void*)_cName)); //Always free memory! Don't remove this here! There is a memory leak, when this line is only in the finalizer
+		_cName = nullptr;
 		_ax->OnSpsIdChanged -= _spsIdChangedDelegate;
+		_ax = nullptr;
+		_instance = nullptr;
+		if (_boolValues) _boolValues->Clear();
+		_boolValues = nullptr;
+		if (_integerValues) _integerValues->Clear();
+		_integerValues = nullptr;
+		if (_stringValues) _stringValues->Clear();
+		_stringValues = nullptr;
+		if (_realValues) _realValues->Clear();
+		_realValues = nullptr;
+		//GC::Collect(); //Uncomment to check for memory leaks
+	}
+
+	AXVariable::!AXVariable()
+	{
+		if (_cName) Marshal::FreeHGlobal(IntPtr((void*)_cName)); //Always free memory!
 	}
 
 	int AXVariable::GetRawType()
@@ -263,6 +284,7 @@ namespace AutomationX
 			AxFreeExecData(handle);
 			throw gcnew AXVariableException("The data handle is invalid or does not represent a variable type.");
 		}
+		AxFreeExecData(handle);
 		bool valueChanged = false;
 		if (data.ucVarType == AX_BT_BOOL || data.ucVarType == AX_BT_ALARM)
 		{
@@ -360,10 +382,8 @@ namespace AutomationX
 		}
 		else
 		{
-			AxFreeExecData(handle);
 			throw (AXException^)(gcnew AXVariableTypeException("The type of the variable is unknown."));
 		}
-		AxFreeExecData(handle);
 		if (raiseEvents && valueChanged)
 		{
 			if (_isArray) OnArrayValueChanged(this, index); else OnValueChanged(this);

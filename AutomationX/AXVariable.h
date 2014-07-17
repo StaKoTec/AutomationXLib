@@ -33,7 +33,7 @@ namespace AutomationX
 		axVarGlobal = 5
 	};
 
-	public ref class AXVariable
+	public ref class AXVariable : IDisposable
 	{
 	private:
 		bool _isArray = false;
@@ -147,6 +147,7 @@ namespace AutomationX
 		AXVariable(AXInstance^ instance, String^ name);
 
 		virtual ~AXVariable();
+		!AXVariable();
 
 		/// <summary>Clears all stored values.</summary>
 		void Clear();

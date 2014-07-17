@@ -150,7 +150,30 @@ namespace AutomationX
 
 	AXInstance::~AXInstance()
 	{
+		try
+		{
+			_stopWorkerTimer = true;
+			_workerTimerMutex.WaitOne();
+			{
+				if(_workerTimer) _workerTimer->Stop();
+				_workerTimer = nullptr;
+			}
+			_workerTimerMutex.ReleaseMutex();
+		}
+		catch (const Exception^ ex)
+		{
+			_workerTimerMutex.ReleaseMutex();
+			throw ex;
+		}
 		_ax->OnSpsIdChanged -= _spsIdChangedDelegate;
+		for each (AXVariable^ element in _variableList)
+		{
+			element->~AXVariable(); //Dispose all variables belonging to this object
+		}
+		_variableList->Clear();
+		_variables->Clear();
+		_ax = nullptr;
+		//GC::Collect(); //Uncomment to check for memory leaks
 	}
 
 	void AXInstance::Worker(System::Object ^sender, System::Timers::ElapsedEventArgs ^e)
@@ -221,13 +244,11 @@ namespace AutomationX
 							variable = gcnew AXVariable(this, name);
 						}
 						catch (const AXVariableTypeException^) { continue; }
-						variable->Refresh();
 						variable->OnValueChanged += _variableValueChangedDelegate;
 						variable->OnArrayValueChanged += _arrayValueChangedDelegate;
 						_variables->Add(name, variable);
 					}
 					_variableList->Add(variable);
-					
 				}
 				//Remove variables from _variables that don't exist anymore
 				//We do this, so all already existing variables are not invalidated
