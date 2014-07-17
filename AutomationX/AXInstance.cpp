@@ -120,7 +120,10 @@ namespace AutomationX
 		void* handle = AxQueryInstance(cName);
 		Marshal::FreeHGlobal(IntPtr((void*)cName)); //Always free memory!
 		if (!handle) throw (AXException^)(gcnew AXInstanceException("Could not get instance handle."));
-		_ax->OnSpsIdChanged += gcnew AX::SpsIdChangedEventHandler(this, &AXInstance::OnSpsIdChanged);
+		_spsIdChangedDelegate = gcnew AX::SpsIdChangedEventHandler(this, &AXInstance::OnSpsIdChanged);
+		_variableValueChangedDelegate = gcnew AXVariable::ValueChangedEventHandler(this, &AXInstance::ValueChanged);
+		_arrayValueChangedDelegate = gcnew AXVariable::ArrayValueChangedEventHandler(this, &AXInstance::ArrayValueChanged);
+		_ax->OnSpsIdChanged += _spsIdChangedDelegate;
 	}
 
 	AXInstance::AXInstance(AX^ ax, String^ name, String^ statusVariableName, String^ alarmVariableName) : AXInstance(ax, name)
@@ -147,6 +150,7 @@ namespace AutomationX
 
 	AXInstance::~AXInstance()
 	{
+		_ax->OnSpsIdChanged -= _spsIdChangedDelegate;
 	}
 
 	void AXInstance::Worker(System::Object ^sender, System::Timers::ElapsedEventArgs ^e)
@@ -218,8 +222,8 @@ namespace AutomationX
 						}
 						catch (const AXVariableTypeException^) { continue; }
 						variable->Refresh();
-						variable->OnValueChanged += gcnew AXVariable::ValueChangedEventHandler(this, &AXInstance::ValueChanged);
-						variable->OnArrayValueChanged += gcnew AXVariable::ArrayValueChangedEventHandler(this, &AXInstance::ArrayValueChanged);
+						variable->OnValueChanged += _variableValueChangedDelegate;
+						variable->OnArrayValueChanged += _arrayValueChangedDelegate;
 						_variables->Add(name, variable);
 					}
 					_variableList->Add(variable);
@@ -236,6 +240,8 @@ namespace AutomationX
 						{
 							//Don't remove elements from _variables while we are iterating through it
 							elementsToRemove->Add(element.Key);
+							element.Value->OnValueChanged -= _variableValueChangedDelegate;
+							element.Value->OnArrayValueChanged -= _arrayValueChangedDelegate;
 						}
 					}
 					for each (String^ element in elementsToRemove)

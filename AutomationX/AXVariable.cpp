@@ -167,12 +167,14 @@ namespace AutomationX
 		_cName = _converter.GetCString(_instance->Name + "." + _name);
 		_ax = instance->AutomationX;
 		Refresh();
-		_ax->OnSpsIdChanged += gcnew AX::SpsIdChangedEventHandler(this, &AXVariable::OnSpsIdChanged);
+		_spsIdChangedDelegate = gcnew AX::SpsIdChangedEventHandler(this, &AXVariable::OnSpsIdChanged);
+		_ax->OnSpsIdChanged += _spsIdChangedDelegate;
 	}
 
 	AXVariable::~AXVariable()
 	{
 		if(_cName) Marshal::FreeHGlobal(IntPtr((void*)_cName)); //Always free memory!
+		_ax->OnSpsIdChanged -= _spsIdChangedDelegate;
 	}
 
 	int AXVariable::GetRawType()

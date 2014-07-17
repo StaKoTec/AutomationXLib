@@ -30,6 +30,9 @@ namespace AutomationX
 		List<AXVariable^>^ _variableList = gcnew List<AXVariable^>();
 		Dictionary<String^, AXVariable^>^ _variables = gcnew Dictionary<String^, AXVariable^>();
 		bool _variableEvents = false;
+		AX::SpsIdChangedEventHandler^ _spsIdChangedDelegate = nullptr;
+		AXVariable::ValueChangedEventHandler^ _variableValueChangedDelegate = nullptr;
+		AXVariable::ArrayValueChangedEventHandler^ _arrayValueChangedDelegate = nullptr;
 
 		void GetVariables();
 		void Worker(System::Object ^sender, System::Timers::ElapsedEventArgs ^e);
