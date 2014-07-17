@@ -36,6 +36,10 @@
             this.splitContainer2 = new System.Windows.Forms.SplitContainer();
             this.tvInstances = new System.Windows.Forms.TreeView();
             this.pInstance = new System.Windows.Forms.Panel();
+            this.label17 = new System.Windows.Forms.Label();
+            this.label16 = new System.Windows.Forms.Label();
+            this.txtPollingInterval = new System.Windows.Forms.TextBox();
+            this.chkEvents = new System.Windows.Forms.CheckBox();
             this.txtInstanceName = new System.Windows.Forms.TextBox();
             this.label12 = new System.Windows.Forms.Label();
             this.txtError = new System.Windows.Forms.TextBox();
@@ -45,7 +49,12 @@
             this.label2 = new System.Windows.Forms.Label();
             this.chkError = new System.Windows.Forms.CheckBox();
             this.pVariable = new System.Windows.Forms.Panel();
-            this.chkEvents = new System.Windows.Forms.CheckBox();
+            this.txtDecimalPoints = new System.Windows.Forms.TextBox();
+            this.label15 = new System.Windows.Forms.Label();
+            this.txtDeclaration = new System.Windows.Forms.TextBox();
+            this.label14 = new System.Windows.Forms.Label();
+            this.txtReferenceName = new System.Windows.Forms.TextBox();
+            this.label13 = new System.Windows.Forms.Label();
             this.txtIndex = new System.Windows.Forms.TextBox();
             this.label11 = new System.Windows.Forms.Label();
             this.txtName = new System.Windows.Forms.TextBox();
@@ -73,12 +82,6 @@
             this.label4 = new System.Windows.Forms.Label();
             this.label5 = new System.Windows.Forms.Label();
             this.txtAlarmVariableName = new System.Windows.Forms.TextBox();
-            this.txtReferenceName = new System.Windows.Forms.TextBox();
-            this.label13 = new System.Windows.Forms.Label();
-            this.txtDeclaration = new System.Windows.Forms.TextBox();
-            this.label14 = new System.Windows.Forms.Label();
-            this.txtDecimalPoints = new System.Windows.Forms.TextBox();
-            this.label15 = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
             this.splitContainer1.Panel1.SuspendLayout();
             this.splitContainer1.Panel2.SuspendLayout();
@@ -159,8 +162,8 @@
             // 
             // splitContainer2.Panel2
             // 
-            this.splitContainer2.Panel2.Controls.Add(this.pVariable);
             this.splitContainer2.Panel2.Controls.Add(this.pInstance);
+            this.splitContainer2.Panel2.Controls.Add(this.pVariable);
             this.splitContainer2.Size = new System.Drawing.Size(835, 411);
             this.splitContainer2.SplitterDistance = 247;
             this.splitContainer2.TabIndex = 0;
@@ -176,6 +179,10 @@
             // 
             // pInstance
             // 
+            this.pInstance.Controls.Add(this.label17);
+            this.pInstance.Controls.Add(this.label16);
+            this.pInstance.Controls.Add(this.txtPollingInterval);
+            this.pInstance.Controls.Add(this.chkEvents);
             this.pInstance.Controls.Add(this.txtInstanceName);
             this.pInstance.Controls.Add(this.label12);
             this.pInstance.Controls.Add(this.txtError);
@@ -189,6 +196,45 @@
             this.pInstance.Name = "pInstance";
             this.pInstance.Size = new System.Drawing.Size(584, 411);
             this.pInstance.TabIndex = 0;
+            // 
+            // label17
+            // 
+            this.label17.AutoSize = true;
+            this.label17.Location = new System.Drawing.Point(266, 137);
+            this.label17.Name = "label17";
+            this.label17.Size = new System.Drawing.Size(20, 13);
+            this.label17.TabIndex = 27;
+            this.label17.Text = "ms";
+            // 
+            // label16
+            // 
+            this.label16.AutoSize = true;
+            this.label16.Location = new System.Drawing.Point(131, 137);
+            this.label16.Name = "label16";
+            this.label16.Size = new System.Drawing.Size(79, 13);
+            this.label16.TabIndex = 26;
+            this.label16.Text = "Polling Interval:";
+            // 
+            // txtPollingInterval
+            // 
+            this.txtPollingInterval.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.txtPollingInterval.Location = new System.Drawing.Point(216, 134);
+            this.txtPollingInterval.Name = "txtPollingInterval";
+            this.txtPollingInterval.Size = new System.Drawing.Size(44, 20);
+            this.txtPollingInterval.TabIndex = 25;
+            this.txtPollingInterval.TextChanged += new System.EventHandler(this.txtPollingInterval_TextChanged);
+            // 
+            // chkEvents
+            // 
+            this.chkEvents.AutoSize = true;
+            this.chkEvents.Location = new System.Drawing.Point(6, 135);
+            this.chkEvents.Name = "chkEvents";
+            this.chkEvents.Size = new System.Drawing.Size(116, 17);
+            this.chkEvents.TabIndex = 24;
+            this.chkEvents.Text = "Check for changes";
+            this.chkEvents.UseVisualStyleBackColor = true;
+            this.chkEvents.CheckedChanged += new System.EventHandler(this.chkEvents_CheckedChanged);
             // 
             // txtInstanceName
             // 
@@ -276,7 +322,6 @@
             this.pVariable.Controls.Add(this.label14);
             this.pVariable.Controls.Add(this.txtReferenceName);
             this.pVariable.Controls.Add(this.label13);
-            this.pVariable.Controls.Add(this.chkEvents);
             this.pVariable.Controls.Add(this.txtIndex);
             this.pVariable.Controls.Add(this.label11);
             this.pVariable.Controls.Add(this.txtName);
@@ -306,22 +351,68 @@
             this.pVariable.Size = new System.Drawing.Size(584, 411);
             this.pVariable.TabIndex = 8;
             // 
-            // chkEvents
+            // txtDecimalPoints
             // 
-            this.chkEvents.AutoSize = true;
-            this.chkEvents.Location = new System.Drawing.Point(6, 6);
-            this.chkEvents.Name = "chkEvents";
-            this.chkEvents.Size = new System.Drawing.Size(116, 17);
-            this.chkEvents.TabIndex = 23;
-            this.chkEvents.Text = "Check for changes";
-            this.chkEvents.UseVisualStyleBackColor = true;
-            this.chkEvents.CheckedChanged += new System.EventHandler(this.chkEvents_CheckedChanged);
+            this.txtDecimalPoints.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.txtDecimalPoints.Location = new System.Drawing.Point(100, 185);
+            this.txtDecimalPoints.Name = "txtDecimalPoints";
+            this.txtDecimalPoints.ReadOnly = true;
+            this.txtDecimalPoints.Size = new System.Drawing.Size(481, 20);
+            this.txtDecimalPoints.TabIndex = 29;
+            // 
+            // label15
+            // 
+            this.label15.AutoSize = true;
+            this.label15.Location = new System.Drawing.Point(3, 188);
+            this.label15.Name = "label15";
+            this.label15.Size = new System.Drawing.Size(80, 13);
+            this.label15.TabIndex = 28;
+            this.label15.Text = "Decimal Points:";
+            // 
+            // txtDeclaration
+            // 
+            this.txtDeclaration.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.txtDeclaration.Location = new System.Drawing.Point(100, 159);
+            this.txtDeclaration.Name = "txtDeclaration";
+            this.txtDeclaration.ReadOnly = true;
+            this.txtDeclaration.Size = new System.Drawing.Size(481, 20);
+            this.txtDeclaration.TabIndex = 27;
+            // 
+            // label14
+            // 
+            this.label14.AutoSize = true;
+            this.label14.Location = new System.Drawing.Point(3, 162);
+            this.label14.Name = "label14";
+            this.label14.Size = new System.Drawing.Size(64, 13);
+            this.label14.TabIndex = 26;
+            this.label14.Text = "Declaration:";
+            // 
+            // txtReferenceName
+            // 
+            this.txtReferenceName.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.txtReferenceName.Location = new System.Drawing.Point(100, 133);
+            this.txtReferenceName.Name = "txtReferenceName";
+            this.txtReferenceName.ReadOnly = true;
+            this.txtReferenceName.Size = new System.Drawing.Size(481, 20);
+            this.txtReferenceName.TabIndex = 25;
+            // 
+            // label13
+            // 
+            this.label13.AutoSize = true;
+            this.label13.Location = new System.Drawing.Point(3, 136);
+            this.label13.Name = "label13";
+            this.label13.Size = new System.Drawing.Size(91, 13);
+            this.label13.TabIndex = 24;
+            this.label13.Text = "Reference Name:";
             // 
             // txtIndex
             // 
             this.txtIndex.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.txtIndex.Location = new System.Drawing.Point(100, 90);
+            this.txtIndex.Location = new System.Drawing.Point(100, 55);
             this.txtIndex.Name = "txtIndex";
             this.txtIndex.ReadOnly = true;
             this.txtIndex.Size = new System.Drawing.Size(481, 20);
@@ -330,7 +421,7 @@
             // label11
             // 
             this.label11.AutoSize = true;
-            this.label11.Location = new System.Drawing.Point(3, 93);
+            this.label11.Location = new System.Drawing.Point(3, 58);
             this.label11.Name = "label11";
             this.label11.Size = new System.Drawing.Size(36, 13);
             this.label11.TabIndex = 21;
@@ -340,7 +431,7 @@
             // 
             this.txtName.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.txtName.Location = new System.Drawing.Point(100, 64);
+            this.txtName.Location = new System.Drawing.Point(100, 29);
             this.txtName.Name = "txtName";
             this.txtName.ReadOnly = true;
             this.txtName.Size = new System.Drawing.Size(481, 20);
@@ -349,7 +440,7 @@
             // label10
             // 
             this.label10.AutoSize = true;
-            this.label10.Location = new System.Drawing.Point(3, 67);
+            this.label10.Location = new System.Drawing.Point(3, 32);
             this.label10.Name = "label10";
             this.label10.Size = new System.Drawing.Size(38, 13);
             this.label10.TabIndex = 19;
@@ -359,7 +450,7 @@
             // 
             this.txtInstance.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.txtInstance.Location = new System.Drawing.Point(100, 38);
+            this.txtInstance.Location = new System.Drawing.Point(100, 3);
             this.txtInstance.Name = "txtInstance";
             this.txtInstance.ReadOnly = true;
             this.txtInstance.Size = new System.Drawing.Size(481, 20);
@@ -368,7 +459,7 @@
             // label9
             // 
             this.label9.AutoSize = true;
-            this.label9.Location = new System.Drawing.Point(3, 41);
+            this.label9.Location = new System.Drawing.Point(3, 6);
             this.label9.Name = "label9";
             this.label9.Size = new System.Drawing.Size(51, 13);
             this.label9.TabIndex = 17;
@@ -378,7 +469,7 @@
             // 
             this.txtRemark.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.txtRemark.Location = new System.Drawing.Point(100, 142);
+            this.txtRemark.Location = new System.Drawing.Point(100, 107);
             this.txtRemark.Name = "txtRemark";
             this.txtRemark.ReadOnly = true;
             this.txtRemark.Size = new System.Drawing.Size(481, 20);
@@ -388,7 +479,7 @@
             // label8
             // 
             this.label8.AutoSize = true;
-            this.label8.Location = new System.Drawing.Point(3, 145);
+            this.label8.Location = new System.Drawing.Point(3, 110);
             this.label8.Name = "label8";
             this.label8.Size = new System.Drawing.Size(47, 13);
             this.label8.TabIndex = 15;
@@ -519,7 +610,7 @@
             // 
             this.txtVariableValue.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.txtVariableValue.Location = new System.Drawing.Point(100, 246);
+            this.txtVariableValue.Location = new System.Drawing.Point(100, 211);
             this.txtVariableValue.Name = "txtVariableValue";
             this.txtVariableValue.Size = new System.Drawing.Size(481, 20);
             this.txtVariableValue.TabIndex = 3;
@@ -528,7 +619,7 @@
             // label7
             // 
             this.label7.AutoSize = true;
-            this.label7.Location = new System.Drawing.Point(3, 249);
+            this.label7.Location = new System.Drawing.Point(3, 214);
             this.label7.Name = "label7";
             this.label7.Size = new System.Drawing.Size(37, 13);
             this.label7.TabIndex = 2;
@@ -538,7 +629,7 @@
             // 
             this.txtVariableType.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.txtVariableType.Location = new System.Drawing.Point(100, 116);
+            this.txtVariableType.Location = new System.Drawing.Point(100, 81);
             this.txtVariableType.Name = "txtVariableType";
             this.txtVariableType.ReadOnly = true;
             this.txtVariableType.Size = new System.Drawing.Size(481, 20);
@@ -586,63 +677,6 @@
             this.txtAlarmVariableName.Size = new System.Drawing.Size(118, 20);
             this.txtAlarmVariableName.TabIndex = 10;
             this.txtAlarmVariableName.Text = "err";
-            // 
-            // txtReferenceName
-            // 
-            this.txtReferenceName.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.txtReferenceName.Location = new System.Drawing.Point(100, 168);
-            this.txtReferenceName.Name = "txtReferenceName";
-            this.txtReferenceName.ReadOnly = true;
-            this.txtReferenceName.Size = new System.Drawing.Size(481, 20);
-            this.txtReferenceName.TabIndex = 25;
-            // 
-            // label13
-            // 
-            this.label13.AutoSize = true;
-            this.label13.Location = new System.Drawing.Point(3, 171);
-            this.label13.Name = "label13";
-            this.label13.Size = new System.Drawing.Size(91, 13);
-            this.label13.TabIndex = 24;
-            this.label13.Text = "Reference Name:";
-            // 
-            // txtDeclaration
-            // 
-            this.txtDeclaration.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.txtDeclaration.Location = new System.Drawing.Point(100, 194);
-            this.txtDeclaration.Name = "txtDeclaration";
-            this.txtDeclaration.ReadOnly = true;
-            this.txtDeclaration.Size = new System.Drawing.Size(481, 20);
-            this.txtDeclaration.TabIndex = 27;
-            // 
-            // label14
-            // 
-            this.label14.AutoSize = true;
-            this.label14.Location = new System.Drawing.Point(3, 197);
-            this.label14.Name = "label14";
-            this.label14.Size = new System.Drawing.Size(64, 13);
-            this.label14.TabIndex = 26;
-            this.label14.Text = "Declaration:";
-            // 
-            // txtDecimalPoints
-            // 
-            this.txtDecimalPoints.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.txtDecimalPoints.Location = new System.Drawing.Point(100, 220);
-            this.txtDecimalPoints.Name = "txtDecimalPoints";
-            this.txtDecimalPoints.ReadOnly = true;
-            this.txtDecimalPoints.Size = new System.Drawing.Size(481, 20);
-            this.txtDecimalPoints.TabIndex = 29;
-            // 
-            // label15
-            // 
-            this.label15.AutoSize = true;
-            this.label15.Location = new System.Drawing.Point(3, 223);
-            this.label15.Name = "label15";
-            this.label15.Size = new System.Drawing.Size(80, 13);
-            this.label15.TabIndex = 28;
-            this.label15.Text = "Decimal Points:";
             // 
             // frmMain
             // 
@@ -722,7 +756,6 @@
         private System.Windows.Forms.Label label10;
         private System.Windows.Forms.TextBox txtInstance;
         private System.Windows.Forms.Label label9;
-        private System.Windows.Forms.CheckBox chkEvents;
         private System.Windows.Forms.TextBox txtInstanceName;
         private System.Windows.Forms.Label label12;
         private System.Windows.Forms.TextBox txtDeclaration;
@@ -731,6 +764,10 @@
         private System.Windows.Forms.Label label13;
         private System.Windows.Forms.TextBox txtDecimalPoints;
         private System.Windows.Forms.Label label15;
+        private System.Windows.Forms.Label label17;
+        private System.Windows.Forms.Label label16;
+        private System.Windows.Forms.TextBox txtPollingInterval;
+        private System.Windows.Forms.CheckBox chkEvents;
     }
 }
 
