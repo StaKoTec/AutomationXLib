@@ -32,6 +32,9 @@ void EnableVariableEvents()
 	aXInstance1.VariableEvents = true;
 	aXInstance1.Get("STATE").OnValueChanged += OnValueChanged;
 	aXInstance1.Get("MY_ARRAY").OnArrayValueChanged += OnArrayValueChanged;
+	//To add an event handler for all variables of the instance, you can do:
+	//aXInstance1.OnVariableValueChanged += OnValueChanged;
+	//aXInstance1.OnArrayValueChanged += OnArrayValueChanged;
 }
 
 private void OnArrayValueChanged(AXVariable sender, ushort index)
