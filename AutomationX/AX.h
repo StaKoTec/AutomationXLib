@@ -21,10 +21,10 @@ namespace AutomationX
 		delegate void SpsIdChangedEventHandler(AX^ sender);
 
 		/// <summary>Fired when aX is shutting down.</summary>
-		event ShutdownEventHandler^ OnShutdown;
+		event ShutdownEventHandler^ ShuttingDown;
 
 		/// <summary>Fired when the SPS ID has changed.</summary>
-		event SpsIdChangedEventHandler^ OnSpsIdChanged;
+		event SpsIdChangedEventHandler^ SpsIdChanged;
 
 		/// <summary>Checks if aX is running and if the local computer is running as the master of a redundant master slave server configuration.</summary>
 		/// <returns>true when aX is running, otherwise false.</returns>
@@ -47,6 +47,6 @@ namespace AutomationX
 
 		/// <summary>Checks if the SPS ID has changed since the last call.</summary>
 		/// <returns>"true", when the SPS ID has changed, otherwise false.</returns>
-		bool SpsIdChanged(); //TODO: Somehow handle sps id changes
+		bool CheckSpsId();
 	};
 }

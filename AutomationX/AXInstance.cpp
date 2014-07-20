@@ -5,7 +5,7 @@ namespace AutomationX
 {
 	String^ AXInstance::Remark::get()
 	{
-		_ax->SpsIdChanged();
+		_ax->CheckSpsId();
 		char* cName = _converter.GetCString(_name);
 		void* handle = AxQueryInstance(cName);
 		Marshal::FreeHGlobal(IntPtr((void*)cName)); //Always free memory!
@@ -30,16 +30,16 @@ namespace AutomationX
 
 	void AXInstance::Status::set(String^ value)
 	{
-		_ax->SpsIdChanged();
-		OnStatus(this, value);
+		_ax->CheckSpsId();
+		StatusEvent(this, value);
 		if (_statusVariable == nullptr) return;
 		_statusVariable->Set(value);
 	}
 
 	void AXInstance::Error::set(String^ value)
 	{
-		_ax->SpsIdChanged();
-		OnError(this, value);
+		_ax->CheckSpsId();
+		ErrorEvent(this, value);
 		if (_alarmVariable == nullptr) return;
 		_alarmVariable->Set(true);
 		if (_alarmTextVariable == nullptr) return;
@@ -84,7 +84,7 @@ namespace AutomationX
 
 	array<AXVariable^>^ AXInstance::Variables::get()
 	{
-		_ax->SpsIdChanged();
+		_ax->CheckSpsId();
 		if (_variableList->Count == 0) GetVariables();
 
 		array<AXVariable^>^ variables = nullptr;
@@ -121,9 +121,9 @@ namespace AutomationX
 		Marshal::FreeHGlobal(IntPtr((void*)cName)); //Always free memory!
 		if (!handle) throw (AXException^)(gcnew AXInstanceException("Could not get instance handle."));
 		_spsIdChangedDelegate = gcnew AX::SpsIdChangedEventHandler(this, &AXInstance::OnSpsIdChanged);
-		_variableValueChangedDelegate = gcnew AXVariable::ValueChangedEventHandler(this, &AXInstance::ValueChanged);
-		_arrayValueChangedDelegate = gcnew AXVariable::ArrayValueChangedEventHandler(this, &AXInstance::ArrayValueChanged);
-		_ax->OnSpsIdChanged += _spsIdChangedDelegate;
+		_variableValueChangedDelegate = gcnew AXVariable::ValueChangedEventHandler(this, &AXInstance::OnValueChanged);
+		_arrayValueChangedDelegate = gcnew AXVariable::ArrayValueChangedEventHandler(this, &AXInstance::OnArrayValueChanged);
+		_ax->SpsIdChanged += _spsIdChangedDelegate;
 	}
 
 	AXInstance::AXInstance(AX^ ax, String^ name, String^ statusVariableName, String^ alarmVariableName) : AXInstance(ax, name)
@@ -165,7 +165,7 @@ namespace AutomationX
 			_workerTimerMutex.ReleaseMutex();
 			throw ex;
 		}
-		_ax->OnSpsIdChanged -= _spsIdChangedDelegate;
+		_ax->SpsIdChanged -= _spsIdChangedDelegate;
 		for each (AXVariable^ element in _variableList)
 		{
 			element->~AXVariable(); //Dispose all variables belonging to this object
@@ -186,7 +186,7 @@ namespace AutomationX
 			time = DateTime::Now;
 			try
 			{
-				_ax->SpsIdChanged();
+				_ax->CheckSpsId();
 				if (_variableListMutex.WaitOne(1000))
 				{
 					for (int i = 0; i < _variableList->Count; i++)
@@ -244,8 +244,8 @@ namespace AutomationX
 							variable = gcnew AXVariable(this, name);
 						}
 						catch (const AXVariableTypeException^) { continue; }
-						variable->OnValueChanged += _variableValueChangedDelegate;
-						variable->OnArrayValueChanged += _arrayValueChangedDelegate;
+						variable->ValueChanged += _variableValueChangedDelegate;
+						variable->ArrayValueChanged += _arrayValueChangedDelegate;
 						_variables->Add(name, variable);
 					}
 					_variableList->Add(variable);
@@ -261,8 +261,8 @@ namespace AutomationX
 						{
 							//Don't remove elements from _variables while we are iterating through it
 							elementsToRemove->Add(element.Key);
-							element.Value->OnValueChanged -= _variableValueChangedDelegate;
-							element.Value->OnArrayValueChanged -= _arrayValueChangedDelegate;
+							element.Value->ValueChanged -= _variableValueChangedDelegate;
+							element.Value->ArrayValueChanged -= _arrayValueChangedDelegate;
 						}
 					}
 					for each (String^ element in elementsToRemove)
@@ -280,20 +280,20 @@ namespace AutomationX
 		}
 	}
 
-	void AXInstance::ArrayValueChanged(AXVariable ^sender, UInt16 index)
+	void AXInstance::OnArrayValueChanged(AXVariable ^sender, UInt16 index)
 	{
-		OnArrayValueChanged(sender, index);
+		ArrayValueChanged(sender, index);
 	}
 
 
-	void AXInstance::ValueChanged(AXVariable ^sender)
+	void AXInstance::OnValueChanged(AXVariable ^sender)
 	{
-		OnVariableValueChanged(sender);
+		VariableValueChanged(sender);
 	}
 
 	AXVariable^ AXInstance::Get(String^ variableName)
 	{
-		_ax->SpsIdChanged();
+		_ax->CheckSpsId();
 		if (_variables->Count == 0) GetVariables();
 		if (_variables->ContainsKey(variableName)) return _variables[variableName];
 		if (variableName->IndexOf('.') > -1)
@@ -310,7 +310,7 @@ namespace AutomationX
 
 	bool AXInstance::VariableExists(String^ variableName)
 	{
-		_ax->SpsIdChanged();
+		_ax->CheckSpsId();
 		char* cName = _converter.GetCString(_name + "." + variableName);
 		void* handle = AxQueryExecDataEx(cName);
 		Marshal::FreeHGlobal(IntPtr((void*)cName)); //Always free memory!

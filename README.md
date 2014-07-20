@@ -22,11 +22,11 @@ aX.OnShutdown += aX_OnShutdown;
 ### Create one or more new instance objects
 ```
 AutomationX.AXInstance aXInstance1 = new AXInstance(_aX, "MyFirstInstance", "Status", "err");
-aXInstance1.OnStatus += aXInstance_OnStatus;
-aXInstance1.OnError += aXInstance_OnError;
+aXInstance1.StatusEvent += aXInstance_OnStatus;
+aXInstance1.ErrorEvent += aXInstance_OnError;
 AutomationX.AXInstance aXInstance2 = new AXInstance(_aX, "MySecondInstance", "Status", "err");
-aXInstance2.OnStatus += aXInstance_OnStatus;
-aXInstance2.OnError += aXInstance_OnError;
+aXInstance2.StatusEvent += aXInstance_OnStatus;
+aXInstance2.ErrorEvent += aXInstance_OnError;
 ```
 
 ### Enable variable events for instance and add event handler to variable
@@ -34,11 +34,11 @@ aXInstance2.OnError += aXInstance_OnError;
 void EnableVariableEvents()
 {
 	aXInstance1.VariableEvents = true;
-	aXInstance1.Get("STATE").OnValueChanged += OnValueChanged;
-	aXInstance1.Get("MY_ARRAY").OnArrayValueChanged += OnArrayValueChanged;
+	aXInstance1.Get("STATE").ValueChanged += OnValueChanged;
+	aXInstance1.Get("MY_ARRAY").ArrayValueChanged += OnArrayValueChanged;
 	//To add an event handler for all variables of the instance, you can do:
-	//aXInstance1.OnVariableValueChanged += OnValueChanged;
-	//aXInstance1.OnArrayValueChanged += OnArrayValueChanged;
+	//aXInstance1.VariableValueChanged += OnValueChanged;
+	//aXInstance1.ArrayValueChanged += OnArrayValueChanged;
 }
 
 void OnArrayValueChanged(AXVariable sender, ushort index)

@@ -65,9 +65,9 @@ namespace AutomationX
 		delegate void ArrayValueChangedEventHandler(AXVariable^ sender, UInt16 index);
 
 		/// <summary>Fired when the value of the variable is changed in aX. Only raised, after "EnableVariableEvents" has been called on the variable's instance object or after manually calling "Refresh".</summary>
-		event ValueChangedEventHandler^ OnValueChanged;
+		event ValueChangedEventHandler^ ValueChanged;
 		/// <summary>Fired when the value of an array element is changed in aX. Only raised, after "EnableVariableEvents" has been called on the variable's instance object or after manually calling "Refresh".</summary>
-		event ArrayValueChangedEventHandler^ OnArrayValueChanged;
+		event ArrayValueChangedEventHandler^ ArrayValueChanged;
 
 		/// <summary>Returns the aX object of the variable.</summary>
 		property AX^ AutomationX { AX^ get() { return _ax; } }

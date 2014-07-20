@@ -37,20 +37,20 @@ namespace AutomationX
 		void GetVariables();
 		void Worker(System::Object ^sender, System::Timers::ElapsedEventArgs ^e);
 		void OnSpsIdChanged(AX^ sender);
-		void ArrayValueChanged(AXVariable ^sender, UInt16 index);
-		void ValueChanged(AXVariable ^sender);
+		void OnArrayValueChanged(AXVariable ^sender, UInt16 index);
+		void OnValueChanged(AXVariable ^sender);
 	public:
 		delegate void StatusEventHandler(AXInstance^ sender, String^ statusText);
 		delegate void ErrorEventHandler(AXInstance^ sender, String^ errorText);
 
 		/// <summary>Fired when aX status variable provided with constructor is being set.</summary>
-		event StatusEventHandler^ OnStatus;
+		event StatusEventHandler^ StatusEvent;
 		/// <summary>Fired when aX alarm variable provided with constructor is being set.</summary>
-		event ErrorEventHandler^ OnError;
+		event ErrorEventHandler^ ErrorEvent;
 		/// <summary>Fired when the value of one the instance's a variable is changed in aX. Only raised, after "VariableEvents" has been enabled or after manually calling "Refresh".</summary>
-		event AXVariable::ValueChangedEventHandler^ OnVariableValueChanged;
+		event AXVariable::ValueChangedEventHandler^ VariableValueChanged;
 		/// <summary>Fired when the value of an array element is changed in aX. Only raised, after "VariableEvents" has been enabled or after manually calling "Refresh".</summary>
-		event AXVariable::ArrayValueChangedEventHandler^ OnArrayValueChanged;
+		event AXVariable::ArrayValueChangedEventHandler^ ArrayValueChanged;
 
 		property AX^ AutomationX { AX^ get() { return _ax; } }
 		property String^ Name { String^ get() { return _name; } }

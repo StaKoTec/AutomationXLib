@@ -18,7 +18,7 @@ namespace AutomationX
 		if (!AxOmAttachToObjectMemory()) throw gcnew AXException("Could not attach to shared memory. Make sure AutomationX is running and the user running this program has enough privileges.");
 		AxOmQueryProcessGroupInfo(); //No interpretable return value, must be called after AxOmAttachToObjectMemory
 		_spsId = new int;
-		SpsIdChanged();
+		CheckSpsId();
 		_workerTimer = gcnew Timers::Timer(1000);
 		_workerTimer->Elapsed += gcnew System::Timers::ElapsedEventHandler(this, &AutomationX::AX::OnWorkerTimerElapsed);
 		_workerTimer->Start();
@@ -31,7 +31,7 @@ namespace AutomationX
 
 	void AX::OnWorkerTimerElapsed(System::Object ^sender, System::Timers::ElapsedEventArgs ^e)
 	{
-		if (AxShutdownEvent() == 1 || !Connected) OnShutdown(this);
+		if (AxShutdownEvent() == 1 || !Connected) ShuttingDown(this);
 	}
 
 	void AX::CheckRunning()
@@ -41,7 +41,7 @@ namespace AutomationX
 
 	void AX::Shutdown()
 	{
-		OnShutdown(this);
+		ShuttingDown(this);
 		AxSendShutdownEvent();
 	}
 
@@ -60,11 +60,11 @@ namespace AutomationX
 		return instanceNames;
 	}
 
-	bool AX::SpsIdChanged()
+	bool AX::CheckSpsId()
 	{
 		if (AxHasSpsIdChanged(_spsId) == 1)
 		{
-			OnSpsIdChanged(this);
+			SpsIdChanged(this);
 			return true;
 		}
 		return false;
