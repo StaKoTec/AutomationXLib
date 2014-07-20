@@ -16,7 +16,7 @@ First add AutomationX.dll as reference to your project.
 
 ```
 AutomationX.AX aX = new AutomationX.AX();
-aX.OnShutdown += aX_OnShutdown;
+aX.ShuttingDown += aX_OnShutdown;
 ```
 
 ### Create one or more new instance objects
