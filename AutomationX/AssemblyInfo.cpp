@@ -32,7 +32,7 @@ using namespace System::Security::Permissions;
 // by using the '*' as shown below:
 
 // You need to change the version number in app.rc, too!!!
-[assembly:AssemblyVersionAttribute("0.1.5.0")];
+[assembly:AssemblyVersionAttribute("0.1.6.0")];
 
 [assembly:ComVisible(false)];
 
