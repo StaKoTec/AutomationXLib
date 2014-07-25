@@ -69,4 +69,23 @@ namespace AutomationX
 		}
 		return false;
 	}
+
+	void AX::WriteJournal(int priority, String^ position, String^ message, String^ value, String^ fileName)
+	{
+		WriteJournal(priority, position, message, value, fileName, DateTime::Now);
+	}
+
+	void AX::WriteJournal(int priority, String^ position, String^ message, String^ value, String^ fileName, DateTime time)
+	{
+		Double aXTime = AxConvertDataTime_ToValue(time.Year, time.Month, time.Day, time.Hour, time.Minute, time.Second, time.Millisecond);
+		char* pPosition = _converter.GetCString(position);
+		char* pMessage = _converter.GetCString(message);
+		char* pValue = _converter.GetCString(value);
+		char* pFileName = _converter.GetCString(fileName);
+		AxLogTS(priority, pPosition, pMessage, pValue, pFileName, aXTime);
+		Marshal::FreeHGlobal(IntPtr((void*)pPosition));
+		Marshal::FreeHGlobal(IntPtr((void*)pMessage));
+		Marshal::FreeHGlobal(IntPtr((void*)pValue));
+		Marshal::FreeHGlobal(IntPtr((void*)pFileName));
+	}
 }

@@ -48,5 +48,8 @@ namespace AutomationX
 		/// <summary>Checks if the SPS ID has changed since the last call.</summary>
 		/// <returns>"true", when the SPS ID has changed, otherwise false.</returns>
 		bool CheckSpsId();
+
+		void WriteJournal(int priority, String^ position, String^ message, String^ value, String^ fileName);
+		void WriteJournal(int priority, String^ position, String^ message, String^ value, String^ fileName, DateTime time);
 	};
 }
