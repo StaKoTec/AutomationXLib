@@ -60,6 +60,16 @@ namespace AutomationX
 		return instanceNames;
 	}
 
+	System::String^ AX::GetClassPath(String^ instanceName)
+	{
+		char* cName = _converter.GetCString(instanceName);
+		void* handle = AxQueryInstance(cName);
+		Marshal::FreeHGlobal(IntPtr((void*)cName)); //Always free memory!
+		if (!handle) throw (AXException^)(gcnew AXInstanceException("Could not get instance handle."));
+		String^ value = gcnew String(AxGetInstanceClassPath(handle));
+		return value;
+	}
+
 	bool AX::CheckSpsId()
 	{
 		if (AxHasSpsIdChanged(_spsId) == 1)

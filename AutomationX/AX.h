@@ -45,6 +45,9 @@ namespace AutomationX
 		/// <summary>Returns all instance names of the specified class.</summary>
 		System::Collections::Generic::List<String^>^ GetInstanceNames(String^ className);
 
+		/// <summary>Returns the class path of the specified instance.</summary>
+		System::String^ AX::GetClassPath(String^ instanceName);
+
 		/// <summary>Checks if the SPS ID has changed since the last call.</summary>
 		/// <returns>"true", when the SPS ID has changed, otherwise false.</returns>
 		bool CheckSpsId();
