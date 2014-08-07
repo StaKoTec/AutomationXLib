@@ -12,3 +12,4 @@
 
 #include "axsapi32.h"
 #include <string>
+#include <vector>

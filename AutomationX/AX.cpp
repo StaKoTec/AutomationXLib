@@ -60,6 +60,23 @@ namespace AutomationX
 		return instanceNames;
 	}
 
+	System::Collections::Generic::List<String^>^ AX::GetClassNames()
+	{
+		System::Collections::Generic::List<String^>^ classNames = gcnew System::Collections::Generic::List<String^>();
+		std::vector<char*> buffers(1);
+		AxGetAllClasses(&buffers.at(0), 1);
+		int numberOfClasses = AxGetNumberOfAllClasses();
+		buffers.resize(numberOfClasses);
+		int count = AxGetAllClasses(&buffers.at(0), numberOfClasses);
+		for (int i = 0; i < count; i++)
+		{
+			String^ name = gcnew String(buffers.at(i));
+			if (name->Length == 0) continue;
+			classNames->Add(name);
+		}
+		return classNames;
+	}
+
 	System::String^ AX::GetClassPath(String^ instanceName)
 	{
 		char* cName = _converter.GetCString(instanceName);
