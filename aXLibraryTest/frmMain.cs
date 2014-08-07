@@ -100,11 +100,14 @@ namespace aXLibraryTest
                 AXInstance instance = new AXInstance(_aX, name, txtStatusVariableName.Text, txtAlarmVariableName.Text);
                 instance.ErrorEvent += instance_OnError;
                 instance.StatusEvent += instance_OnStatus;
+                instance.VariableValueChanged += variable_OnValueChanged;
+                instance.ArrayValueChanged += variable_OnArrayValueChanged;
                 _instances.Add(name, instance);
                 TreeNode node = new TreeNode(name);
                 AXVariable[] variables = instance.Variables;
                 foreach(AXVariable variable in variables)
                 {
+                    variable.Events = true;
                     TreeNode variableNode = new TreeNode(variable.Name);
                     if(variable.IsArray)
                     {
@@ -134,25 +137,6 @@ namespace aXLibraryTest
         {
             if (_currentInstance == null || !chkError.Checked || _nodeLoading) return;
             _currentInstance.Error = txtError.Text;
-        }
-
-        private void chkEvents_CheckedChanged(object sender, EventArgs e)
-        {
-            if (_currentInstance == null || _nodeLoading) return;
-            _currentInstance.VariableEvents = chkEvents.Checked;
-            if (chkEvents.Checked)
-            {
-                UInt32 interval = 100;
-                UInt32.TryParse(txtPollingInterval.Text, out interval);
-                _currentInstance.PollingInterval = interval;
-                _currentInstance.VariableValueChanged += variable_OnValueChanged;
-                _currentInstance.ArrayValueChanged += variable_OnArrayValueChanged;
-            }
-            else
-            {
-                _currentInstance.VariableValueChanged -= variable_OnValueChanged;
-                _currentInstance.ArrayValueChanged -= variable_OnArrayValueChanged;
-            }
         }
 
         void variable_OnArrayValueChanged(AXVariable sender, ushort index)
@@ -222,7 +206,6 @@ namespace aXLibraryTest
                 txtStatus.Text = _currentInstance.Status;
                 txtError.Text = _currentInstance.Error;
                 chkError.Checked = _currentInstance.Get(txtAlarmVariableName.Text).GetBool();
-                chkEvents.Checked = _currentInstance.VariableEvents;
                 txtPollingInterval.Text = _currentInstance.PollingInterval.ToString();
                 pVariable.Visible = false;
                 pInstance.Visible = true;

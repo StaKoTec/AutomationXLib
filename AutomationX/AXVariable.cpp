@@ -4,13 +4,22 @@
 
 namespace AutomationX
 {
+	bool AXVariable::Events::get()
+	{
+		return _events;
+	}
+
+	void AXVariable::Events::set(bool value)
+	{
+		_events = value;
+		if (_events) _instance->RegisterVariableToPoll(this);
+		else _instance->UnregisterVariableToPoll(this);
+	}
+
 	bool AXVariable::Retentive::get()
 	{
 		_ax->CheckSpsId();
-		static AX_EXEC_DATA execData;
-		int result = AxQueryVariable(_cName, &execData);
-		if (!result) throw gcnew AXVariableException("Variable or object was not found.");
-		result = AxGetRetentiveFlag(&execData);
+		int result = AxGetRetentiveFlag(_execData);
 		if (result == -1) throw gcnew AXVariableException("The variable data handle is invalid.");
 		if (result == 0) return false;
 		return true;
@@ -19,10 +28,7 @@ namespace AutomationX
 	bool AXVariable::Constant::get()
 	{
 		_ax->CheckSpsId();
-		static AX_EXEC_DATA execData;
-		int result = AxQueryVariable(_cName, &execData);
-		if (!result) throw gcnew AXVariableException("Variable or object was not found.");
-		result = AxGetConstantFlag(&execData);
+		int result = AxGetConstantFlag(_execData);
 		if (result == -1) throw gcnew AXVariableException("The variable data handle is invalid.");
 		if (result == 0) return false;
 		return true;
@@ -31,10 +37,7 @@ namespace AutomationX
 	bool AXVariable::Private::get()
 	{
 		_ax->CheckSpsId();
-		static AX_EXEC_DATA execData;
-		int result = AxQueryVariable(_cName, &execData);
-		if (!result) throw gcnew AXVariableException("Variable or object was not found.");
-		result = AxGetPrivateFlag(&execData);
+		int result = AxGetPrivateFlag(_execData);
 		if (result == -1) throw gcnew AXVariableException("The variable data handle is invalid.");
 		if (result == 0) return false;
 		return true;
@@ -43,10 +46,7 @@ namespace AutomationX
 	bool AXVariable::Local::get()
 	{
 		_ax->CheckSpsId();
-		static AX_EXEC_DATA execData;
-		int result = AxQueryVariable(_cName, &execData);
-		if (!result) throw gcnew AXVariableException("Variable or object was not found.");
-		result = AxGetLocalFlag(&execData);
+		int result = AxGetLocalFlag(_execData);
 		if (result == -1) throw gcnew AXVariableException("The variable data handle is invalid.");
 		if (result == 0) return false;
 		return true;
@@ -55,10 +55,7 @@ namespace AutomationX
 	bool AXVariable::ConfigurationValue::get()
 	{
 		_ax->CheckSpsId();
-		static AX_EXEC_DATA execData;
-		int result = AxQueryVariable(_cName, &execData);
-		if (!result) throw gcnew AXVariableException("Variable or object was not found.");
-		result = AxGetConfValueFlag(&execData);
+		int result = AxGetConfValueFlag(_execData);
 		if (result == -1) throw gcnew AXVariableException("The variable data handle is invalid.");
 		if (result == 0) return false;
 		return true;
@@ -67,10 +64,7 @@ namespace AutomationX
 	bool AXVariable::Parameter::get()
 	{
 		_ax->CheckSpsId();
-		static AX_EXEC_DATA execData;
-		int result = AxQueryVariable(_cName, &execData);
-		if (!result) throw gcnew AXVariableException("Variable or object was not found.");
-		result = AxGetParameterFlag(&execData);
+		int result = AxGetParameterFlag(_execData);
 		if (result == -1) throw gcnew AXVariableException("The variable data handle is invalid.");
 		if (result == 0) return false;
 		return true;
@@ -79,10 +73,7 @@ namespace AutomationX
 	bool AXVariable::Remote::get()
 	{
 		_ax->CheckSpsId();
-		static AX_EXEC_DATA execData;
-		int result = AxQueryVariable(_cName, &execData);
-		if (!result) throw gcnew AXVariableException("Variable or object was not found.");
-		result = AxGetRemoteFlag(&execData);
+		int result = AxGetRemoteFlag(_execData);
 		if (result == -1) throw gcnew AXVariableException("The variable data handle is invalid.");
 		if (result == 0) return false;
 		return true;
@@ -91,10 +82,7 @@ namespace AutomationX
 	bool AXVariable::NotConnected::get()
 	{
 		_ax->CheckSpsId();
-		static AX_EXEC_DATA execData;
-		int result = AxQueryVariable(_cName, &execData);
-		if (!result) throw gcnew AXVariableException("Variable or object was not found.");
-		result = AxGetNcFlag(&execData);
+		int result = AxGetNcFlag(_execData);
 		if (result == -1) throw gcnew AXVariableException("The variable data handle is invalid.");
 		if (result == 0) return false;
 		return true;
@@ -103,10 +91,7 @@ namespace AutomationX
 	String^ AXVariable::ReferenceName::get()
 	{
 		_ax->CheckSpsId();
-		static AX_EXEC_DATA execData;
-		int result = AxQueryVariable(_cName, &execData);
-		if (!result) throw gcnew AXVariableException("Variable or object was not found.");
-		const char* reference = AxGetVarReference(&execData);
+		const char* reference = AxGetVarReference(_execData);
 		if (!reference) throw gcnew AXVariableException("The data handle is invalid, the variable is not a reference type variable or the variable is not connected.");
 		return gcnew String(reference);
 	}
@@ -114,10 +99,7 @@ namespace AutomationX
 	AXVariableDeclaration AXVariable::Declaration::get()
 	{
 		_ax->CheckSpsId();
-		static AX_EXEC_DATA execData;
-		int result = AxQueryVariable(_cName, &execData);
-		if (!result) throw gcnew AXVariableException("Variable or object was not found.");
-		int declaration = AxGetVarDeclaration(&execData);
+		int declaration = AxGetVarDeclaration(_execData);
 		if (declaration == -1) throw gcnew AXVariableException("The data handle is invalid.");
 		return (AXVariableDeclaration)declaration;
 	}
@@ -125,10 +107,7 @@ namespace AutomationX
 	String^ AXVariable::Remark::get()
 	{
 		_ax->CheckSpsId();
-		void* handle = AxQueryExecDataEx(_cName);
-		if (!handle) throw gcnew AXVariableException("Could not get variable data handle.");
-		String^ value = gcnew String(AxGetRemark(handle));
-		AxFreeExecData(handle);
+		String^ value = gcnew String(AxGetRemark(_execData));
 		return value;
 	}
 
@@ -152,16 +131,7 @@ namespace AutomationX
 	UInt16 AXVariable::Length::get()
 	{
 		_ax->CheckSpsId();
-		void* handle = AxQueryExecDataEx(_cName);
-		if (!handle) throw gcnew AXVariableException("Could not get data handle.");
-		UInt16 arrayLength = AxGetArrayCnt(handle);
-		if (arrayLength == 0)
-		{
-			AxFreeExecData(handle);
-			throw gcnew AXVariableException("The variable data handle is invalid.");
-		}
-		AxFreeExecData(handle);
-		return arrayLength;
+		return AxGetArrayCnt(_execData);
 	}
 
 	AXVariable::AXVariable(AXInstance^ instance, String^ name)
@@ -170,6 +140,7 @@ namespace AutomationX
 		_name = name;
 		_cName = _converter.GetCString(_instance->Name + "." + _name);
 		_ax = instance->AutomationX;
+		GetExecData();
 		Refresh();
 		_spsIdChangedDelegate = gcnew AX::SpsIdChangedEventHandler(this, &AXVariable::OnSpsIdChanged);
 		_ax->SpsIdChanged += _spsIdChangedDelegate;
@@ -190,21 +161,28 @@ namespace AutomationX
 		_stringValues = nullptr;
 		if (_realValues) _realValues->Clear();
 		_realValues = nullptr;
+		if (_execData) AxFreeExecData(_execData);
+		_execData = nullptr;
 		//GC::Collect(); //Uncomment to check for memory leaks
 	}
 
 	AXVariable::!AXVariable()
 	{
 		if (_cName) Marshal::FreeHGlobal(IntPtr((void*)_cName)); //Always free memory!
+		if (_execData) AxFreeExecData(_execData);
+	}
+
+	void AXVariable::GetExecData()
+	{
+		if (_execData) AxFreeExecData(_execData);
+		_execData = AxQueryExecDataEx(_cName);
+		if (!_execData) throw gcnew AXVariableException("The variable was not found.");
 	}
 
 	int AXVariable::GetRawType()
 	{
 		_ax->CheckSpsId();
-		static AX_EXEC_DATA execData;
-		int result = AxQueryVariable(_cName, &execData);
-		if (!result) throw gcnew AXVariableException("Variable or object was not found.");
-		return AxGetType(&execData);
+		return AxGetType(_execData);
 	}
 
 	void AXVariable::Clear()
@@ -275,16 +253,9 @@ namespace AutomationX
 	{
 		_ax->CheckSpsId();
 		if (index >= _length) throw gcnew AXArrayIndexOutOfRangeException("The index exceeds the array boundaries.");
-		void* handle = AxQueryExecDataEx(_cName);
-		if (!handle) throw gcnew AXVariableException("Could not get variable data handle.");
 		struct tagAxVariant data;
-		int result = _isArray ? AxGetArray(handle, &data, index) : AxGet(handle, &data);
-		if (!result)
-		{
-			AxFreeExecData(handle);
-			throw gcnew AXVariableException("The data handle is invalid or does not represent a variable type.");
-		}
-		AxFreeExecData(handle);
+		int result = _isArray ? AxGetArray(_execData, &data, index) : AxGet(_execData, &data);
+		if (!result) throw (AXException^)(gcnew AXVariableException("The data handle is invalid or does not represent a variable type."));
 		bool valueChanged = false;
 		if (data.ucVarType == AX_BT_BOOL || data.ucVarType == AX_BT_ALARM)
 		{
@@ -393,15 +364,8 @@ namespace AutomationX
 	void AXVariable::Set(tagAxVariant& data, UInt16 index)
 	{
 		_ax->CheckSpsId();
-		void* handle = AxQueryExecDataEx(_cName);
-		if (!handle) throw (AXException^)(gcnew AXVariableException("Could not get variable data handle."));
-		int result = _isArray ? AxSetArray(handle, &data, index) : AxSet(handle, &data);
-		if (!result)
-		{
-			AxFreeExecData(handle);
-			throw (AXException^)(gcnew AXVariableException("The data handle is invalid or does not represent a variable type."));
-		}
-		AxFreeExecData(handle);
+		int result = _isArray ? AxSetArray(_execData, &data, index) : AxSet(_execData, &data);
+		if (!result) throw (AXException^)(gcnew AXVariableException("The data handle is invalid or does not represent a variable type."));
 	}
 
 	bool AXVariable::GetBool()
@@ -826,17 +790,15 @@ namespace AutomationX
 
 	void AXVariable::OnSpsIdChanged(AX^ sender)
 	{
+		GetExecData();
 		Refresh();
 	}
 
 	void AXVariable::GetAttributes()
 	{
 		_ax->CheckSpsId();
-		static AX_EXEC_DATA execData;
-		int result = AxQueryVariable(_cName, &execData);
-		if (!result) throw gcnew AXVariableException("Variable or object was not found.");
 		AX_ATTR attrs;
-		if (AxGetAttributes(&execData, &attrs) == -1) throw gcnew AXVariableException("The variable data handle is invalid.");
+		if (AxGetAttributes(_execData, &attrs) == -1) throw gcnew AXVariableException("The variable data handle is invalid.");
 		_decimalPoints = attrs.dec_point;
 		if (attrs.dim) _dimension = gcnew String(attrs.dim);
 		if (attrs.rem == 0) _global = false; else _global = true;

@@ -46,42 +46,6 @@ namespace AutomationX
 		_alarmTextVariable->Set(value);
 	}
 
-	bool AXInstance::VariableEvents::get()
-	{
-		return _variableEvents;
-	}
-
-	void AXInstance::VariableEvents::set(bool value)
-	{
-		try
-		{
-			_workerTimerMutex.WaitOne();
-			if (value)
-			{
-				_variableEvents = true;
-				GetVariables();
-				if (_workerTimer) _workerTimer->Stop();
-				_stopWorkerTimer = false;
-				_workerTimer = gcnew Timers::Timer(PollingInterval);
-				_workerTimer->AutoReset = true;
-				_workerTimer->Elapsed += gcnew System::Timers::ElapsedEventHandler(this, &AXInstance::Worker);
-				_workerTimer->Start();
-			}
-			else
-			{
-				_variableEvents = false;
-				_stopWorkerTimer = true;
-				if (_workerTimer) _workerTimer->Stop();
-			}
-			_workerTimerMutex.ReleaseMutex();
-		}
-		catch (const Exception^ ex)
-		{
-			_workerTimerMutex.ReleaseMutex();
-			throw ex;
-		}
-	}
-
 	array<AXVariable^>^ AXInstance::Variables::get()
 	{
 		_ax->CheckSpsId();
@@ -90,12 +54,10 @@ namespace AutomationX
 		array<AXVariable^>^ variables = nullptr;
 		try
 		{
-			if (_variableListMutex.WaitOne(1000))
-			{
-				variables = gcnew array<AXVariable^>(_variableList->Count);
-				_variableList->CopyTo(variables);
-				_variableListMutex.ReleaseMutex();
-			}
+			_variableListMutex.WaitOne();
+			variables = gcnew array<AXVariable^>(_variableList->Count);
+			_variableList->CopyTo(variables);
+			_variableListMutex.ReleaseMutex();
 		}
 		catch (const Exception^ ex)
 		{
@@ -176,6 +138,72 @@ namespace AutomationX
 		//GC::Collect(); //Uncomment to check for memory leaks
 	}
 
+	void AXInstance::RegisterVariableToPoll(AXVariable^ variable)
+	{
+		try
+		{
+			_variablesToPollMutex.WaitOne();
+			if (!_variablesToPoll->ContainsKey(variable->Name)) _variablesToPoll->Add(variable->Name, variable);
+			_variablesToPollMutex.ReleaseMutex();
+		}
+		catch (const Exception^ ex)
+		{
+			_variablesToPollMutex.ReleaseMutex();
+			throw ex;
+		}
+		if (_stopWorkerTimer)
+		{
+			try
+			{
+				_workerTimerMutex.WaitOne();
+				if (_workerTimer) _workerTimer->Stop();
+				_stopWorkerTimer = false;
+				_workerTimer = gcnew Timers::Timer(PollingInterval);
+				_workerTimer->AutoReset = true;
+				_workerTimer->Elapsed += gcnew System::Timers::ElapsedEventHandler(this, &AXInstance::Worker);
+				_workerTimer->Start();
+				_workerTimerMutex.ReleaseMutex();
+			}
+			catch (const Exception^ ex)
+			{
+				_workerTimerMutex.ReleaseMutex();
+				throw ex;
+			}
+		}
+	}
+
+	void AXInstance::UnregisterVariableToPoll(AXVariable^ variable)
+	{
+		try
+		{
+			bool empty = false;
+			try
+			{
+				_variablesToPollMutex.WaitOne();
+				if (_variablesToPoll->ContainsKey(variable->Name)) _variablesToPoll->Remove(variable->Name);
+				if (_variablesToPoll->Count == 0) empty = true;
+				_variablesToPollMutex.ReleaseMutex();
+			}
+			catch (const Exception^ ex)
+			{
+				_variablesToPollMutex.ReleaseMutex();
+				throw ex;
+			}
+			_workerTimerMutex.WaitOne();
+			if (empty)
+			{
+				_stopWorkerTimer = true;
+				if (_workerTimer) _workerTimer->Stop();
+			}
+			_workerTimerMutex.ReleaseMutex();
+		}
+		catch (const Exception^ ex)
+		{
+			_workerTimerMutex.ReleaseMutex();
+			throw ex;
+		}
+	}
+
 	void AXInstance::Worker(System::Object ^sender, System::Timers::ElapsedEventArgs ^e)
 	{
 		try
@@ -187,18 +215,16 @@ namespace AutomationX
 			try
 			{
 				_ax->CheckSpsId();
-				if (_variableListMutex.WaitOne(1000))
+				_variablesToPollMutex.WaitOne();
+				for each (KeyValuePair<String^, AXVariable^> pair in _variablesToPoll)
 				{
-					for (int i = 0; i < _variableList->Count; i++)
-					{
-						_variableList[i]->Refresh(true);
-					}
-					_variableListMutex.ReleaseMutex();
+					pair.Value->Refresh(true);
 				}
+				_variablesToPollMutex.ReleaseMutex();
 			}
 			catch (const Exception^ ex)
 			{
-				_variableListMutex.ReleaseMutex();
+				_variablesToPollMutex.ReleaseMutex();
 				throw ex;
 			}
 
@@ -219,59 +245,69 @@ namespace AutomationX
 	{
 		try
 		{
-			if (_variableListMutex.WaitOne(10000))
+			_variableListMutex.WaitOne();
+			_variableList->Clear();
+			char* cName = _converter.GetCString(_name);
+			void* handle = AxQueryInstance(cName);
+			Marshal::FreeHGlobal(IntPtr((void*)cName)); //Always free memory!
+			if (!handle) throw gcnew AXInstanceException("Could not get instance handle.");
+			//Don't call _ax->SpsIdChanged here as it causes a call to GetVariables again!
+			AX_VAR_DSC data = 0;
+			while (data = AxVarDscFromInstance(handle, data))
 			{
-				_variableList->Clear();
-				char* cName = _converter.GetCString(_name);
-				void* handle = AxQueryInstance(cName);
-				Marshal::FreeHGlobal(IntPtr((void*)cName)); //Always free memory!
-				if (!handle) throw gcnew AXInstanceException("Could not get instance handle.");
-				//Don't call _ax->SpsIdChanged here as it causes a call to GetVariables again!
-				AX_VAR_DSC data = 0;
-				while (data = AxVarDscFromInstance(handle, data))
+				String^ name = gcnew String(AxGetNameFromVarDSC(data));
+				if (name->Length == 0) continue;
+				AXVariable^ variable;
+				if (_variables->ContainsKey(name))
 				{
-					String^ name = gcnew String(AxGetNameFromVarDSC(data));
-					if (name->Length == 0) continue;
-					AXVariable^ variable;
-					if (_variables->ContainsKey(name))
-					{
-						variable = _variables[name];
-					}
-					else
-					{
-						try
-						{
-							variable = gcnew AXVariable(this, name);
-						}
-						catch (const AXVariableTypeException^) { continue; }
-						variable->ValueChanged += _variableValueChangedDelegate;
-						variable->ArrayValueChanged += _arrayValueChangedDelegate;
-						_variables->Add(name, variable);
-					}
-					_variableList->Add(variable);
+					variable = _variables[name];
 				}
-				//Remove variables from _variables that don't exist anymore
-				//We do this, so all already existing variables are not invalidated
-				if (_variables->Count != _variableList->Count)
+				else
 				{
-					List<String^>^ elementsToRemove = gcnew List<String^>();
-					for each (KeyValuePair<String^, AXVariable^> element in _variables)
+					try
 					{
-						if (!VariableExists(element.Key))
-						{
-							//Don't remove elements from _variables while we are iterating through it
-							elementsToRemove->Add(element.Key);
-							element.Value->ValueChanged -= _variableValueChangedDelegate;
-							element.Value->ArrayValueChanged -= _arrayValueChangedDelegate;
-						}
+						variable = gcnew AXVariable(this, name);
 					}
+					catch (const AXVariableTypeException^) { continue; }
+					variable->ValueChanged += _variableValueChangedDelegate;
+					variable->ArrayValueChanged += _arrayValueChangedDelegate;
+					_variables->Add(name, variable);
+				}
+				_variableList->Add(variable);
+			}
+			//Remove variables from _variables that don't exist anymore
+			//We do this, so all already existing variables are not invalidated
+			if (_variables->Count != _variableList->Count)
+			{
+				List<String^>^ elementsToRemove = gcnew List<String^>();
+				for each (KeyValuePair<String^, AXVariable^> element in _variables)
+				{
+					if (!VariableExists(element.Key))
+					{
+						//Don't remove elements from _variables while we are iterating through it
+						elementsToRemove->Add(element.Key);
+						element.Value->ValueChanged -= _variableValueChangedDelegate;
+						element.Value->ArrayValueChanged -= _arrayValueChangedDelegate;
+					}
+				}
+				try
+				{
+					_variablesToPollMutex.WaitOne();
 					for each (String^ element in elementsToRemove)
 					{
 						_variables->Remove(element);
+						if (_variablesToPoll->ContainsKey(element)) _variablesToPoll->Remove(element);
 					}
+					_variablesToPollMutex.ReleaseMutex();
 				}
-				_variableListMutex.ReleaseMutex();
+				catch (const Exception^ ex)
+				{
+					_variableListMutex.ReleaseMutex();
+					_variablesToPollMutex.ReleaseMutex();
+					throw ex;
+				}
 			}
+			_variableListMutex.ReleaseMutex();
 		}
 		catch (const Exception^ ex)
 		{

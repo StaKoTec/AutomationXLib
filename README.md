@@ -29,14 +29,25 @@ aXInstance2.StatusEvent += aXInstance_OnStatus;
 aXInstance2.ErrorEvent += aXInstance_OnError;
 ```
 
-### Enable variable events for instance and add event handler to variable
+### Clean up
+
+After you're done working with the instance object, you need to call "Dispose":
+```
+aXInstance1.Dispose();
+aXInstance2.Dispose();
+```
+
+### Enable variable events and add event handler to variable
 ```
 void EnableVariableEvents()
 {
-	aXInstance1.VariableEvents = true;
-	aXInstance1.Get("STATE").ValueChanged += OnValueChanged;
-	aXInstance1.Get("MY_ARRAY").ArrayValueChanged += OnArrayValueChanged;
-	//To add an event handler for all variables of the instance, you can do:
+	AutomationX.AXVariable aXVar1 = axInstance2.Get("STATE");
+	aXVar1.Events = true;
+	aXVar1.ValueChanged += OnValueChanged;
+	AutomationX.AXVariable aXArray1 = axInstance2.Get("MY_ARRAY");
+	aXArray1.Events = true;
+	aXArray1.ArrayValueChanged += OnArrayValueChanged;
+	//To listen for events from all instance variables, you can do:
 	//aXInstance1.VariableValueChanged += OnValueChanged;
 	//aXInstance1.ArrayValueChanged += OnArrayValueChanged;
 }

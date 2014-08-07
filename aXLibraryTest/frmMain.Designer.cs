@@ -39,7 +39,6 @@
             this.label17 = new System.Windows.Forms.Label();
             this.label16 = new System.Windows.Forms.Label();
             this.txtPollingInterval = new System.Windows.Forms.TextBox();
-            this.chkEvents = new System.Windows.Forms.CheckBox();
             this.txtInstanceName = new System.Windows.Forms.TextBox();
             this.label12 = new System.Windows.Forms.Label();
             this.txtError = new System.Windows.Forms.TextBox();
@@ -182,7 +181,6 @@
             this.pInstance.Controls.Add(this.label17);
             this.pInstance.Controls.Add(this.label16);
             this.pInstance.Controls.Add(this.txtPollingInterval);
-            this.pInstance.Controls.Add(this.chkEvents);
             this.pInstance.Controls.Add(this.txtInstanceName);
             this.pInstance.Controls.Add(this.label12);
             this.pInstance.Controls.Add(this.txtError);
@@ -200,7 +198,7 @@
             // label17
             // 
             this.label17.AutoSize = true;
-            this.label17.Location = new System.Drawing.Point(266, 137);
+            this.label17.Location = new System.Drawing.Point(138, 133);
             this.label17.Name = "label17";
             this.label17.Size = new System.Drawing.Size(20, 13);
             this.label17.TabIndex = 27;
@@ -209,7 +207,7 @@
             // label16
             // 
             this.label16.AutoSize = true;
-            this.label16.Location = new System.Drawing.Point(131, 137);
+            this.label16.Location = new System.Drawing.Point(3, 133);
             this.label16.Name = "label16";
             this.label16.Size = new System.Drawing.Size(79, 13);
             this.label16.TabIndex = 26;
@@ -219,22 +217,11 @@
             // 
             this.txtPollingInterval.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.txtPollingInterval.Location = new System.Drawing.Point(216, 134);
+            this.txtPollingInterval.Location = new System.Drawing.Point(88, 130);
             this.txtPollingInterval.Name = "txtPollingInterval";
             this.txtPollingInterval.Size = new System.Drawing.Size(44, 20);
             this.txtPollingInterval.TabIndex = 25;
             this.txtPollingInterval.TextChanged += new System.EventHandler(this.txtPollingInterval_TextChanged);
-            // 
-            // chkEvents
-            // 
-            this.chkEvents.AutoSize = true;
-            this.chkEvents.Location = new System.Drawing.Point(6, 135);
-            this.chkEvents.Name = "chkEvents";
-            this.chkEvents.Size = new System.Drawing.Size(116, 17);
-            this.chkEvents.TabIndex = 24;
-            this.chkEvents.Text = "Check for changes";
-            this.chkEvents.UseVisualStyleBackColor = true;
-            this.chkEvents.CheckedChanged += new System.EventHandler(this.chkEvents_CheckedChanged);
             // 
             // txtInstanceName
             // 
@@ -767,7 +754,6 @@
         private System.Windows.Forms.Label label17;
         private System.Windows.Forms.Label label16;
         private System.Windows.Forms.TextBox txtPollingInterval;
-        private System.Windows.Forms.CheckBox chkEvents;
     }
 }
 

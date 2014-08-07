@@ -16,7 +16,7 @@ namespace AutomationX
 		AX^ _ax;
 		ManagedTypeConverter _converter;
 		volatile UInt32 _pollingInterval = 100;
-		volatile bool _stopWorkerTimer = false;
+		volatile bool _stopWorkerTimer = true;
 		Mutex _workerTimerMutex;
 		Timers::Timer^ _workerTimer;
 		String^ _name = "";
@@ -25,20 +25,24 @@ namespace AutomationX
 		AXVariable^ _alarmTextVariable = nullptr;
 		String^ _statusText = "";
 		String^ _errorText = "";
-		Mutex _variableListMutex;
 		List<String^>^ _variableNames = gcnew List<String^>();
+		Mutex _variableListMutex;
 		List<AXVariable^>^ _variableList = gcnew List<AXVariable^>();
+		Mutex _variablesToPollMutex;
+		Dictionary<String^, AXVariable^>^ _variablesToPoll = gcnew Dictionary<String^, AXVariable^>();
 		Dictionary<String^, AXVariable^>^ _variables = gcnew Dictionary<String^, AXVariable^>();
-		bool _variableEvents = false;
 		AX::SpsIdChangedEventHandler^ _spsIdChangedDelegate = nullptr;
 		AXVariable::ValueChangedEventHandler^ _variableValueChangedDelegate = nullptr;
 		AXVariable::ArrayValueChangedEventHandler^ _arrayValueChangedDelegate = nullptr;
 
 		void GetVariables();
-		void Worker(System::Object ^sender, System::Timers::ElapsedEventArgs ^e);
+		void Worker(System::Object^ sender, System::Timers::ElapsedEventArgs^ e);
 		void OnSpsIdChanged(AX^ sender);
-		void OnArrayValueChanged(AXVariable ^sender, UInt16 index);
-		void OnValueChanged(AXVariable ^sender);
+		void OnArrayValueChanged(AXVariable^ sender, UInt16 index);
+		void OnValueChanged(AXVariable^ sender);
+	internal:
+		void RegisterVariableToPoll(AXVariable^ variable);
+		void UnregisterVariableToPoll(AXVariable^ variable);
 	public:
 		delegate void StatusEventHandler(AXInstance^ sender, String^ statusText);
 		delegate void ErrorEventHandler(AXInstance^ sender, String^ errorText);
@@ -66,9 +70,6 @@ namespace AutomationX
 
 		/// <summary>Sets the worker threads polling interval in milliseconds. Only used when events are enabled.</summary>
 		property UInt32 PollingInterval { UInt32 get() { return _pollingInterval; } void set(UInt32 value) { _pollingInterval = value; } }
-
-		/// <summary>Set to true to enable checking variables for changes.</summary>
-		property bool VariableEvents { bool get(); void set(bool value); }
 
 		/// <summary>Returns a collection of all variables.</summary>
 		property array<AXVariable^>^ Variables { array<AXVariable^>^ get(); }

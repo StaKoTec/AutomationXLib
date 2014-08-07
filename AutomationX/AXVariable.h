@@ -36,6 +36,8 @@ namespace AutomationX
 	public ref class AXVariable : IDisposable
 	{
 	private:
+		void* _execData = nullptr;
+		bool _events = false;
 		bool _isArray = false;
 		AX^ _ax;
 		ManagedTypeConverter _converter;
@@ -60,6 +62,7 @@ namespace AutomationX
 		void Set(tagAxVariant& data, UInt16 index);
 		void OnSpsIdChanged(AX^ sender);
 		void GetAttributes();
+		void GetExecData();
 	public:
 		delegate void ValueChangedEventHandler(AXVariable^ sender);
 		delegate void ArrayValueChangedEventHandler(AXVariable^ sender, UInt16 index);
@@ -71,6 +74,9 @@ namespace AutomationX
 
 		/// <summary>Returns the aX object of the variable.</summary>
 		property AX^ AutomationX { AX^ get() { return _ax; } }
+
+		/// <summary>Set to true to enable checking variables for changes.</summary>
+		property bool Events { bool get(); void set(bool value); }
 
 		/// <summary>Returns the instance of the variable.</summary>
 		property AXInstance^ Instance { AXInstance^ get() { return _instance; } }
