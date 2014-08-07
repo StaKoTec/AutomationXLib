@@ -75,7 +75,7 @@ namespace AutomationX
 		/// <summary>Returns the aX object of the variable.</summary>
 		property AX^ AutomationX { AX^ get() { return _ax; } }
 
-		/// <summary>Set to true to enable checking variables for changes.</summary>
+		/// <summary>Set to true to enable checking this variable for changes.</summary>
 		property bool Events { bool get(); void set(bool value); }
 
 		/// <summary>Returns the instance of the variable.</summary>

@@ -101,6 +101,9 @@ namespace AutomationX
 		/// <summary>Checks if a variable exists.</summary>
 		/// <returns>True when the variable name was found, otherwise false.</returns>
 		bool VariableExists(String^ variableName);
+
+		/// <summary>Set to true to enable checking all instance variables for changes.</summary>
+		void SetVariableEvents(bool value);
 	};
 }
 

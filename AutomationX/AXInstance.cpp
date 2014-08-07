@@ -138,6 +138,16 @@ namespace AutomationX
 		//GC::Collect(); //Uncomment to check for memory leaks
 	}
 
+	void AXInstance::SetVariableEvents(bool value)
+	{
+		array<AXVariable^>^ variables = Variables;
+		//We can't loop through _variableList as locking the mutex would cause a deadlock
+		for each(AXVariable^ variable in variables)
+		{
+			variable->Events = value;
+		}
+	}
+
 	void AXInstance::RegisterVariableToPoll(AXVariable^ variable)
 	{
 		try
