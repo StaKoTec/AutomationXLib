@@ -66,6 +66,7 @@ namespace AutomationX
 		std::vector<char*> buffers(1);
 		AxGetAllClasses(&buffers.at(0), 1);
 		int numberOfClasses = AxGetNumberOfAllClasses();
+		buffers.clear();
 		buffers.resize(numberOfClasses);
 		int count = AxGetAllClasses(&buffers.at(0), numberOfClasses);
 		for (int i = 0; i < count; i++)
@@ -114,5 +115,7 @@ namespace AutomationX
 		Marshal::FreeHGlobal(IntPtr((void*)pMessage));
 		Marshal::FreeHGlobal(IntPtr((void*)pValue));
 		Marshal::FreeHGlobal(IntPtr((void*)pFileName));
+
+		ax
 	}
 }
