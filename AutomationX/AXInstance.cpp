@@ -73,7 +73,7 @@ namespace AutomationX
 		array<AXInstance^>^ instances = nullptr;
 		try
 		{
-			_variableListMutex.WaitOne();
+			_subinstanceListMutex.WaitOne();
 			instances = gcnew array<AXInstance^>(_subinstanceList->Count);
 			_subinstanceList->CopyTo(instances);
 			_subinstanceListMutex.ReleaseMutex();
