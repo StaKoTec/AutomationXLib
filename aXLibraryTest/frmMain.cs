@@ -127,7 +127,7 @@ namespace aXLibraryTest
                     subinstance.StatusEvent += instance_OnStatus;
                     subinstance.VariableValueChanged += variable_OnValueChanged;
                     subinstance.ArrayValueChanged += variable_OnArrayValueChanged;
-                    _instances.Add(subinstance.Path, instance);
+                    _instances.Add(subinstance.Path, subinstance);
                     node = new TreeNode(subinstance.Path);
                     variables = subinstance.Variables;
                     foreach (AXVariable variable in variables)

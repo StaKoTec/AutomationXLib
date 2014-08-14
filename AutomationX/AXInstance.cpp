@@ -293,10 +293,7 @@ namespace AutomationX
 		{
 			_variableListMutex.WaitOne();
 			_variableList->Clear();
-			char* cName = _converter.GetCString(_name);
-			void* handle = AxQueryInstance(cName);
-			Marshal::FreeHGlobal(IntPtr((void*)cName)); //Always free memory!
-			if (!handle) throw gcnew AXInstanceException("Could not get instance handle.");
+			void* handle = GetHandle();
 			//Don't call _ax->SpsIdChanged here as it causes a call to GetVariables again!
 			AX_VAR_DSC data = 0;
 			while (data = AxVarDscFromInstance(handle, data))
