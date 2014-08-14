@@ -84,6 +84,9 @@ namespace AutomationX
 		/// <summary>Returns the name of the variable.</summary>
 		property String^ Name { String^ get() { return _name; } }
 
+		/// <summary>Returns the full path of the variable including all instance names separated by ".".</summary>
+		property String^ Path { String^ get() { return _instance->Path + "." + _name; } }
+
 		/// <summary>Returns the type of the variable.</summary>
 		property AXVariableType Type { AXVariableType get() { return _type; } }
 		

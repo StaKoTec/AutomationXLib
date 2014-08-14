@@ -13,10 +13,12 @@ namespace AutomationX
 	public ref class AXInstance : IDisposable
 	{
 	private:
+		volatile bool _disposed = false;
 		AX^ _ax;
+		AXInstance^ _parent = nullptr;
 		ManagedTypeConverter _converter;
 		volatile UInt32 _pollingInterval = 100;
-		volatile bool _stopWorkerTimer = true;
+		volatile bool _stopWorkerTimer = false;
 		Mutex _workerTimerMutex;
 		Timers::Timer^ _workerTimer;
 		String^ _name = "";
@@ -25,24 +27,26 @@ namespace AutomationX
 		AXVariable^ _alarmTextVariable = nullptr;
 		String^ _statusText = "";
 		String^ _errorText = "";
-		List<String^>^ _variableNames = gcnew List<String^>();
 		Mutex _variableListMutex;
+		List<String^>^ _variableNames = gcnew List<String^>();
 		List<AXVariable^>^ _variableList = gcnew List<AXVariable^>();
-		Mutex _variablesToPollMutex;
-		Dictionary<String^, AXVariable^>^ _variablesToPoll = gcnew Dictionary<String^, AXVariable^>();
 		Dictionary<String^, AXVariable^>^ _variables = gcnew Dictionary<String^, AXVariable^>();
+		Mutex _subinstanceListMutex;
+		List<AXInstance^>^ _subinstanceList = gcnew List<AXInstance^>();
+		Dictionary<String^, AXInstance^>^ _subinstances = gcnew Dictionary<String^, AXInstance^>();
+		bool _variableEvents = false;
 		AX::SpsIdChangedEventHandler^ _spsIdChangedDelegate = nullptr;
 		AXVariable::ValueChangedEventHandler^ _variableValueChangedDelegate = nullptr;
 		AXVariable::ArrayValueChangedEventHandler^ _arrayValueChangedDelegate = nullptr;
 
 		void GetVariables();
-		void Worker(System::Object^ sender, System::Timers::ElapsedEventArgs^ e);
+		void GetSubinstances();
+		void Worker(System::Object ^sender, System::Timers::ElapsedEventArgs ^e);
 		void OnSpsIdChanged(AX^ sender);
-		void OnArrayValueChanged(AXVariable^ sender, UInt16 index);
-		void OnValueChanged(AXVariable^ sender);
+		void OnArrayValueChanged(AXVariable ^sender, UInt16 index);
+		void OnValueChanged(AXVariable ^sender);
 	internal:
-		void RegisterVariableToPoll(AXVariable^ variable);
-		void UnregisterVariableToPoll(AXVariable^ variable);
+		void* GetHandle();
 	public:
 		delegate void StatusEventHandler(AXInstance^ sender, String^ statusText);
 		delegate void ErrorEventHandler(AXInstance^ sender, String^ errorText);
@@ -58,6 +62,7 @@ namespace AutomationX
 
 		property AX^ AutomationX { AX^ get() { return _ax; } }
 		property String^ Name { String^ get() { return _name; } }
+		property String^ Path { String^ get() { if (_parent) return _parent->Path + "." + _name; else  return _name; } }
 		property String^ Remark { String^ get(); }
 
 		/// <summary>Sets the aX status variable provided with the constructor.</summary>
@@ -71,18 +76,29 @@ namespace AutomationX
 		/// <summary>Sets the worker threads polling interval in milliseconds. Only used when events are enabled.</summary>
 		property UInt32 PollingInterval { UInt32 get() { return _pollingInterval; } void set(UInt32 value) { _pollingInterval = value; } }
 
+		/// <summary>Set to true to enable checking variables for changes.</summary>
+		property bool VariableEvents { bool get(); void set(bool value); }
+
 		/// <summary>Returns a collection of all variables.</summary>
 		property array<AXVariable^>^ Variables { array<AXVariable^>^ get(); }
+
+		/// <summary>Returns a collection of all subinstances.</summary>
+		property array<AXInstance^>^ Subinstances { array<AXInstance^>^ get(); }
 
 		/// <summary>Returns the aX variable of the specified name.</summary>
 		/// <param name='variableName'>The name of the variable.</param>
 		/// <return>Returns an aX variable object or null, when the variable was not found.</return>
 		property AXVariable^ default[String^] { AXVariable^ get(String^ variableName); }
-		
+
 		/// <summary>Constructor</summary>
 		/// <param name='ax'>The aX object.</param>
 		/// <param name='name'>Name of this aX instance.</param>
 		AXInstance(AX^ ax, String^ name);
+
+		/// <summary>Constructor</summary>
+		/// <param name='ax'>The aX object.</param>
+		/// <param name='name'>Name of this aX subinstance.</param>
+		AXInstance(AX^ ax, AXInstance^ parent, String^ name);
 
 		/// <summary>Constructor taking names of status variables.</summary>
 		/// <param name='ax'>The aX object.</param>
@@ -98,12 +114,18 @@ namespace AutomationX
 		/// <return>Returns an aX variable object or null, when the variable was not found.</return>
 		AXVariable^ Get(String^ variableName);
 
+		/// <summary>Returns the subinstance of the specified name.</summary>
+		/// <param name='variableName'>The name of the subinstance.</param>
+		/// <return>Returns an instance object or null, when the subinstance was not found.</return>
+		AXInstance^ GetSubinstance(String^ instanceName);
+
 		/// <summary>Checks if a variable exists.</summary>
 		/// <returns>True when the variable name was found, otherwise false.</returns>
 		bool VariableExists(String^ variableName);
 
-		/// <summary>Set to true to enable checking all instance variables for changes.</summary>
-		void SetVariableEvents(bool value);
+		/// <summary>Checks if a subinstance exists.</summary>
+		/// <returns>True when the subinstance name was found, otherwise false.</returns>
+		bool SubinstanceExists(String^ subinstanceName);
 	};
 }
 

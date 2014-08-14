@@ -138,7 +138,7 @@ namespace AutomationX
 	{
 		_instance = instance;
 		_name = name;
-		_cName = _converter.GetCString(_instance->Name + "." + _name);
+		_cName = _converter.GetCString(Path);
 		_ax = instance->AutomationX;
 		GetExecData();
 		Refresh();
@@ -194,7 +194,7 @@ namespace AutomationX
 		}
 		catch (const AXVariableException^)
 		{
-			throw gcnew AXVariableTypeException("Could not determinde type of variable " + _name + " and instance " + _instance->Name + ".");
+			throw gcnew AXVariableTypeException("Could not determine type of variable " + Path + ".");
 		}
 		if (type == AX_BT_BOOL || type == AX_BT_ALARM)
 		{
@@ -216,7 +216,7 @@ namespace AutomationX
 			_stringValues = gcnew List<String^>(_length);
 			for (int i = 0; i < _length; i++) _stringValues->Add("");
 		}
-		else throw gcnew AXVariableTypeException("Variable " + _name + " of instance " + _instance->Name + " has unknown type.");
+		else throw gcnew AXVariableTypeException("Variable " + _name + " of instance " + _instance->Path + " has unknown type.");
 	}
 
 	void AXVariable::Refresh()
