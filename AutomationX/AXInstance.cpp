@@ -6,26 +6,23 @@ namespace AutomationX
 	String^ AXInstance::Remark::get()
 	{
 		_ax->CheckSpsId();
-		char* cName = _converter.GetCString(_name);
-		void* handle = AxQueryInstance(cName);
-		Marshal::FreeHGlobal(IntPtr((void*)cName)); //Always free memory!
-		if (!handle) throw (AXException^)(gcnew AXInstanceException("Could not get instance handle."));
+		void* handle = GetHandle();
 		String^ value = gcnew String(AxGetInstanceRemark(handle));
 		return value;
 	}
 
 	/*void AXInstance::Remark::set(String^ value)
 	{
-		_ax->SpsIdChanged();
-		char* cName = _converter.GetCString(_name);
-		void* handle = AxQueryInstance(cName);
-		Marshal::FreeHGlobal(IntPtr((void*)cName)); //Always free memory!
-		if (!handle) throw gcnew AXVariableException("Could not get instance handle.");
-		std::string temp = _converter.GetString(value);
-		char* remark = new char[temp.size() + 1];
-		strcpy_s(remark, temp.size() + 1, temp.c_str());
-		if (!AxSetInstanceRemark(handle, remark)) throw gcnew AXVariableException("Could not set remark.");
-		delete[] remark;
+	_ax->SpsIdChanged();
+	char* cName = _converter.GetCString(_name);
+	void* handle = AxQueryInstance(cName);
+	Marshal::FreeHGlobal(IntPtr((void*)cName)); //Always free memory!
+	if (!handle) throw gcnew AXVariableException("Could not get instance handle.");
+	std::string temp = _converter.GetString(value);
+	char* remark = new char[temp.size() + 1];
+	strcpy_s(remark, temp.size() + 1, temp.c_str());
+	if (!AxSetInstanceRemark(handle, remark)) throw gcnew AXVariableException("Could not set remark.");
+	delete[] remark;
 	}*/
 
 	void AXInstance::Status::set(String^ value)
@@ -55,6 +52,7 @@ namespace AutomationX
 	{
 		try
 		{
+			if (_disposed) return;
 			_workerTimerMutex.WaitOne();
 			if (value)
 			{
@@ -106,20 +104,47 @@ namespace AutomationX
 		return variables;
 	}
 
+	array<AXInstance^>^ AXInstance::Subinstances::get()
+	{
+		_ax->CheckSpsId();
+		if (_subinstanceList->Count == 0) GetSubinstances();
+
+		array<AXInstance^>^ instances = nullptr;
+		try
+		{
+			if (_subinstanceListMutex.WaitOne(1000))
+			{
+				instances = gcnew array<AXInstance^>(_subinstanceList->Count);
+				_subinstanceList->CopyTo(instances);
+				_subinstanceListMutex.ReleaseMutex();
+			}
+		}
+		catch (const Exception^ ex)
+		{
+			_subinstanceListMutex.ReleaseMutex();
+			throw ex;
+		}
+
+		return instances;
+	}
+
 	AXVariable^ AXInstance::default::get(String^ variableName)
 	{
 		return Get(variableName);
 	}
 
-	AXInstance::AXInstance(AX^ ax, String^ name)
+	AXInstance::AXInstance(AX^ ax, String^ name) : AXInstance(ax, nullptr, name)
 	{
+		
+	}
+
+	AXInstance::AXInstance(AX^ ax, AXInstance^ parent, String^ name)
+	{
+		_parent = parent;
 		_ax = ax;
 		if (name->Length == 0) throw (AXException^)(gcnew AXInstanceException("Instance name is empty."));
 		_name = name;
-		char* cName = _converter.GetCString(_name);
-		void* handle = AxQueryInstance(cName);
-		Marshal::FreeHGlobal(IntPtr((void*)cName)); //Always free memory!
-		if (!handle) throw (AXException^)(gcnew AXInstanceException("Could not get instance handle."));
+		void* handle = GetHandle();
 		_spsIdChangedDelegate = gcnew AX::SpsIdChangedEventHandler(this, &AXInstance::OnSpsIdChanged);
 		_variableValueChangedDelegate = gcnew AXVariable::ValueChangedEventHandler(this, &AXInstance::OnValueChanged);
 		_arrayValueChangedDelegate = gcnew AXVariable::ArrayValueChangedEventHandler(this, &AXInstance::OnArrayValueChanged);
@@ -130,9 +155,9 @@ namespace AutomationX
 	{
 		try
 		{
-			if(statusVariableName->Length > 0) _statusVariable = Get(statusVariableName);
+			if (statusVariableName->Length > 0) _statusVariable = Get(statusVariableName);
 		}
-		catch (const AXVariableException^) { throw gcnew AXInstanceException("Could not get status variable.");	}
+		catch (const AXVariableException^) { throw gcnew AXInstanceException("Could not get status variable."); }
 		if (alarmVariableName->Length > 0)
 		{
 			try
@@ -150,12 +175,14 @@ namespace AutomationX
 
 	AXInstance::~AXInstance()
 	{
+		if (_disposed) return;
+		_disposed = true;
 		try
 		{
 			_stopWorkerTimer = true;
 			_workerTimerMutex.WaitOne();
 			{
-				if(_workerTimer) _workerTimer->Stop();
+				if (_workerTimer) _workerTimer->Stop();
 				_workerTimer = nullptr;
 			}
 			_workerTimerMutex.ReleaseMutex();
@@ -215,6 +242,15 @@ namespace AutomationX
 		}
 	}
 
+	void* AXInstance::GetHandle()
+	{
+		char* cName = _converter.GetCString(_name);
+		void* handle = _parent ? AxQueryInstanceFromParent(_parent->GetHandle(), cName) : AxQueryInstance(cName);
+		Marshal::FreeHGlobal(IntPtr((void*)cName)); //Always free memory!
+		if (!handle) throw gcnew AXInstanceException("Could not get instance handle.");
+		return handle;
+	}
+
 	void AXInstance::GetVariables()
 	{
 		try
@@ -222,10 +258,7 @@ namespace AutomationX
 			if (_variableListMutex.WaitOne(10000))
 			{
 				_variableList->Clear();
-				char* cName = _converter.GetCString(_name);
-				void* handle = AxQueryInstance(cName);
-				Marshal::FreeHGlobal(IntPtr((void*)cName)); //Always free memory!
-				if (!handle) throw gcnew AXInstanceException("Could not get instance handle.");
+				void* handle = GetHandle();
 				//Don't call _ax->SpsIdChanged here as it causes a call to GetVariables again!
 				AX_VAR_DSC data = 0;
 				while (data = AxVarDscFromInstance(handle, data))
@@ -280,6 +313,64 @@ namespace AutomationX
 		}
 	}
 
+	void AXInstance::GetSubinstances()
+	{
+		try
+		{
+			if (_subinstanceListMutex.WaitOne(10000))
+			{
+				_subinstanceList->Clear();
+				void* handle = GetHandle();
+				//Don't call _ax->SpsIdChanged here as it causes a call to GetVariables again!
+				AxSubInstanceList_StructPt pInstanceList = nullptr;
+				int instanceCount = AxGetSubInstanceList(handle, &pInstanceList);
+				if (instanceCount == 0) return;
+				for (int i = 0; i < instanceCount; i++)
+				{
+					String^ name = gcnew String(pInstanceList[i].instancePath);
+					if (name->Length == 0 || name->LastIndexOf('.') == -1) continue;
+					name = name->Substring(name->LastIndexOf('.') + 1);
+					AXInstance^ instance;
+					if (_subinstances->ContainsKey(name))
+					{
+						instance = _subinstances[name];
+					}
+					else
+					{
+						instance = gcnew AXInstance(_ax, this, name);
+						_subinstances->Add(name, instance);
+					}
+					_subinstanceList->Add(instance);
+				}
+				AxFreeSubInstanceList(&pInstanceList);
+				//Remove instances from _subinstances that don't exist anymore
+				//We do this, so all already existing subinstances are not invalidated
+				if (_subinstances->Count != _subinstanceList->Count)
+				{
+					List<String^>^ elementsToRemove = gcnew List<String^>();
+					for each (KeyValuePair<String^, AXInstance^> element in _subinstances)
+					{
+						if (!SubinstanceExists(element.Key))
+						{
+							//Don't remove elements from _subinstances while we are iterating through it
+							elementsToRemove->Add(element.Key);
+						}
+					}
+					for each (String^ element in elementsToRemove)
+					{
+						_subinstances->Remove(element);
+					}
+				}
+				_subinstanceListMutex.ReleaseMutex();
+			}
+		}
+		catch (const Exception^ ex)
+		{
+			_subinstanceListMutex.ReleaseMutex();
+			throw ex;
+		}
+	}
+
 	void AXInstance::OnArrayValueChanged(AXVariable ^sender, UInt16 index)
 	{
 		ArrayValueChanged(sender, index);
@@ -308,10 +399,18 @@ namespace AutomationX
 		return nullptr;
 	}
 
+	AXInstance^ AXInstance::GetSubinstance(String^ instanceName)
+	{
+		_ax->CheckSpsId();
+		if (_subinstances->Count == 0) GetSubinstances();
+		if (_subinstances->ContainsKey(instanceName)) return _subinstances[instanceName];
+		return nullptr;
+	}
+
 	bool AXInstance::VariableExists(String^ variableName)
 	{
 		_ax->CheckSpsId();
-		char* cName = _converter.GetCString(_name + "." + variableName);
+		char* cName = _converter.GetCString(_parent ? _parent->Name + "." + _name + "." + variableName : _name + "." + variableName);
 		void* handle = AxQueryExecDataEx(cName);
 		Marshal::FreeHGlobal(IntPtr((void*)cName)); //Always free memory!
 		if (!handle) return false;
@@ -319,8 +418,23 @@ namespace AutomationX
 		return true;
 	}
 
+	bool AXInstance::SubinstanceExists(String^ instanceName)
+	{
+		_ax->CheckSpsId();
+		char* cName = _converter.GetCString(_name);
+		void* handle = _parent ? AxQueryInstanceFromParent(_parent->GetHandle(), cName) : AxQueryInstance(cName);
+		Marshal::FreeHGlobal(IntPtr((void*)cName)); //Always free memory!
+		if (!handle) return false;
+		cName = _converter.GetCString(instanceName);
+		void* handle2 = AxQueryInstanceFromParent(handle, cName);
+		Marshal::FreeHGlobal(IntPtr((void*)cName)); //Always free memory!
+		if (!handle2) return false;
+		return true;
+	}
+
 	void AXInstance::OnSpsIdChanged(AX ^sender)
 	{
 		GetVariables();
+		GetSubinstances();
 	}
 }

@@ -115,7 +115,5 @@ namespace AutomationX
 		Marshal::FreeHGlobal(IntPtr((void*)pMessage));
 		Marshal::FreeHGlobal(IntPtr((void*)pValue));
 		Marshal::FreeHGlobal(IntPtr((void*)pFileName));
-
-		ax
 	}
 }
