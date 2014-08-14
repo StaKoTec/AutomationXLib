@@ -119,6 +119,32 @@ namespace aXLibraryTest
                     node.Nodes.Add(variableNode);
                 }
                 tvInstances.Nodes.Add(node);
+
+                AXInstance[] subinstances = instance.Subinstances;
+                foreach(AXInstance subinstance in subinstances)
+                {
+                    subinstance.ErrorEvent += instance_OnError;
+                    subinstance.StatusEvent += instance_OnStatus;
+                    subinstance.VariableValueChanged += variable_OnValueChanged;
+                    subinstance.ArrayValueChanged += variable_OnArrayValueChanged;
+                    _instances.Add(subinstance.Path, instance);
+                    node = new TreeNode(subinstance.Path);
+                    variables = subinstance.Variables;
+                    foreach (AXVariable variable in variables)
+                    {
+                        variable.Events = true;
+                        TreeNode variableNode = new TreeNode(variable.Name);
+                        if (variable.IsArray)
+                        {
+                            for (int i = 0; i < variable.Length; i++)
+                            {
+                                variableNode.Nodes.Add(i.ToString());
+                            }
+                        }
+                        node.Nodes.Add(variableNode);
+                    }
+                    tvInstances.Nodes.Add(node);
+                }
             }
             tvInstances.EndUpdate();
         }

@@ -128,6 +128,11 @@ namespace AutomationX
 		delete[] remark;
 	}*/
 
+	String^ AXVariable::Path::get()
+	{
+		return _instance->Path + "." + _name;
+	}
+
 	UInt16 AXVariable::Length::get()
 	{
 		_ax->CheckSpsId();
