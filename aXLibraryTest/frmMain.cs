@@ -384,8 +384,8 @@ namespace aXLibraryTest
         private void txtPollingInterval_TextChanged(object sender, EventArgs e)
         {
             if (_currentInstance == null || _nodeLoading) return;
-            UInt32 interval = 100;
-            UInt32.TryParse(txtPollingInterval.Text, out interval);
+            Int32 interval = 100;
+            Int32.TryParse(txtPollingInterval.Text, out interval);
             _currentInstance.PollingInterval = interval;
         }
     }

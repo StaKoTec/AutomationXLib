@@ -5,10 +5,32 @@ namespace AutomationX
 {
 	String^ AXInstance::Remark::get()
 	{
-		_ax->CheckSpsId();
+		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing instance " + _name);
 		void* handle = GetHandle();
 		String^ value = gcnew String(AxGetInstanceRemark(handle));
 		return value;
+	}
+
+	Int32 AXInstance::PolledVariablesCount::get()
+	{
+		if (!_variablesToPoll) return 0;
+		Int32 count = _variablesToPoll->Count;
+		try
+		{
+			if (_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing instance " + _name);
+			_variablesToPollMutex.WaitOne();
+			for each (KeyValuePair<String^, AXVariable^> pair in _variablesToPoll)
+			{
+				if (pair.Value->IsArray) count += pair.Value->Length;
+			}
+			_variablesToPollMutex.ReleaseMutex();
+		}
+		catch (Exception^ ex)
+		{
+			_variablesToPollMutex.ReleaseMutex();
+			throw ex;
+		}
+		return count;
 	}
 
 	/*void AXInstance::Remark::set(String^ value)
@@ -27,7 +49,7 @@ namespace AutomationX
 
 	void AXInstance::Status::set(String^ value)
 	{
-		_ax->CheckSpsId();
+		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing instance " + _name);
 		StatusEvent(this, value);
 		if (_statusVariable == nullptr) return;
 		_statusVariable->Set(value);
@@ -35,7 +57,7 @@ namespace AutomationX
 
 	void AXInstance::Error::set(String^ value)
 	{
-		_ax->CheckSpsId();
+		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing instance " + _name);
 		ErrorEvent(this, value);
 		if (_alarmVariable == nullptr) return;
 		_alarmVariable->Set(true);
@@ -45,7 +67,7 @@ namespace AutomationX
 
 	array<AXVariable^>^ AXInstance::Variables::get()
 	{
-		_ax->CheckSpsId();
+		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing instance " + _name);
 		if (_variableList->Count == 0) GetVariables();
 
 		array<AXVariable^>^ variables = nullptr;
@@ -67,7 +89,7 @@ namespace AutomationX
 
 	array<AXInstance^>^ AXInstance::Subinstances::get()
 	{
-		_ax->CheckSpsId();
+		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing instance " + _name);
 		if (_subinstanceList->Count == 0) GetSubinstances();
 
 		array<AXInstance^>^ instances = nullptr;
@@ -138,17 +160,14 @@ namespace AutomationX
 		_disposed = true;
 		try
 		{
-			_stopWorkerTimer = true;
-			_workerTimerMutex.WaitOne();
-			{
-				if (_workerTimer) _workerTimer->Stop();
-				_workerTimer = nullptr;
-			}
-			_workerTimerMutex.ReleaseMutex();
+			_stopWorkerThread = true;
+			_workerThreadMutex.WaitOne();
+			if (_workerThread && _workerThread->ThreadState == ThreadState::Running || _workerThread->ThreadState == ThreadState::WaitSleepJoin) _workerThread->Join();
+			_workerThreadMutex.ReleaseMutex();
 		}
 		catch (const Exception^ ex)
 		{
-			_workerTimerMutex.ReleaseMutex();
+			_workerThreadMutex.ReleaseMutex();
 			throw ex;
 		}
 		_ax->SpsIdChanged -= _spsIdChangedDelegate;
@@ -191,22 +210,28 @@ namespace AutomationX
 			_variablesToPollMutex.ReleaseMutex();
 			throw ex;
 		}
-		if (_stopWorkerTimer)
+		if (_stopWorkerThread)
 		{
 			try
 			{
-				_workerTimerMutex.WaitOne();
-				if (_workerTimer) _workerTimer->Stop();
-				_stopWorkerTimer = false;
-				_workerTimer = gcnew Timers::Timer(PollingInterval);
-				_workerTimer->AutoReset = true;
-				_workerTimer->Elapsed += gcnew System::Timers::ElapsedEventHandler(this, &AXInstance::Worker);
-				_workerTimer->Start();
-				_workerTimerMutex.ReleaseMutex();
+				if (_spsIdIsChanging)
+				{
+					_stopWorkerThread = false;
+					return;
+				}
+				_workerThreadMutex.WaitOne();
+				_stopWorkerThread = true;
+				while (_workerThread && _workerThread->ThreadState == ThreadState::Unstarted) Thread::Sleep(10);
+				if (_workerThread && (_workerThread->ThreadState == ThreadState::Running || _workerThread->ThreadState == ThreadState::WaitSleepJoin)) _workerThread->Join();
+				_stopWorkerThread = false;
+				_workerThread = gcnew Thread(gcnew ThreadStart(this, &AXInstance::Worker));
+				_workerThread->Priority = ThreadPriority::Highest;
+				_workerThread->Start();
+				_workerThreadMutex.ReleaseMutex();
 			}
 			catch (const Exception^ ex)
 			{
-				_workerTimerMutex.ReleaseMutex();
+				_workerThreadMutex.ReleaseMutex();
 				throw ex;
 			}
 		}
@@ -228,52 +253,68 @@ namespace AutomationX
 				_variablesToPollMutex.ReleaseMutex();
 				throw ex;
 			}
-			_workerTimerMutex.WaitOne();
+			if (_spsIdIsChanging)
+			{
+				_stopWorkerThread = true;
+				return;
+			}
+			_workerThreadMutex.WaitOne();
 			if (empty)
 			{
-				_stopWorkerTimer = true;
-				if (_workerTimer) _workerTimer->Stop();
+				_stopWorkerThread = true;
+				while (_workerThread && _workerThread->ThreadState == ThreadState::Unstarted) Thread::Sleep(10);
+				if (_workerThread && (_workerThread->ThreadState == ThreadState::Running || _workerThread->ThreadState == ThreadState::WaitSleepJoin)) _workerThread->Join();
 			}
-			_workerTimerMutex.ReleaseMutex();
+			_workerThreadMutex.ReleaseMutex();
 		}
 		catch (const Exception^ ex)
 		{
-			_workerTimerMutex.ReleaseMutex();
+			_workerThreadMutex.ReleaseMutex();
 			throw ex;
 		}
 	}
-	void AXInstance::Worker(System::Object ^sender, System::Timers::ElapsedEventArgs ^e)
+
+	void AXInstance::Worker()
 	{
 		try
 		{
-			_workerTimerMutex.WaitOne();
 			DateTime time;
 			Int32 timeToSleep = 0;
-			time = DateTime::Now;
-			try
+			while (!_stopWorkerThread)
 			{
-				_ax->CheckSpsId();
-				_variablesToPollMutex.WaitOne();
-				for each (KeyValuePair<String^, AXVariable^> pair in _variablesToPoll)
+				time = DateTime::Now;
+				try
 				{
-					pair.Value->Refresh(true);
+					if (_ax->CheckSpsId()) 
+					{
+						Threading::Thread::Sleep(_pollingInterval);
+						continue;
+					}
+					_variablesToPollMutex.WaitOne();
+					for each (KeyValuePair<String^, AXVariable^> pair in _variablesToPoll)
+					{
+						if (_stopWorkerThread)
+						{
+							_variablesToPollMutex.ReleaseMutex();
+							return;
+						}
+						pair.Value->Refresh(true);
+					}
+					_variablesToPollMutex.ReleaseMutex();
 				}
-				_variablesToPollMutex.ReleaseMutex();
+				catch (const Exception^ ex)
+				{
+					_variablesToPollMutex.ReleaseMutex();
+					throw ex;
+				}
+				if (_stopWorkerThread) return;
+				timeToSleep = _pollingInterval - (Int32)DateTime::Now.Subtract(time).TotalMilliseconds;
+				if (timeToSleep < 1) timeToSleep = 1;
+				Threading::Thread::Sleep(timeToSleep);
 			}
-			catch (const Exception^ ex)
-			{
-				_variablesToPollMutex.ReleaseMutex();
-				throw ex;
-			}
-			timeToSleep = _pollingInterval - DateTime::Now.Subtract(time).Milliseconds;
-			if (timeToSleep < 10) timeToSleep = 10;
-			_workerTimer->Interval = timeToSleep;
-			if (!_stopWorkerTimer) _workerTimer->Start();
-			_workerTimerMutex.ReleaseMutex();
 		}
 		catch (const Exception^ ex)
 		{
-			_workerTimerMutex.ReleaseMutex();
 			throw ex;
 		}
 	}
@@ -428,7 +469,7 @@ namespace AutomationX
 
 	AXVariable^ AXInstance::Get(String^ variableName)
 	{
-		_ax->CheckSpsId();
+		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing instance " + _name);
 		if (_variables->Count == 0) GetVariables();
 		if (_variables->ContainsKey(variableName)) return _variables[variableName];
 		if (variableName->IndexOf('.') > -1)
@@ -445,7 +486,7 @@ namespace AutomationX
 
 	AXInstance^ AXInstance::GetSubinstance(String^ instanceName)
 	{
-		_ax->CheckSpsId();
+		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing instance " + _name);
 		if (_subinstances->Count == 0) GetSubinstances();
 		if (_subinstances->ContainsKey(instanceName)) return _subinstances[instanceName];
 		return nullptr;
@@ -453,7 +494,7 @@ namespace AutomationX
 
 	bool AXInstance::VariableExists(String^ variableName)
 	{
-		_ax->CheckSpsId();
+		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing instance " + _name);
 		char* cName = _converter.GetCString(Path + "." + variableName);
 		void* handle = AxQueryExecDataEx(cName);
 		Marshal::FreeHGlobal(IntPtr((void*)cName)); //Always free memory!
@@ -464,7 +505,7 @@ namespace AutomationX
 
 	bool AXInstance::SubinstanceExists(String^ instanceName)
 	{
-		_ax->CheckSpsId();
+		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing instance " + _name);
 		char* cName = _converter.GetCString(_name);
 		void* handle = _parent ? AxQueryInstanceFromParent(_parent->GetHandle(), cName) : AxQueryInstance(cName);
 		Marshal::FreeHGlobal(IntPtr((void*)cName)); //Always free memory!
@@ -478,7 +519,52 @@ namespace AutomationX
 
 	void AXInstance::OnSpsIdChanged(AX ^sender)
 	{
-		GetVariables();
-		GetSubinstances();
+		_spsIdIsChanging = true;
+		bool restartWorkerTimer = !_stopWorkerThread;
+		_stopWorkerThread = true;
+		try
+		{
+			_workerThreadMutex.WaitOne();
+			if (!_stopWorkerThread) restartWorkerTimer = true;
+			_stopWorkerThread = true;
+			while (_workerThread && _workerThread->ThreadState == ThreadState::Unstarted) Thread::Sleep(10);
+			if (_workerThread && (_workerThread->ThreadState == ThreadState::Running || _workerThread->ThreadState == ThreadState::WaitSleepJoin)) _workerThread->Join();
+			_workerThreadMutex.ReleaseMutex();
+		}
+		catch (const Exception^)
+		{
+			_workerThreadMutex.ReleaseMutex();
+		}
+		try
+		{
+			GetVariables();
+			GetSubinstances();
+		}
+		catch (const Exception^ ex)
+		{
+			_spsIdIsChanging = false;
+			throw ex;
+		}
+		if (restartWorkerTimer || !_stopWorkerThread)
+		{
+			try
+			{
+				_workerThreadMutex.WaitOne();
+				_stopWorkerThread = true;
+				while (_workerThread && _workerThread->ThreadState == ThreadState::Unstarted) Thread::Sleep(10);
+				if (_workerThread && (_workerThread->ThreadState == ThreadState::Running || _workerThread->ThreadState == ThreadState::WaitSleepJoin)) _workerThread->Join();
+				_stopWorkerThread = false;
+				_workerThread = gcnew Thread(gcnew ThreadStart(this, &AXInstance::Worker));
+				_workerThread->Start();
+				_workerThreadMutex.ReleaseMutex();
+			}
+			catch (const Exception^ ex)
+			{
+				_workerThreadMutex.ReleaseMutex();
+				_spsIdIsChanging = false;
+				throw ex;
+			}
+		}
+		_spsIdIsChanging = false;
 	}
 }

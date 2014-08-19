@@ -11,11 +11,16 @@ namespace AutomationX
 	public ref class AX
 	{
 	private:
+		delegate void NoParameterDelegate();
 		ManagedTypeConverter _converter;
 		Timers::Timer^ _workerTimer;
 		int* _spsId = nullptr;
+		DateTime _lastSpsIdChange;
+		System::Threading::Mutex _spsIdChangedThreadMutex;
+		System::Threading::Thread^ _spsIdChangedThread;
 
 		void OnWorkerTimerElapsed(System::Object ^sender, System::Timers::ElapsedEventArgs ^e);
+		void RaiseSpsIdChanged();
 	public:
 		delegate void ShutdownEventHandler(AX^ sender);
 		delegate void SpsIdChangedEventHandler(AX^ sender);

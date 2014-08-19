@@ -18,9 +18,10 @@ namespace AutomationX
 		AX^ _ax;
 		ManagedTypeConverter _converter;
 		volatile UInt32 _pollingInterval = 100;
-		volatile bool _stopWorkerTimer = true;
-		Mutex _workerTimerMutex;
-		Timers::Timer^ _workerTimer;
+		volatile bool _stopWorkerThread = true;
+		Mutex _workerThreadMutex;
+		System::Threading::Thread^ _workerThread;
+		volatile bool _spsIdIsChanging = false;
 		String^ _name = "";
 		AXVariable^ _statusVariable = nullptr;
 		AXVariable^ _alarmVariable = nullptr;
@@ -42,7 +43,7 @@ namespace AutomationX
 
 		void GetVariables();
 		void GetSubinstances();
-		void Worker(System::Object^ sender, System::Timers::ElapsedEventArgs^ e);
+		void Worker();
 		void OnSpsIdChanged(AX^ sender);
 		void OnArrayValueChanged(AXVariable^ sender, UInt16 index);
 		void OnValueChanged(AXVariable^ sender);
@@ -67,6 +68,7 @@ namespace AutomationX
 		property String^ Name { String^ get() { return _name; } }
 		property String^ Path { String^ get() { if (_parent) return _parent->Path + "." + _name; else return _name; } }
 		property String^ Remark { String^ get(); }
+		property Int32 PolledVariablesCount { Int32 get(); }
 
 		/// <summary>Sets the aX status variable provided with the constructor.</summary>
 		/// <param name='value'>Text to set.</param>
@@ -77,7 +79,7 @@ namespace AutomationX
 		property String^ Error { String^ get() { return _errorText; } void set(String^ value); }
 
 		/// <summary>Sets the worker threads polling interval in milliseconds. Only used when events are enabled.</summary>
-		property UInt32 PollingInterval { UInt32 get() { return _pollingInterval; } void set(UInt32 value) { _pollingInterval = value; } }
+		property Int32 PollingInterval { Int32 get() { return _pollingInterval; } void set(Int32 value) { if(value > 0) _pollingInterval = value; } }
 
 		/// <summary>Returns a collection of all variables.</summary>
 		property array<AXVariable^>^ Variables { array<AXVariable^>^ get(); }

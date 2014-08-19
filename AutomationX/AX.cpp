@@ -18,7 +18,7 @@ namespace AutomationX
 		if (!AxOmAttachToObjectMemory()) throw gcnew AXException("Could not attach to shared memory. Make sure AutomationX is running and the user running this program has enough privileges.");
 		AxOmQueryProcessGroupInfo(); //No interpretable return value, must be called after AxOmAttachToObjectMemory
 		_spsId = new int;
-		CheckSpsId();
+		AxHasSpsIdChanged(_spsId);
 		_workerTimer = gcnew Timers::Timer(1000);
 		_workerTimer->Elapsed += gcnew System::Timers::ElapsedEventHandler(this, &AutomationX::AX::OnWorkerTimerElapsed);
 		_workerTimer->Start();
@@ -26,6 +26,8 @@ namespace AutomationX
 
 	AX::~AX()
 	{
+		while (_spsIdChangedThread->ThreadState == ThreadState::Unstarted) Thread::Sleep(10);
+		while (_spsIdChangedThread && (_spsIdChangedThread->ThreadState == ThreadState::Running || _spsIdChangedThread->ThreadState == ThreadState::WaitSleepJoin)) _spsIdChangedThread->Join();
 		if (_spsId)	delete _spsId;
 	}
 
@@ -82,7 +84,7 @@ namespace AutomationX
 		char* cName = _converter.GetCString(instanceName);
 		void* handle = AxQueryInstance(cName);
 		Marshal::FreeHGlobal(IntPtr((void*)cName)); //Always free memory!
-		if (!handle) throw (AXException^)(gcnew AXInstanceException("Could not get instance handle."));
+		if (!handle) throw (AXException^)(gcnew AXInstanceException("Could not get instance handle for " + instanceName + "."));
 		String^ value = gcnew String(AxGetInstanceClassPath(handle));
 		return value;
 	}
@@ -91,10 +93,32 @@ namespace AutomationX
 	{
 		if (AxHasSpsIdChanged(_spsId) == 1)
 		{
-			SpsIdChanged(this);
+			_lastSpsIdChange = DateTime::Now;
+			try
+			{
+				_spsIdChangedThreadMutex.WaitOne();
+				while (_spsIdChangedThread && _spsIdChangedThread->ThreadState == ThreadState::Unstarted) Thread::Sleep(10);
+				while (_spsIdChangedThread && (_spsIdChangedThread->ThreadState == ThreadState::Running || _spsIdChangedThread->ThreadState == ThreadState::WaitSleepJoin)) _spsIdChangedThread->Join();
+
+				_spsIdChangedThread = gcnew Thread(gcnew ThreadStart(this, &AX::RaiseSpsIdChanged));
+				_spsIdChangedThread->Priority = ThreadPriority::Highest;
+				_spsIdChangedThread->Start();
+				_spsIdChangedThreadMutex.ReleaseMutex();
+			}
+			catch (Exception^ ex)
+			{
+				_spsIdChangedThreadMutex.ReleaseMutex();
+				throw ex;
+			}
 			return true;
 		}
-		return false;
+		if(DateTime::Now.Subtract(_lastSpsIdChange).TotalMilliseconds > 10) return false;
+		return true;
+	}
+
+	void AX::RaiseSpsIdChanged()
+	{
+		SpsIdChanged(this);
 	}
 
 	void AX::WriteJournal(int priority, String^ position, String^ message, String^ value, String^ fileName)
