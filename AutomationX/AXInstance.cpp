@@ -5,7 +5,7 @@ namespace AutomationX
 {
 	String^ AXInstance::Remark::get()
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing instance " + _name);
+		if(!HandleSpsIdChange()) return "";
 		void* handle = GetHandle();
 		String^ value = gcnew String(AxGetInstanceRemark(handle));
 		return value;
@@ -17,7 +17,7 @@ namespace AutomationX
 		Int32 count = _variablesToPoll->Count;
 		try
 		{
-			if (_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing instance " + _name);
+			if(!HandleSpsIdChange()) return 0;
 			_variablesToPollMutex.WaitOne();
 			for each (KeyValuePair<String^, AXVariable^> pair in _variablesToPoll)
 			{
@@ -49,7 +49,7 @@ namespace AutomationX
 
 	void AXInstance::Status::set(String^ value)
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing instance " + _name);
+		if(!HandleSpsIdChange()) return;
 		StatusEvent(this, value);
 		if (_statusVariable == nullptr) return;
 		_statusVariable->Set(value);
@@ -57,7 +57,7 @@ namespace AutomationX
 
 	void AXInstance::Error::set(String^ value)
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing instance " + _name);
+		if(!HandleSpsIdChange()) return;
 		ErrorEvent(this, value);
 		if (_alarmVariable == nullptr) return;
 		_alarmVariable->Set(true);
@@ -67,7 +67,7 @@ namespace AutomationX
 
 	array<AXVariable^>^ AXInstance::Variables::get()
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing instance " + _name);
+		if(!HandleSpsIdChange()) return nullptr;
 		if (_variableList->Count == 0) GetVariables();
 
 		array<AXVariable^>^ variables = nullptr;
@@ -89,7 +89,7 @@ namespace AutomationX
 
 	array<AXInstance^>^ AXInstance::Subinstances::get()
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing instance " + _name);
+		if(!HandleSpsIdChange()) return nullptr;
 		if (_subinstanceList->Count == 0) GetSubinstances();
 
 		array<AXInstance^>^ instances = nullptr;
@@ -123,6 +123,7 @@ namespace AutomationX
 	{
 		_parent = parent;
 		_ax = ax;
+		_spsId = _ax->SpsId;
 		if (name->Length == 0) throw (AXException^)(gcnew AXInstanceException("Instance name is empty."));
 		_name = name;
 		void* handle = GetHandle();
@@ -187,6 +188,19 @@ namespace AutomationX
 		//GC::Collect(); //Uncomment to check for memory leaks
 	}
 
+	bool AXInstance::HandleSpsIdChange()
+	{
+		if (_spsId != _ax->CheckSpsId())
+		{
+			char* cName = _converter.GetCString(_name);
+			void* handle = _parent ? AxQueryInstanceFromParent(_parent->GetHandle(), cName) : AxQueryInstance(cName);
+			Marshal::FreeHGlobal(IntPtr((void*)cName)); //Always free memory!
+			if (!handle) return false;
+			_spsId = _ax->SpsId;
+		}
+		return true;
+	}
+
 	void AXInstance::SetVariableEvents(bool value)
 	{
 		array<AXVariable^>^ variables = Variables;
@@ -236,6 +250,7 @@ namespace AutomationX
 			}
 		}
 	}
+
 	void AXInstance::UnregisterVariableToPoll(AXVariable^ variable)
 	{
 		try
@@ -285,11 +300,7 @@ namespace AutomationX
 				time = DateTime::Now;
 				try
 				{
-					if (_ax->CheckSpsId()) 
-					{
-						Threading::Thread::Sleep(_pollingInterval);
-						continue;
-					}
+					if (!HandleSpsIdChange()) return;
 					_variablesToPollMutex.WaitOne();
 					for each (KeyValuePair<String^, AXVariable^> pair in _variablesToPoll)
 					{
@@ -302,10 +313,10 @@ namespace AutomationX
 					}
 					_variablesToPollMutex.ReleaseMutex();
 				}
-				catch (const Exception^ ex)
+				catch (Exception^ ex)
 				{
 					_variablesToPollMutex.ReleaseMutex();
-					throw ex;
+					System::Diagnostics::Debug::WriteLine(ex->Message + "\r\n" + ex->StackTrace);
 				}
 				if (_stopWorkerThread) return;
 				timeToSleep = _pollingInterval - (Int32)DateTime::Now.Subtract(time).TotalMilliseconds;
@@ -313,9 +324,9 @@ namespace AutomationX
 				Threading::Thread::Sleep(timeToSleep);
 			}
 		}
-		catch (const Exception^ ex)
+		catch (Exception^ ex)
 		{
-			throw ex;
+			System::Diagnostics::Debug::WriteLine(ex->Message + "\r\n" + ex->StackTrace);
 		}
 	}
 
@@ -469,7 +480,7 @@ namespace AutomationX
 
 	AXVariable^ AXInstance::Get(String^ variableName)
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing instance " + _name);
+		if(!HandleSpsIdChange()) return nullptr;
 		if (_variables->Count == 0) GetVariables();
 		if (_variables->ContainsKey(variableName)) return _variables[variableName];
 		if (variableName->IndexOf('.') > -1)
@@ -486,7 +497,7 @@ namespace AutomationX
 
 	AXInstance^ AXInstance::GetSubinstance(String^ instanceName)
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing instance " + _name);
+		if(!HandleSpsIdChange()) return nullptr;
 		if (_subinstances->Count == 0) GetSubinstances();
 		if (_subinstances->ContainsKey(instanceName)) return _subinstances[instanceName];
 		return nullptr;
@@ -494,7 +505,7 @@ namespace AutomationX
 
 	bool AXInstance::VariableExists(String^ variableName)
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing instance " + _name);
+		if(!HandleSpsIdChange()) return false;
 		char* cName = _converter.GetCString(Path + "." + variableName);
 		void* handle = AxQueryExecDataEx(cName);
 		Marshal::FreeHGlobal(IntPtr((void*)cName)); //Always free memory!
@@ -505,7 +516,7 @@ namespace AutomationX
 
 	bool AXInstance::SubinstanceExists(String^ instanceName)
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing instance " + _name);
+		if(!HandleSpsIdChange()) return false;
 		char* cName = _converter.GetCString(_name);
 		void* handle = _parent ? AxQueryInstanceFromParent(_parent->GetHandle(), cName) : AxQueryInstance(cName);
 		Marshal::FreeHGlobal(IntPtr((void*)cName)); //Always free memory!
@@ -519,6 +530,7 @@ namespace AutomationX
 
 	void AXInstance::OnSpsIdChanged(AX ^sender)
 	{
+		System::Diagnostics::Debug::WriteLine("Moin1 " + Path);
 		_spsIdIsChanging = true;
 		bool restartWorkerTimer = !_stopWorkerThread;
 		_stopWorkerThread = true;
@@ -537,6 +549,7 @@ namespace AutomationX
 		}
 		try
 		{
+			System::Diagnostics::Debug::WriteLine("Moin4 " + Path);
 			GetVariables();
 			GetSubinstances();
 		}
@@ -555,6 +568,7 @@ namespace AutomationX
 				if (_workerThread && (_workerThread->ThreadState == ThreadState::Running || _workerThread->ThreadState == ThreadState::WaitSleepJoin)) _workerThread->Join();
 				_stopWorkerThread = false;
 				_workerThread = gcnew Thread(gcnew ThreadStart(this, &AXInstance::Worker));
+				_workerThread->Priority = ThreadPriority::Highest;
 				_workerThread->Start();
 				_workerThreadMutex.ReleaseMutex();
 			}

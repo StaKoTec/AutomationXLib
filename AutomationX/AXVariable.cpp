@@ -18,7 +18,7 @@ namespace AutomationX
 
 	bool AXVariable::Retentive::get()
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing variable " + _name);
+		if(!HandleSpsIdChange()) return false;
 		int result = AxGetRetentiveFlag(_execData);
 		if (result == -1) throw gcnew AXVariableException("The variable data handle is invalid.");
 		if (result == 0) return false;
@@ -27,7 +27,7 @@ namespace AutomationX
 
 	bool AXVariable::Constant::get()
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing variable " + _name);
+		if(!HandleSpsIdChange()) return false;
 		int result = AxGetConstantFlag(_execData);
 		if (result == -1) throw gcnew AXVariableException("The variable data handle is invalid.");
 		if (result == 0) return false;
@@ -36,7 +36,7 @@ namespace AutomationX
 
 	bool AXVariable::Private::get()
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing variable " + _name);
+		if(!HandleSpsIdChange()) return false;
 		int result = AxGetPrivateFlag(_execData);
 		if (result == -1) throw gcnew AXVariableException("The variable data handle is invalid.");
 		if (result == 0) return false;
@@ -45,7 +45,7 @@ namespace AutomationX
 
 	bool AXVariable::Local::get()
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing variable " + _name);
+		if(!HandleSpsIdChange()) return false;
 		int result = AxGetLocalFlag(_execData);
 		if (result == -1) throw gcnew AXVariableException("The variable data handle is invalid.");
 		if (result == 0) return false;
@@ -54,7 +54,7 @@ namespace AutomationX
 
 	bool AXVariable::ConfigurationValue::get()
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing variable " + _name);
+		if(!HandleSpsIdChange()) return false;
 		int result = AxGetConfValueFlag(_execData);
 		if (result == -1) throw gcnew AXVariableException("The variable data handle is invalid.");
 		if (result == 0) return false;
@@ -63,7 +63,7 @@ namespace AutomationX
 
 	bool AXVariable::Parameter::get()
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing variable " + _name);
+		if(!HandleSpsIdChange()) return false;
 		int result = AxGetParameterFlag(_execData);
 		if (result == -1) throw gcnew AXVariableException("The variable data handle is invalid.");
 		if (result == 0) return false;
@@ -72,7 +72,7 @@ namespace AutomationX
 
 	bool AXVariable::Remote::get()
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing variable " + _name);
+		if(!HandleSpsIdChange()) return false;
 		int result = AxGetRemoteFlag(_execData);
 		if (result == -1) throw gcnew AXVariableException("The variable data handle is invalid.");
 		if (result == 0) return false;
@@ -81,7 +81,7 @@ namespace AutomationX
 
 	bool AXVariable::NotConnected::get()
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing variable " + _name);
+		if(!HandleSpsIdChange()) return false;
 		int result = AxGetNcFlag(_execData);
 		if (result == -1) throw gcnew AXVariableException("The variable data handle is invalid.");
 		if (result == 0) return false;
@@ -90,7 +90,7 @@ namespace AutomationX
 
 	String^ AXVariable::ReferenceName::get()
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing variable " + _name);
+		if(!HandleSpsIdChange()) return "";
 		const char* reference = AxGetVarReference(_execData);
 		if (!reference) throw gcnew AXVariableException("The data handle is invalid, the variable is not a reference type variable or the variable is not connected.");
 		return gcnew String(reference);
@@ -98,7 +98,7 @@ namespace AutomationX
 
 	AXVariableDeclaration AXVariable::Declaration::get()
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing variable " + _name);
+		if(!HandleSpsIdChange()) return AXVariableDeclaration::axVar;
 		int declaration = AxGetVarDeclaration(_execData);
 		if (declaration == -1) throw gcnew AXVariableException("The data handle is invalid.");
 		return (AXVariableDeclaration)declaration;
@@ -106,7 +106,7 @@ namespace AutomationX
 
 	String^ AXVariable::Remark::get()
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing variable " + _name);
+		if(!HandleSpsIdChange()) return "";
 		String^ value = gcnew String(AxGetRemark(_execData));
 		return value;
 	}
@@ -135,7 +135,7 @@ namespace AutomationX
 
 	UInt16 AXVariable::Length::get()
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing variable " + _name);
+		if(!HandleSpsIdChange()) return false;
 		return AxGetArrayCnt(_execData);
 	}
 
@@ -145,6 +145,7 @@ namespace AutomationX
 		_name = name;
 		_cName = _converter.GetCString(Path);
 		_ax = instance->AutomationX;
+		Int32 _spsId = _ax->SpsId;
 		GetExecData();
 		Refresh();
 		_spsIdChangedDelegate = gcnew AX::SpsIdChangedEventHandler(this, &AXVariable::OnSpsIdChanged);
@@ -177,6 +178,23 @@ namespace AutomationX
 		if (_execData) AxFreeExecData(_execData);
 	}
 
+	bool AXVariable::HandleSpsIdChange()
+	{
+		if (_spsId != _ax->CheckSpsId())
+		{
+			if (_execData) AxFreeExecData(_execData);
+			_execData = nullptr;
+			char* cName = _converter.GetCString(Path);
+			void* handle = AxQueryExecDataEx(cName);
+			Marshal::FreeHGlobal(IntPtr((void*)cName)); //Always free memory!
+			if (!handle) return false;
+			AxFreeExecData(handle);
+			_spsId = _ax->SpsId;
+			GetExecData();
+		}
+		return true;
+	}
+
 	void AXVariable::GetExecData()
 	{
 		if (_execData) AxFreeExecData(_execData);
@@ -186,7 +204,7 @@ namespace AutomationX
 
 	int AXVariable::GetRawType()
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing variable " + _name);
+		if(!HandleSpsIdChange()) return false;
 		return AxGetType(_execData);
 	}
 
@@ -256,7 +274,7 @@ namespace AutomationX
 
 	void AXVariable::Refresh(UInt16 index, bool raiseEvents)
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing variable " + _name);
+		if(!HandleSpsIdChange()) return;
 		if (index >= _length) throw gcnew AXArrayIndexOutOfRangeException("The index exceeds the array boundaries.");
 		struct tagAxVariant data;
 		int result = _isArray ? AxGetArray(_execData, &data, index) : AxGet(_execData, &data);
@@ -358,7 +376,7 @@ namespace AutomationX
 		}
 		else
 		{
-			throw (AXException^)(gcnew AXVariableTypeException("The type of the variable is unknown."));
+			throw gcnew AXVariableTypeException("The type of the variable is unknown.");
 		}
 		if (raiseEvents && valueChanged)
 		{
@@ -368,14 +386,14 @@ namespace AutomationX
 
 	void AXVariable::Set(tagAxVariant& data, UInt16 index)
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing variable " + _name);
+		if(!HandleSpsIdChange()) return;
 		int result = _isArray ? AxSetArray(_execData, &data, index) : AxSet(_execData, &data);
-		if (!result) throw (AXException^)(gcnew AXVariableException("The data handle is invalid or does not represent a variable type."));
+		if (!result) throw gcnew AXVariableException("The data handle is invalid or does not represent a variable type.");
 	}
 
 	bool AXVariable::GetBool()
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing variable " + _name);
+		if(!HandleSpsIdChange()) return false;
 		if (_type != AXVariableType::axBool && _type != AXVariableType::axAlarm) throw gcnew AXVariableTypeException("Variable is not of type BOOL.");
 		if (_isArray) throw gcnew AXVariableTypeException("Variable is an array. Please specify the element index.");
 		Refresh((UInt16)0);
@@ -384,7 +402,7 @@ namespace AutomationX
 
 	void AXVariable::Set(bool value)
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing variable " + _name);
+		if(!HandleSpsIdChange()) return;
 		if (_type != AXVariableType::axBool && _type != AXVariableType::axAlarm) throw gcnew AXVariableTypeException("Variable is not of type BOOL.");
 		if (_isArray) throw gcnew AXVariableTypeException("Variable is an array. Please specify the element index.");
 		struct tagAxVariant data;
@@ -396,7 +414,7 @@ namespace AutomationX
 
 	bool AXVariable::GetBool(UInt16 index)
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing variable " + _name);
+		if(!HandleSpsIdChange()) return false;
 		if (_type != AXVariableType::axBool && _type != AXVariableType::axAlarm) throw gcnew AXVariableTypeException("Variable is not of type BOOL.");
 		if (!_isArray) throw gcnew AXVariableTypeException("Variable is no array.");
 		Refresh((UInt16)index);
@@ -405,7 +423,7 @@ namespace AutomationX
 
 	void AXVariable::Set(UInt16 index, bool value)
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing variable " + _name);
+		if(!HandleSpsIdChange()) return;
 		if (_type != AXVariableType::axBool && _type != AXVariableType::axAlarm) throw gcnew AXVariableTypeException("Variable is not of type BOOL.");
 		if (!_isArray) throw gcnew AXVariableTypeException("Variable is no array.");
 		struct tagAxVariant data;
@@ -417,7 +435,7 @@ namespace AutomationX
 
 	Byte AXVariable::GetByte()
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing variable " + _name);
+		if(!HandleSpsIdChange()) return 0;
 		if (_type != AXVariableType::axByte && _type != AXVariableType::axUnsignedShortInteger) throw gcnew AXVariableTypeException("Variable is not of type BYTE.");
 		if (_isArray) throw gcnew AXVariableTypeException("Variable is an array. Please specify the element index.");
 		Refresh((UInt16)0);
@@ -426,7 +444,7 @@ namespace AutomationX
 
 	void AXVariable::Set(Byte value)
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing variable " + _name);
+		if(!HandleSpsIdChange()) return;
 		if (_type != AXVariableType::axByte && _type != AXVariableType::axUnsignedShortInteger) throw gcnew AXVariableTypeException("Variable is not of type BYTE.");
 		if (_isArray) throw gcnew AXVariableTypeException("Variable is an array. Please specify the element index.");
 		struct tagAxVariant data;
@@ -438,7 +456,7 @@ namespace AutomationX
 
 	Byte AXVariable::GetByte(UInt16 index)
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing variable " + _name);
+		if(!HandleSpsIdChange()) return 0;
 		if (_type != AXVariableType::axByte && _type != AXVariableType::axUnsignedShortInteger) throw gcnew AXVariableTypeException("Variable is not of type BYTE.");
 		if (!_isArray) throw gcnew AXVariableTypeException("Variable is no array.");
 		Refresh((UInt16)index);
@@ -447,7 +465,7 @@ namespace AutomationX
 
 	void AXVariable::Set(UInt16 index, Byte value)
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing variable " + _name);
+		if(!HandleSpsIdChange()) return;
 		if (_type != AXVariableType::axByte && _type != AXVariableType::axUnsignedShortInteger) throw gcnew AXVariableTypeException("Variable is not of type BYTE.");
 		if (!_isArray) throw gcnew AXVariableTypeException("Variable is no array.");
 		struct tagAxVariant data;
@@ -459,7 +477,7 @@ namespace AutomationX
 
 	char AXVariable::GetShortInteger()
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing variable " + _name);
+		if(!HandleSpsIdChange()) return 0;
 		if (_type != AXVariableType::axShortInteger) throw gcnew AXVariableTypeException("Variable is not of type INT.");
 		if (_isArray) throw gcnew AXVariableTypeException("Variable is an array. Please specify the element index.");
 		Refresh((UInt16)0);
@@ -468,7 +486,7 @@ namespace AutomationX
 
 	void AXVariable::Set(char value)
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing variable " + _name);
+		if(!HandleSpsIdChange()) return;
 		if (_type != AXVariableType::axShortInteger) throw gcnew AXVariableTypeException("Variable is not of type SINT.");
 		if (_isArray) throw gcnew AXVariableTypeException("Variable is an array. Please specify the element index.");
 		struct tagAxVariant data;
@@ -480,7 +498,7 @@ namespace AutomationX
 
 	char AXVariable::GetShortInteger(UInt16 index)
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing variable " + _name);
+		if(!HandleSpsIdChange()) return 0;
 		if (_type != AXVariableType::axShortInteger) throw gcnew AXVariableTypeException("Variable is not of type SINT.");
 		if (!_isArray) throw gcnew AXVariableTypeException("Variable is no array.");
 		Refresh((UInt16)index);
@@ -489,7 +507,7 @@ namespace AutomationX
 
 	void AXVariable::Set(UInt16 index, char value)
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing variable " + _name);
+		if(!HandleSpsIdChange()) return;
 		if (_type != AXVariableType::axShortInteger) throw gcnew AXVariableTypeException("Variable is not of type SINT.");
 		if (!_isArray) throw gcnew AXVariableTypeException("Variable is no array.");
 		struct tagAxVariant data;
@@ -501,7 +519,7 @@ namespace AutomationX
 
 	Int16 AXVariable::GetInteger()
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing variable " + _name);
+		if(!HandleSpsIdChange()) return 0;
 		if (_type != AXVariableType::axInteger) throw gcnew AXVariableTypeException("Variable is not of type SINT.");
 		if (_isArray) throw gcnew AXVariableTypeException("Variable is an array. Please specify the element index.");
 		Refresh((UInt16)0);
@@ -510,7 +528,7 @@ namespace AutomationX
 
 	void AXVariable::Set(Int16 value)
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing variable " + _name);
+		if(!HandleSpsIdChange()) return;
 		if (_type != AXVariableType::axInteger) throw gcnew AXVariableTypeException("Variable is not of type INT.");
 		if (_isArray) throw gcnew AXVariableTypeException("Variable is an array. Please specify the element index.");
 		struct tagAxVariant data;
@@ -522,7 +540,7 @@ namespace AutomationX
 
 	Int16 AXVariable::GetInteger(UInt16 index)
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing variable " + _name);
+		if(!HandleSpsIdChange()) return 0;
 		if (_type != AXVariableType::axInteger) throw gcnew AXVariableTypeException("Variable is not of type INT.");
 		if (!_isArray) throw gcnew AXVariableTypeException("Variable is no array.");
 		Refresh((UInt16)index);
@@ -531,7 +549,7 @@ namespace AutomationX
 
 	void AXVariable::Set(UInt16 index, Int16 value)
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing variable " + _name);
+		if(!HandleSpsIdChange()) return;
 		if (_type != AXVariableType::axInteger) throw gcnew AXVariableTypeException("Variable is not of type INT.");
 		if (!_isArray) throw gcnew AXVariableTypeException("Variable is no array.");
 		struct tagAxVariant data;
@@ -543,7 +561,7 @@ namespace AutomationX
 
 	Int32 AXVariable::GetLongInteger()
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing variable " + _name);
+		if(!HandleSpsIdChange()) return 0;
 		if (_type != AXVariableType::axLongInteger) throw gcnew AXVariableTypeException("Variable is not of type DINT.");
 		if (_isArray) throw gcnew AXVariableTypeException("Variable is an array. Please specify the element index.");
 		Refresh((UInt16)0);
@@ -552,7 +570,7 @@ namespace AutomationX
 
 	void AXVariable::Set(Int32 value)
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing variable " + _name);
+		if(!HandleSpsIdChange()) return;
 		if (_type != AXVariableType::axLongInteger) throw gcnew AXVariableTypeException("Variable is not of type DINT.");
 		if (_isArray) throw gcnew AXVariableTypeException("Variable is an array. Please specify the element index.");
 		struct tagAxVariant data;
@@ -564,7 +582,7 @@ namespace AutomationX
 
 	Int32 AXVariable::GetLongInteger(UInt16 index)
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing variable " + _name);
+		if(!HandleSpsIdChange()) return 0;
 		if (_type != AXVariableType::axLongInteger) throw gcnew AXVariableTypeException("Variable is not of type DINT.");
 		if (!_isArray) throw gcnew AXVariableTypeException("Variable is no array.");
 		Refresh((UInt16)index);
@@ -573,7 +591,7 @@ namespace AutomationX
 
 	void AXVariable::Set(UInt16 index, Int32 value)
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing variable " + _name);
+		if(!HandleSpsIdChange()) return;
 		if (_type != AXVariableType::axLongInteger) throw gcnew AXVariableTypeException("Variable is not of type DINT.");
 		if (!_isArray) throw gcnew AXVariableTypeException("Variable is no array.");
 		struct tagAxVariant data;
@@ -585,7 +603,7 @@ namespace AutomationX
 
 	UInt16 AXVariable::GetUnsignedInteger()
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing variable " + _name);
+		if(!HandleSpsIdChange()) return 0;
 		if (_type != AXVariableType::axUnsignedInteger) throw gcnew AXVariableTypeException("Variable is not of type UINT.");
 		if (_isArray) throw gcnew AXVariableTypeException("Variable is an array. Please specify the element index.");
 		Refresh((UInt16)0);
@@ -594,7 +612,7 @@ namespace AutomationX
 
 	void AXVariable::Set(UInt16 value)
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing variable " + _name);
+		if(!HandleSpsIdChange()) return;
 		if (_type != AXVariableType::axUnsignedInteger) throw gcnew AXVariableTypeException("Variable is not of type UINT.");
 		if (_isArray) throw gcnew AXVariableTypeException("Variable is an array. Please specify the element index.");
 		struct tagAxVariant data;
@@ -606,7 +624,7 @@ namespace AutomationX
 
 	UInt16 AXVariable::GetUnsignedInteger(UInt16 index)
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing variable " + _name);
+		if(!HandleSpsIdChange()) return 0;
 		if (_type != AXVariableType::axUnsignedInteger) throw gcnew AXVariableTypeException("Variable is not of type UINT.");
 		if (!_isArray) throw gcnew AXVariableTypeException("Variable is no array.");
 		Refresh((UInt16)index);
@@ -615,7 +633,7 @@ namespace AutomationX
 
 	void AXVariable::Set(UInt16 index, UInt16 value)
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing variable " + _name);
+		if(!HandleSpsIdChange()) return;
 		if (_type != AXVariableType::axUnsignedInteger) throw gcnew AXVariableTypeException("Variable is not of type UINT.");
 		if (!_isArray) throw gcnew AXVariableTypeException("Variable is no array.");
 		struct tagAxVariant data;
@@ -627,7 +645,7 @@ namespace AutomationX
 
 	UInt32 AXVariable::GetUnsignedLongInteger()
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing variable " + _name);
+		if(!HandleSpsIdChange()) return 0;
 		if (_type != AXVariableType::axUnsignedLongInteger) throw gcnew AXVariableTypeException("Variable is not of type UDINT.");
 		if (_isArray) throw gcnew AXVariableTypeException("Variable is an array. Please specify the element index.");
 		Refresh((UInt16)0);
@@ -636,7 +654,7 @@ namespace AutomationX
 
 	void AXVariable::Set(UInt32 value)
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing variable " + _name);
+		if(!HandleSpsIdChange()) return;
 		if (_type != AXVariableType::axUnsignedLongInteger) throw gcnew AXVariableTypeException("Variable is not of type UDINT.");
 		if (_isArray) throw gcnew AXVariableTypeException("Variable is an array. Please specify the element index.");
 		struct tagAxVariant data;
@@ -648,7 +666,7 @@ namespace AutomationX
 
 	UInt32 AXVariable::GetUnsignedLongInteger(UInt16 index)
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing variable " + _name);
+		if(!HandleSpsIdChange()) return 0;
 		if (_type != AXVariableType::axUnsignedLongInteger) throw gcnew AXVariableTypeException("Variable is not of type UDINT.");
 		if (!_isArray) throw gcnew AXVariableTypeException("Variable is no array.");
 		Refresh((UInt16)index);
@@ -657,7 +675,7 @@ namespace AutomationX
 
 	void AXVariable::Set(UInt16 index, UInt32 value)
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing variable " + _name);
+		if(!HandleSpsIdChange()) return;
 		if (_type != AXVariableType::axUnsignedLongInteger) throw gcnew AXVariableTypeException("Variable is not of type UDINT.");
 		if (!_isArray) throw gcnew AXVariableTypeException("Variable is no array.");
 		struct tagAxVariant data;
@@ -669,7 +687,7 @@ namespace AutomationX
 
 	Single AXVariable::GetReal()
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing variable " + _name);
+		if(!HandleSpsIdChange()) return 0;
 		if (_type != AXVariableType::axReal) throw gcnew AXVariableTypeException("Variable is not of type REAL.");
 		if (_isArray) throw gcnew AXVariableTypeException("Variable is an array. Please specify the element index.");
 		Refresh((UInt16)0);
@@ -678,7 +696,7 @@ namespace AutomationX
 
 	void AXVariable::Set(Single value)
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing variable " + _name);
+		if(!HandleSpsIdChange()) return;
 		if (_type != AXVariableType::axReal) throw gcnew AXVariableTypeException("Variable is not of type REAL.");
 		if (_isArray) throw gcnew AXVariableTypeException("Variable is an array. Please specify the element index.");
 		struct tagAxVariant data;
@@ -690,7 +708,7 @@ namespace AutomationX
 
 	Single AXVariable::GetReal(UInt16 index)
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing variable " + _name);
+		if(!HandleSpsIdChange()) return 0;
 		if (_type != AXVariableType::axReal) throw gcnew AXVariableTypeException("Variable is not of type REAL.");
 		if (!_isArray) throw gcnew AXVariableTypeException("Variable is no array.");
 		Refresh((UInt16)index);
@@ -699,7 +717,7 @@ namespace AutomationX
 
 	void AXVariable::Set(UInt16 index, Single value)
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing variable " + _name);
+		if(!HandleSpsIdChange()) return;
 		if (_type != AXVariableType::axReal) throw gcnew AXVariableTypeException("Variable is not of type REAL.");
 		if (!_isArray) throw gcnew AXVariableTypeException("Variable is no array.");
 		struct tagAxVariant data;
@@ -711,7 +729,7 @@ namespace AutomationX
 
 	Double AXVariable::GetLongReal()
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing variable " + _name);
+		if(!HandleSpsIdChange()) return 0;
 		if (_type != AXVariableType::axLongReal) throw gcnew AXVariableTypeException("Variable is not of type REAL.");
 		if (_isArray) throw gcnew AXVariableTypeException("Variable is an array. Please specify the element index.");
 		Refresh((UInt16)0);
@@ -720,7 +738,7 @@ namespace AutomationX
 
 	void AXVariable::Set(Double value)
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing variable " + _name);
+		if(!HandleSpsIdChange()) return;
 		if (_type != AXVariableType::axLongReal) throw gcnew AXVariableTypeException("Variable is not of type REAL.");
 		if (_isArray) throw gcnew AXVariableTypeException("Variable is an array. Please specify the element index.");
 		struct tagAxVariant data;
@@ -732,7 +750,7 @@ namespace AutomationX
 
 	Double AXVariable::GetLongReal(UInt16 index)
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing variable " + _name);
+		if(!HandleSpsIdChange()) return 0;
 		if (_type != AXVariableType::axLongReal) throw gcnew AXVariableTypeException("Variable is not of type REAL.");
 		if (!_isArray) throw gcnew AXVariableTypeException("Variable is no array.");
 		Refresh((UInt16)index);
@@ -741,7 +759,7 @@ namespace AutomationX
 
 	void AXVariable::Set(UInt16 index, Double value)
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing variable " + _name);
+		if(!HandleSpsIdChange()) return;
 		if (_type != AXVariableType::axLongReal) throw gcnew AXVariableTypeException("Variable is not of type REAL.");
 		if (!_isArray) throw gcnew AXVariableTypeException("Variable is no array.");
 		struct tagAxVariant data;
@@ -753,7 +771,7 @@ namespace AutomationX
 
 	String^ AXVariable::GetString()
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing variable " + _name);
+		if(!HandleSpsIdChange()) return "";
 		if (_type != AXVariableType::axString) throw gcnew AXVariableTypeException("Variable is not of type STRING.");
 		if (_isArray) throw gcnew AXVariableTypeException("Variable is an array. Please specify the element index.");
 		Refresh((UInt16)0);
@@ -762,7 +780,7 @@ namespace AutomationX
 
 	void AXVariable::Set(String^ value)
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing variable " + _name);
+		if(!HandleSpsIdChange()) return;
 		if (_type != AXVariableType::axString) throw gcnew AXVariableTypeException("Variable is not of type STRING.");
 		if (_isArray) throw gcnew AXVariableTypeException("Variable is an array. Please specify the element index.");
 		struct tagAxVariant data;
@@ -774,7 +792,7 @@ namespace AutomationX
 
 	String^ AXVariable::GetString(UInt16 index)
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing variable " + _name);
+		if(!HandleSpsIdChange()) return "";
 		if (_type != AXVariableType::axString) throw gcnew AXVariableTypeException("Variable is not of type STRING.");
 		if (!_isArray) throw gcnew AXVariableTypeException("Variable is no array.");
 		Refresh((UInt16)index);
@@ -783,7 +801,7 @@ namespace AutomationX
 
 	void AXVariable::Set(UInt16 index, String^ value)
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing variable " + _name);
+		if(!HandleSpsIdChange()) return;
 		if (_type != AXVariableType::axString) throw gcnew AXVariableTypeException("Variable is not of type STRING.");
 		if (!_isArray) throw gcnew AXVariableTypeException("Variable is no array.");
 		struct tagAxVariant data;
@@ -801,7 +819,7 @@ namespace AutomationX
 
 	void AXVariable::GetAttributes()
 	{
-		if(_ax->CheckSpsId()) throw gcnew AXSpsIdChangedException("SPS id has changed while accessing variable " + _name);
+		if(!HandleSpsIdChange()) return;
 		AX_ATTR attrs;
 		if (AxGetAttributes(_execData, &attrs) == -1) throw gcnew AXVariableException("The variable data handle is invalid.");
 		_decimalPoints = attrs.dec_point;

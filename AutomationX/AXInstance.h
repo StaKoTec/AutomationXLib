@@ -16,6 +16,7 @@ namespace AutomationX
 		volatile bool _disposed = false;
 		AXInstance^ _parent = nullptr;
 		AX^ _ax;
+		Int32 _spsId = 0;
 		ManagedTypeConverter _converter;
 		volatile UInt32 _pollingInterval = 100;
 		volatile bool _stopWorkerThread = true;
@@ -41,6 +42,7 @@ namespace AutomationX
 		AXVariable::ValueChangedEventHandler^ _variableValueChangedDelegate = nullptr;
 		AXVariable::ArrayValueChangedEventHandler^ _arrayValueChangedDelegate = nullptr;
 
+		bool HandleSpsIdChange();
 		void GetVariables();
 		void GetSubinstances();
 		void Worker();

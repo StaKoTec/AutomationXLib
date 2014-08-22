@@ -40,6 +40,7 @@ namespace AutomationX
 		bool _events = false;
 		bool _isArray = false;
 		AX^ _ax;
+		Int32 _spsId = 0;
 		ManagedTypeConverter _converter;
 		AXInstance^ _instance;
 		AX::SpsIdChangedEventHandler^ _spsIdChangedDelegate = nullptr;
@@ -58,6 +59,7 @@ namespace AutomationX
 		List<Double>^ _realValues = nullptr;
 		List<String^>^ _stringValues = nullptr;
 
+		bool HandleSpsIdChange();
 		int GetRawType();
 		void Set(tagAxVariant& data, UInt16 index);
 		void OnSpsIdChanged(AX^ sender);

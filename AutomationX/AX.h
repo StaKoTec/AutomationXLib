@@ -15,7 +15,6 @@ namespace AutomationX
 		ManagedTypeConverter _converter;
 		Timers::Timer^ _workerTimer;
 		int* _spsId = nullptr;
-		DateTime _lastSpsIdChange;
 		System::Threading::Mutex _spsIdChangedThreadMutex;
 		System::Threading::Thread^ _spsIdChangedThread;
 
@@ -34,6 +33,10 @@ namespace AutomationX
 		/// <summary>Checks if aX is running and if the local computer is running as the master of a redundant master slave server configuration.</summary>
 		/// <returns>true when aX is running, otherwise false.</returns>
 		property bool Connected { bool get(); }
+
+		/// <summary>Returns the current SPS ID.</summary>
+		/// <returns>The current SPS ID.</returns>
+		property Int32 SpsId { Int32 get() { return *_spsId; } }
 
 		/// <summary>Constructor</summary>
 		AX();
@@ -56,9 +59,9 @@ namespace AutomationX
 		/// <summary>Returns the Classpath of the specified instance.</summary>
 		System::String^ AX::GetClassPath(String^ instanceName);
 
-		/// <summary>Checks if the SPS ID has changed since the last call.</summary>
-		/// <returns>"true", when the SPS ID has changed, otherwise false.</returns>
-		bool CheckSpsId();
+		/// <summary>Checks if the SPS ID has changed since the last call and returns the new SPS ID.</summary>
+		/// <returns>The new SPS ID.</returns>
+		Int32 CheckSpsId();
 
 		void WriteJournal(int priority, String^ position, String^ message, String^ value, String^ fileName);
 		void WriteJournal(int priority, String^ position, String^ message, String^ value, String^ fileName, DateTime time);

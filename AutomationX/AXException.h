@@ -18,13 +18,6 @@ namespace AutomationX
 		AXNotRunningException(String^ message);
 	};
 
-	public ref class AXSpsIdChangedException : public AXException
-	{
-	public:
-		AXSpsIdChangedException();
-		AXSpsIdChangedException(String^ message);
-	};
-
 	public ref class AXInstanceException : public AXException
 	{
 	public:

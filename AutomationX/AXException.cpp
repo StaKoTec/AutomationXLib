@@ -19,14 +19,6 @@ namespace AutomationX
 	{
 	}
 
-	AXSpsIdChangedException::AXSpsIdChangedException() : AXException()
-	{
-	}
-
-	AXSpsIdChangedException::AXSpsIdChangedException(String^ message) : AXException(message)
-	{
-	}
-
 	AXInstanceException::AXInstanceException() : AXException()
 	{
 	}

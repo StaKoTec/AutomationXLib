@@ -27,7 +27,7 @@ namespace AutomationX
 	AX::~AX()
 	{
 		while (_spsIdChangedThread->ThreadState == ThreadState::Unstarted) Thread::Sleep(10);
-		while (_spsIdChangedThread && (_spsIdChangedThread->ThreadState == ThreadState::Running || _spsIdChangedThread->ThreadState == ThreadState::WaitSleepJoin)) _spsIdChangedThread->Join();
+		if (_spsIdChangedThread && (_spsIdChangedThread->ThreadState == ThreadState::Running || _spsIdChangedThread->ThreadState == ThreadState::WaitSleepJoin)) _spsIdChangedThread->Join();
 		if (_spsId)	delete _spsId;
 	}
 
@@ -84,21 +84,24 @@ namespace AutomationX
 		char* cName = _converter.GetCString(instanceName);
 		void* handle = AxQueryInstance(cName);
 		Marshal::FreeHGlobal(IntPtr((void*)cName)); //Always free memory!
-		if (!handle) throw (AXException^)(gcnew AXInstanceException("Could not get instance handle for " + instanceName + "."));
+		if (!handle) throw gcnew AXInstanceException("Could not get instance handle for " + instanceName + ".");
 		String^ value = gcnew String(AxGetInstanceClassPath(handle));
 		return value;
 	}
 
-	bool AX::CheckSpsId()
+	Int32 AX::CheckSpsId()
 	{
 		if (AxHasSpsIdChanged(_spsId) == 1)
 		{
-			_lastSpsIdChange = DateTime::Now;
 			try
 			{
 				_spsIdChangedThreadMutex.WaitOne();
-				while (_spsIdChangedThread && _spsIdChangedThread->ThreadState == ThreadState::Unstarted) Thread::Sleep(10);
-				while (_spsIdChangedThread && (_spsIdChangedThread->ThreadState == ThreadState::Running || _spsIdChangedThread->ThreadState == ThreadState::WaitSleepJoin)) _spsIdChangedThread->Join();
+				if (_spsIdChangedThread && _spsIdChangedThread->ThreadState == ThreadState::Unstarted)
+				{
+					_spsIdChangedThreadMutex.ReleaseMutex();
+					return *_spsId;
+				}
+				if (_spsIdChangedThread && (_spsIdChangedThread->ThreadState == ThreadState::Running || _spsIdChangedThread->ThreadState == ThreadState::WaitSleepJoin)) _spsIdChangedThread->Join();
 
 				_spsIdChangedThread = gcnew Thread(gcnew ThreadStart(this, &AX::RaiseSpsIdChanged));
 				_spsIdChangedThread->Priority = ThreadPriority::Highest;
@@ -110,10 +113,8 @@ namespace AutomationX
 				_spsIdChangedThreadMutex.ReleaseMutex();
 				throw ex;
 			}
-			return true;
 		}
-		if(DateTime::Now.Subtract(_lastSpsIdChange).TotalMilliseconds > 10) return false;
-		return true;
+		return *_spsId;
 	}
 
 	void AX::RaiseSpsIdChanged()
