@@ -380,6 +380,11 @@ namespace AutomationX
 		/// <exception cref="AXVariableException">Thrown on handle errors.</exception>
 		/// <exception cref="AXVariableTypeException">Thrown when variable is not of type STRING.</exception>
 		void Set(UInt16 index, String^ value);
+
+		/// <summary>Gets the Enum-Text of an Enumerator</summary>
+		/// <exception cref="AXVariableException">Thrown on handle errors.</exception>
+		/// <exception cref="AXVariableTypeException">Thrown when variable is not of type STRING.</exception>
+		String^ AXVariable::GetEnumRemark(Int32 enumValue);
 };
 
 }
