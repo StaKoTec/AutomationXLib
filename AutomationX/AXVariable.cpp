@@ -828,7 +828,7 @@ namespace AutomationX
 		if (attrs.trend == 0) _trending = false; else _trending = true;
 	}
 
-	String^ AXVariable::GetEnumRemark(int enumValue)
+	String^ AXVariable::GetEnumRemark(Int32 enumValue)
 	{
 		if (!HandleSpsIdChange()) return "";
 		if (_type != AXVariableType::axLongInteger) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is not of type ENUM.");
