@@ -119,7 +119,14 @@ namespace AutomationX
 
 	void AX::RaiseSpsIdChanged()
 	{
-		SpsIdChanged(this);
+		try
+		{
+			SpsIdChanged(this);
+		}
+		catch (AXException^ ex)
+		{
+			System::Diagnostics::Debug::WriteLine("!!!!!" + ex->Message + " " + ex->StackTrace);
+		}
 	}
 
 	void AX::WriteJournal(int priority, String^ position, String^ message, String^ value, String^ fileName)
