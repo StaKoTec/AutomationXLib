@@ -43,7 +43,6 @@ namespace AutomationX
 		Int32 _spsId = 0;
 		ManagedTypeConverter _converter;
 		AXInstance^ _instance;
-		AX::SpsIdChangedEventHandler^ _spsIdChangedDelegate = nullptr;
 		char* _cName = nullptr;
 		String^ _name = "";
 		AXVariableType _type;

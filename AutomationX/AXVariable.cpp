@@ -148,15 +148,14 @@ namespace AutomationX
 		Int32 _spsId = _ax->SpsId;
 		GetExecData();
 		Refresh();
-		_spsIdChangedDelegate = gcnew AX::SpsIdChangedEventHandler(this, &AXVariable::OnSpsIdChanged);
-		_ax->SpsIdChanged += _spsIdChangedDelegate;
+		_ax->SpsIdChanged += gcnew AX::SpsIdChangedEventHandler(this, &AXVariable::OnSpsIdChanged);
 	}
 
 	AXVariable::~AXVariable()
 	{
 		if (_cName) Marshal::FreeHGlobal(IntPtr((void*)_cName)); //Always free memory! Don't remove this here! There is a memory leak, when this line is only in the finalizer
 		_cName = nullptr;
-		_ax->SpsIdChanged -= _spsIdChangedDelegate;
+		_ax->SpsIdChanged -= gcnew AX::SpsIdChangedEventHandler(this, &AXVariable::OnSpsIdChanged);
 		_ax = nullptr;
 		_instance = nullptr;
 		if (_boolValues) _boolValues->Clear();
@@ -182,7 +181,8 @@ namespace AutomationX
 	{
 		if (_spsId != _ax->CheckSpsId())
 		{
-			if (_execData) AxFreeExecData(_execData);
+			//Don't call AxFreeExecData as it causes writing into invalid memory locations
+			//if (_execData) AxFreeExecData(_execData);
 			_execData = nullptr;
 			char* cName = _converter.GetCString(Path);
 			void* handle = AxQueryExecDataEx(cName);
@@ -277,8 +277,16 @@ namespace AutomationX
 		if(!HandleSpsIdChange()) return;
 		if (index >= _length) throw gcnew AXArrayIndexOutOfRangeException("The index exceeds the array boundaries.");
 		struct tagAxVariant data;
-		int result = _isArray ? AxGetArray(_execData, &data, index) : AxGet(_execData, &data);
-		if (!result) throw (AXException^)(gcnew AXVariableException("The data handle is invalid or does not represent a variable type."));
+		try
+		{
+			int result = _isArray ? AxGetArray(_execData, &data, index) : AxGet(_execData, &data);
+			if (!result) throw (AXException^)(gcnew AXVariableException("The data handle is invalid or does not represent a variable type."));
+		}
+		//TODO: Handle AccessViolationException everywhere
+		catch (const AccessViolationException^ ex)
+		{
+			return;
+		}
 		bool valueChanged = false;
 		if (data.ucVarType == AX_BT_BOOL || data.ucVarType == AX_BT_ALARM)
 		{

@@ -101,6 +101,8 @@ namespace AutomationX
 					_spsIdChangedThreadMutex.ReleaseMutex();
 					return *_spsId;
 				}
+				//Could cause deadlock when sps id is changed too fast
+				//TODO: Mehrere SPS-ID-Changed Thread Objekte erzeugen
 				if (_spsIdChangedThread && (_spsIdChangedThread->ThreadState == ThreadState::Running || _spsIdChangedThread->ThreadState == ThreadState::WaitSleepJoin)) _spsIdChangedThread->Join();
 
 				_spsIdChangedThread = gcnew Thread(gcnew ThreadStart(this, &AX::RaiseSpsIdChanged));
@@ -121,9 +123,11 @@ namespace AutomationX
 	{
 		try
 		{
+			System::Diagnostics::Debug::WriteLine("Calling SpsIdChanged");
 			SpsIdChanged(this);
+			System::Diagnostics::Debug::WriteLine("Finished calling SpsIdChanged");
 		}
-		catch (AXException^ ex)
+		catch (Exception^ ex)
 		{
 			System::Diagnostics::Debug::WriteLine("!!!!!" + ex->Message + " " + ex->StackTrace);
 		}

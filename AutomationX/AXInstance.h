@@ -21,7 +21,7 @@ namespace AutomationX
 		volatile UInt32 _pollingInterval = 100;
 		volatile bool _stopWorkerThread = true;
 		Mutex _workerThreadMutex;
-		System::Threading::Thread^ _workerThread;
+		System::Threading::Thread^ _workerThread = nullptr;
 		volatile bool _spsIdIsChanging = false;
 		String^ _name = "";
 		AXVariable^ _statusVariable = nullptr;
@@ -41,6 +41,7 @@ namespace AutomationX
 		AX::SpsIdChangedEventHandler^ _spsIdChangedDelegate = nullptr;
 		AXVariable::ValueChangedEventHandler^ _variableValueChangedDelegate = nullptr;
 		AXVariable::ArrayValueChangedEventHandler^ _arrayValueChangedDelegate = nullptr;
+		Mutex _onSpsIdChangedMutex;
 
 		bool HandleSpsIdChange();
 		void GetVariables();
@@ -88,6 +89,9 @@ namespace AutomationX
 
 		/// <summary>Returns a collection of all subinstances.</summary>
 		property array<AXInstance^>^ Subinstances { array<AXInstance^>^ get(); }
+
+		/// <summary>Returns the parent instance.</summary>
+		property AXInstance^ Parent { AXInstance^ get() { return _parent; } }
 
 		/// <summary>Returns the aX variable of the specified name.</summary>
 		/// <param name='variableName'>The name of the variable.</param>
