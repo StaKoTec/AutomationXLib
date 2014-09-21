@@ -404,8 +404,8 @@ namespace AutomationX
 				}
 				catch (const Exception^ ex)
 				{
-					try { _variableListMutex.ReleaseMutex(); } catch (const Exception^) { }
-					try { _variablesToPollMutex.ReleaseMutex(); } catch (const Exception^) { }
+					_variablesToPollMutex.ReleaseMutex();
+					_variableListMutex.ReleaseMutex();
 					throw ex;
 				}
 			}
