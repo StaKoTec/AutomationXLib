@@ -32,6 +32,7 @@ namespace AutomationX
 		List<String^>^ _variableNames = gcnew List<String^>();
 		Mutex _variableListMutex;
 		List<AXVariable^>^ _variableList = gcnew List<AXVariable^>();
+		Int32 _polledVariablesCount = 0;
 		Mutex _variablesToPollMutex;
 		Dictionary<String^, AXVariable^>^ _variablesToPoll = gcnew Dictionary<String^, AXVariable^>();
 		Dictionary<String^, AXVariable^>^ _variables = gcnew Dictionary<String^, AXVariable^>();

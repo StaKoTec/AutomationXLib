@@ -13,25 +13,7 @@ namespace AutomationX
 
 	Int32 AXInstance::PolledVariablesCount::get()
 	{
-		if (!_variablesToPoll) return 0;
-		Int32 count = _variablesToPoll->Count;
-		try
-		{
-			if (!HandleSpsIdChange()) return 0;
-			_variablesToPollMutex.WaitOne();
-			for each (KeyValuePair<String^, AXVariable^> pair in _variablesToPoll)
-			{
-				if (pair.Value->IsArray) count += pair.Value->Length;
-			}
-			_variablesToPollMutex.ReleaseMutex();
-		}
-		catch (Exception^ ex)
-		{
-			try { _variablesToPollMutex.ReleaseMutex(); }
-			catch (const Exception^) {}
-			throw ex;
-		}
-		return count;
+		return _polledVariablesCount;
 	}
 
 	/*void AXInstance::Remark::set(String^ value)
@@ -232,12 +214,16 @@ namespace AutomationX
 		try
 		{
 			_variablesToPollMutex.WaitOne();
-			if (!_variablesToPoll->ContainsKey(variable->Name)) _variablesToPoll->Add(variable->Name, variable);
+			if (!_variablesToPoll->ContainsKey(variable->Name))
+			{
+				_variablesToPoll->Add(variable->Name, variable);
+				_polledVariablesCount += (variable->IsArray) ? variable->Length : 1;
+			}
 			_variablesToPollMutex.ReleaseMutex();
 		}
 		catch (const Exception^ ex)
 		{
-			try { _variablesToPollMutex.ReleaseMutex(); } catch (const Exception^) { }
+			_variablesToPollMutex.ReleaseMutex();
 			throw ex;
 		}
 		if (_stopWorkerThread)
@@ -275,6 +261,7 @@ namespace AutomationX
 			_variablesToPollMutex.WaitOne();
 			if (_variablesToPoll->ContainsKey(variable->Name)) _variablesToPoll->Remove(variable->Name);
 			if (_variablesToPoll->Count == 0) empty = true;
+			_polledVariablesCount -= (variable->IsArray) ? variable->Length : 1;
 			_variablesToPollMutex.ReleaseMutex();
 		}
 		catch (const Exception^ ex)
@@ -314,9 +301,9 @@ namespace AutomationX
 			while (!_stopWorkerThread)
 			{
 				time = DateTime::Now;
+				if (!HandleSpsIdChange()) return;
 				try
 				{
-					if (!HandleSpsIdChange()) return;
 					_variablesToPollMutex.WaitOne();
 					for each (KeyValuePair<String^, AXVariable^> pair in _variablesToPoll)
 					{
@@ -331,7 +318,7 @@ namespace AutomationX
 				}
 				catch (Exception^ ex)
 				{
-					try { _variablesToPollMutex.ReleaseMutex(); } catch (const Exception^) { }
+					_variablesToPollMutex.ReleaseMutex();
 					System::Diagnostics::Debug::WriteLine(ex->Message + "\r\n" + ex->StackTrace);
 				}
 				if (_stopWorkerThread) return;
@@ -407,7 +394,11 @@ namespace AutomationX
 					for each (String^ element in elementsToRemove)
 					{
 						_variables->Remove(element);
-						if (_variablesToPoll->ContainsKey(element)) _variablesToPoll->Remove(element);
+						if (_variablesToPoll->ContainsKey(element))
+						{
+							_polledVariablesCount -= (_variablesToPoll[element]->IsArray) ? _variablesToPoll[element]->Length : 1;
+							_variablesToPoll->Remove(element);
+						}
 					}
 					_variablesToPollMutex.ReleaseMutex();
 				}
@@ -422,7 +413,7 @@ namespace AutomationX
 		}
 		catch (const Exception^ ex)
 		{
-			try { _variableListMutex.ReleaseMutex(); } catch (const Exception^) { }
+			_variableListMutex.ReleaseMutex();
 			throw ex;
 		}
 	}
@@ -478,7 +469,7 @@ namespace AutomationX
 		}
 		catch (const Exception^ ex)
 		{
-			try { _subinstanceListMutex.ReleaseMutex(); } catch (const Exception^) { }
+			_subinstanceListMutex.ReleaseMutex();
 			throw ex;
 		}
 	}
@@ -609,7 +600,7 @@ namespace AutomationX
 		}
 		catch (const Exception^ ex)
 		{
-			try { _onSpsIdChangedMutex.ReleaseMutex(); } catch (const Exception^) { }
+			_onSpsIdChangedMutex.ReleaseMutex();
 			throw ex;
 		}
 		_onSpsIdChangedMutex.ReleaseMutex();
