@@ -52,6 +52,7 @@ namespace AutomationX
 		bool _io = false;
 		bool _global = false;
 		bool _trending = false;
+		Mutex _spsIdChangeMutex;
 
 		List<bool>^ _boolValues = nullptr;
 		List<Int64>^ _integerValues = nullptr;
@@ -61,7 +62,6 @@ namespace AutomationX
 		bool HandleSpsIdChange();
 		int GetRawType();
 		void Set(tagAxVariant& data, UInt16 index);
-		void OnSpsIdChanged(AX^ sender);
 		void GetAttributes();
 		void GetExecData();
 	public:

@@ -181,16 +181,31 @@ namespace AutomationX
 	{
 		if (_spsId != _ax->CheckSpsId())
 		{
-			//Don't call AxFreeExecData as it causes writing into invalid memory locations
-			//if (_execData) AxFreeExecData(_execData);
-			_execData = nullptr;
-			char* cName = _converter.GetCString(Path);
-			void* handle = AxQueryExecDataEx(cName);
-			Marshal::FreeHGlobal(IntPtr((void*)cName)); //Always free memory!
-			if (!handle) return false;
-			AxFreeExecData(handle);
-			_spsId = _ax->SpsId;
-			GetExecData();
+			try
+			{
+				_spsIdChangeMutex.WaitOne();
+				//Don't call AxFreeExecData as it causes writing into invalid memory locations
+				//if (_execData) AxFreeExecData(_execData);
+				_execData = nullptr;
+				char* cName = _converter.GetCString(Path);
+				void* handle = AxQueryExecDataEx(cName);
+				Marshal::FreeHGlobal(IntPtr((void*)cName)); //Always free memory!
+				if (!handle)
+				{
+					_spsIdChangeMutex.ReleaseMutex();
+					return false;
+				}
+				AxFreeExecData(handle);
+				_spsId = _ax->SpsId;
+				GetExecData();
+				_spsIdChangeMutex.ReleaseMutex();
+				Refresh();
+			}
+			catch (const Exception^ ex)
+			{
+				_spsIdChangeMutex.ReleaseMutex();
+				throw ex;
+			}
 		}
 		return true;
 	}
@@ -817,12 +832,6 @@ namespace AutomationX
 		strcpy_s(data.AXVAL.btSTRING, _converter.GetString(value).c_str());
 		_stringValues[index] = value;
 		Set(data, index);
-	}
-
-	void AXVariable::OnSpsIdChanged(AX^ sender)
-	{
-		GetExecData();
-		Refresh();
 	}
 
 	void AXVariable::GetAttributes()
