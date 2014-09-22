@@ -63,8 +63,7 @@ namespace AutomationX
 		}
 		catch (const Exception^ ex)
 		{
-			try { _variableListMutex.ReleaseMutex(); }
-			catch (const Exception^) {}
+			_variableListMutex.ReleaseMutex();
 			throw ex;
 		}
 
@@ -86,8 +85,7 @@ namespace AutomationX
 		}
 		catch (const Exception^ ex)
 		{
-			try { _subinstanceListMutex.ReleaseMutex(); }
-			catch (const Exception^) {}
+			_subinstanceListMutex.ReleaseMutex();
 			throw ex;
 		}
 
@@ -211,8 +209,10 @@ namespace AutomationX
 	
 	void AXInstance::RegisterVariableToPoll(AXVariable^ variable)
 	{
+		_onSpsIdChangedMutex.WaitOne();
 		try
 		{
+			
 			_variablesToPollMutex.WaitOne();
 			if (!_variablesToPoll->ContainsKey(variable->Name))
 			{
@@ -224,6 +224,7 @@ namespace AutomationX
 		catch (const Exception^ ex)
 		{
 			_variablesToPollMutex.ReleaseMutex();
+			_onSpsIdChangedMutex.ReleaseMutex();
 			throw ex;
 		}
 		if (_stopWorkerThread)
@@ -233,6 +234,7 @@ namespace AutomationX
 				if (_spsIdIsChanging)
 				{
 					_stopWorkerThread = false;
+					_onSpsIdChangedMutex.ReleaseMutex();
 					return;
 				}
 				_workerThreadMutex.WaitOne();
@@ -248,13 +250,16 @@ namespace AutomationX
 			catch (const Exception^ ex)
 			{
 				_workerThreadMutex.ReleaseMutex();
+				_onSpsIdChangedMutex.ReleaseMutex();
 				throw ex;
 			}
 		}
+		_onSpsIdChangedMutex.ReleaseMutex();
 	}
 
 	void AXInstance::UnregisterVariableToPoll(AXVariable^ variable)
 	{
+		_onSpsIdChangedMutex.WaitOne();
 		bool empty = false;
 		try
 		{
@@ -267,11 +272,13 @@ namespace AutomationX
 		catch (const Exception^ ex)
 		{
 			_variablesToPollMutex.ReleaseMutex();
+			_onSpsIdChangedMutex.ReleaseMutex();
 			throw ex;
 		}
 		if (_spsIdIsChanging)
 		{
 			_stopWorkerThread = true;
+			_onSpsIdChangedMutex.ReleaseMutex();
 			return;
 		}
 		try
@@ -288,8 +295,10 @@ namespace AutomationX
 		catch (const Exception^ ex)
 		{
 			_workerThreadMutex.ReleaseMutex();
+			_onSpsIdChangedMutex.ReleaseMutex();
 			throw ex;
 		}
+		_onSpsIdChangedMutex.ReleaseMutex();
 	}
 
 	void AXInstance::Worker()
@@ -348,8 +357,8 @@ namespace AutomationX
 		{
 			_variableListMutex.WaitOne();
 			_variableList->Clear();
+			if (!HandleSpsIdChange()) return;
 			void* handle = GetHandle();
-			//Don't call _ax->SpsIdChanged here as it causes a call to GetVariables again!
 			AX_VAR_DSC data = 0;
 			while (data = AxVarDscFromInstance(handle, data))
 			{
@@ -564,7 +573,6 @@ namespace AutomationX
 			}
 			try
 			{
-				System::Diagnostics::Debug::WriteLine("Moin4 " + Path);
 				GetVariables();
 				GetSubinstances();
 			}

@@ -152,6 +152,7 @@ namespace AutomationX
 
 	AXVariable::~AXVariable()
 	{
+		System::Diagnostics::Debug::WriteLine("D start " + _name);
 		if (_cName) Marshal::FreeHGlobal(IntPtr((void*)_cName)); //Always free memory! Don't remove this here! There is a memory leak, when this line is only in the finalizer
 		_cName = nullptr;
 		_ax = nullptr;
@@ -167,12 +168,15 @@ namespace AutomationX
 		if (_execData) AxFreeExecData(_execData);
 		_execData = nullptr;
 		//GC::Collect(); //Uncomment to check for memory leaks
+		System::Diagnostics::Debug::WriteLine("D end " + _name);
 	}
 
 	AXVariable::!AXVariable()
 	{
+		System::Diagnostics::Debug::WriteLine("F start " + _name);
 		if (_cName) Marshal::FreeHGlobal(IntPtr((void*)_cName)); //Always free memory!
 		if (_execData) AxFreeExecData(_execData);
+		System::Diagnostics::Debug::WriteLine("F end " + _name);
 	}
 
 	bool AXVariable::HandleSpsIdChange()
