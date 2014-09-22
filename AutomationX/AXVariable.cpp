@@ -148,14 +148,12 @@ namespace AutomationX
 		Int32 _spsId = _ax->SpsId;
 		GetExecData();
 		Refresh();
-		_ax->SpsIdChanged += gcnew AX::SpsIdChangedEventHandler(this, &AXVariable::OnSpsIdChanged);
 	}
 
 	AXVariable::~AXVariable()
 	{
 		if (_cName) Marshal::FreeHGlobal(IntPtr((void*)_cName)); //Always free memory! Don't remove this here! There is a memory leak, when this line is only in the finalizer
 		_cName = nullptr;
-		_ax->SpsIdChanged -= gcnew AX::SpsIdChangedEventHandler(this, &AXVariable::OnSpsIdChanged);
 		_ax = nullptr;
 		_instance = nullptr;
 		if (_boolValues) _boolValues->Clear();
