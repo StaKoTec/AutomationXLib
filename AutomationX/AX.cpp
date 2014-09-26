@@ -26,8 +26,7 @@ namespace AutomationX
 
 	AX::~AX()
 	{
-		while (_spsIdChangedThread->ThreadState == ThreadState::Unstarted) Thread::Sleep(10);
-		if (_spsIdChangedThread && (_spsIdChangedThread->ThreadState == ThreadState::Running || _spsIdChangedThread->ThreadState == ThreadState::WaitSleepJoin)) _spsIdChangedThread->Join();
+		while (_spsIdChangedThreadCount > 0) Thread::Sleep(10);
 		if (_spsId)	delete _spsId;
 	}
 
@@ -93,33 +92,13 @@ namespace AutomationX
 	{
 		if (AxHasSpsIdChanged(_spsId) == 1)
 		{
-			try
-			{
-				_spsIdChangedThreadMutex.WaitOne();
-				if (_spsIdChangedThread && _spsIdChangedThread->ThreadState == ThreadState::Unstarted)
-				{
-					_spsIdChangedThreadMutex.ReleaseMutex();
-					return *_spsId;
-				}
-				//Could cause deadlock when sps id is changed too fast
-				//TODO: Mehrere SPS-ID-Changed Thread Objekte erzeugen
-				if (_spsIdChangedThread && (_spsIdChangedThread->ThreadState == ThreadState::Running || _spsIdChangedThread->ThreadState == ThreadState::WaitSleepJoin)) _spsIdChangedThread->Join();
-
-				_spsIdChangedThread = gcnew Thread(gcnew ThreadStart(this, &AX::RaiseSpsIdChanged));
-				_spsIdChangedThread->Priority = ThreadPriority::Highest;
-				_spsIdChangedThread->Start();
-				_spsIdChangedThreadMutex.ReleaseMutex();
-			}
-			catch (Exception^ ex)
-			{
-				_spsIdChangedThreadMutex.ReleaseMutex();
-				throw ex;
-			}
+			_spsIdChangedThreadCount++;
+			ThreadPool::QueueUserWorkItem(gcnew WaitCallback(this, &AX::RaiseSpsIdChanged));
 		}
 		return *_spsId;
 	}
 
-	void AX::RaiseSpsIdChanged()
+	void AX::RaiseSpsIdChanged(Object^ stateInfo)
 	{
 		try
 		{
@@ -131,6 +110,7 @@ namespace AutomationX
 		{
 			System::Diagnostics::Debug::WriteLine("!!!!!" + ex->Message + " " + ex->StackTrace);
 		}
+		_spsIdChangedThreadCount--;
 	}
 
 	void AX::WriteJournal(int priority, String^ position, String^ message, String^ value, String^ fileName)

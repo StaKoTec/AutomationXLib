@@ -33,7 +33,8 @@ namespace AutomationX
 	void AXInstance::Status::set(String^ value)
 	{
 		if (!HandleSpsIdChange()) return;
-		StatusEvent(this, value);
+		_eventThreadCount++;
+		ThreadPool::QueueUserWorkItem(gcnew WaitCallback(this, &AXInstance::RaiseStatusEvent), value);
 		if (_statusVariable == nullptr) return;
 		_statusVariable->Set(value);
 	}
@@ -41,7 +42,8 @@ namespace AutomationX
 	void AXInstance::Error::set(String^ value)
 	{
 		if (!HandleSpsIdChange()) return;
-		ErrorEvent(this, value);
+		_eventThreadCount++;
+		ThreadPool::QueueUserWorkItem(gcnew WaitCallback(this, &AXInstance::RaiseErrorEvent), value);
 		if (_alarmVariable == nullptr) return;
 		_alarmVariable->Set(true);
 		if (_alarmTextVariable == nullptr) return;
@@ -161,6 +163,8 @@ namespace AutomationX
 		_onSpsIdChangedMutex.WaitOne();
 		_onSpsIdChangedMutex.ReleaseMutex();
 
+		while (_eventThreadCount > 0) Thread::Sleep(10);
+
 		_variableListMutex.WaitOne();
 		for each (AXVariable^ element in _variableList)
 		{
@@ -181,6 +185,32 @@ namespace AutomationX
 		//GC::Collect(); //Uncomment to check for memory leaks
 
 		System::Diagnostics::Debug::WriteLine("D ende " + _name);
+	}
+
+	void AXInstance::RaiseStatusEvent(Object^ statusText)
+	{
+		try
+		{
+			StatusEvent(this, (String^)statusText);
+		}
+		catch (Exception^ ex)
+		{
+			System::Diagnostics::Debug::WriteLine(ex->Message + " " + ex->StackTrace);
+		}
+		_eventThreadCount--;
+	}
+
+	void AXInstance::RaiseErrorEvent(Object^ errorText)
+	{
+		try
+		{
+			ErrorEvent(this, (String^)errorText);
+		}
+		catch (Exception^ ex)
+		{
+			System::Diagnostics::Debug::WriteLine(ex->Message + " " + ex->StackTrace);
+		}
+		_eventThreadCount--;
 	}
 
 	bool AXInstance::HandleSpsIdChange()
@@ -487,7 +517,6 @@ namespace AutomationX
 	{
 		ArrayValueChanged(sender, index);
 	}
-
 
 	void AXInstance::OnValueChanged(AXVariable ^sender)
 	{

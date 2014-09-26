@@ -153,6 +153,8 @@ namespace AutomationX
 	AXVariable::~AXVariable()
 	{
 		System::Diagnostics::Debug::WriteLine("D start " + _name);
+		while (_eventThreadCount > 0) Thread::Sleep(10);
+
 		if (_cName) Marshal::FreeHGlobal(IntPtr((void*)_cName)); //Always free memory! Don't remove this here! There is a memory leak, when this line is only in the finalizer
 		_cName = nullptr;
 		_ax = nullptr;
@@ -210,6 +212,32 @@ namespace AutomationX
 			}
 		}
 		return true;
+	}
+
+	void AXVariable::RaiseValueChanged(Object^ stateInfo)
+	{
+		try
+		{
+			ValueChanged(this);
+		}
+		catch (Exception^ ex)
+		{
+			System::Diagnostics::Debug::WriteLine(ex->Message + " " + ex->StackTrace);
+		}
+		_eventThreadCount--;
+	}
+
+	void AXVariable::RaiseArrayValueChanged(Object^ index)
+	{
+		try
+		{
+			ArrayValueChanged(this, *((Int32^)index));
+		}
+		catch (Exception^ ex)
+		{
+			System::Diagnostics::Debug::WriteLine(ex->Message + " " + ex->StackTrace);
+		}
+		_eventThreadCount--;
 	}
 
 	void AXVariable::GetExecData()
@@ -294,16 +322,8 @@ namespace AutomationX
 		if(!HandleSpsIdChange()) return;
 		if (index >= _length) throw gcnew AXArrayIndexOutOfRangeException("The index exceeds the array boundaries.");
 		struct tagAxVariant data;
-		try
-		{
-			int result = _isArray ? AxGetArray(_execData, &data, index) : AxGet(_execData, &data);
-			if (!result) throw (AXException^)(gcnew AXVariableException("The data handle is invalid or does not represent a variable type."));
-		}
-		//TODO: Handle AccessViolationException everywhere
-		catch (const AccessViolationException^ ex)
-		{
-			return;
-		}
+		int result = _isArray ? AxGetArray(_execData, &data, index) : AxGet(_execData, &data);
+		if (!result) throw (AXException^)(gcnew AXVariableException("The data handle is invalid or does not represent a variable type."));
 		bool valueChanged = false;
 		if (data.ucVarType == AX_BT_BOOL || data.ucVarType == AX_BT_ALARM)
 		{
@@ -405,7 +425,8 @@ namespace AutomationX
 		}
 		if (raiseEvents && valueChanged)
 		{
-			if (_isArray) ArrayValueChanged(this, index); else ValueChanged(this);
+			_eventThreadCount++;
+			if (_isArray) ThreadPool::QueueUserWorkItem(gcnew WaitCallback(this, &AXVariable::RaiseArrayValueChanged), gcnew Int32(index)); else ThreadPool::QueueUserWorkItem(gcnew WaitCallback(this, &AXVariable::RaiseValueChanged));
 		}
 	}
 

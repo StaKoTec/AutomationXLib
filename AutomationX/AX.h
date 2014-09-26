@@ -15,11 +15,10 @@ namespace AutomationX
 		ManagedTypeConverter _converter;
 		Timers::Timer^ _workerTimer;
 		int* _spsId = nullptr;
-		System::Threading::Mutex _spsIdChangedThreadMutex;
-		System::Threading::Thread^ _spsIdChangedThread;
+		Int32 _spsIdChangedThreadCount = 0;
 
 		void OnWorkerTimerElapsed(System::Object ^sender, System::Timers::ElapsedEventArgs ^e);
-		void RaiseSpsIdChanged();
+		void RaiseSpsIdChanged(Object^ stateInfo);
 	public:
 		delegate void ShutdownEventHandler(AX^ sender);
 		delegate void SpsIdChangedEventHandler(AX^ sender);

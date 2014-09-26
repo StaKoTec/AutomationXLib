@@ -41,6 +41,7 @@ namespace AutomationX
 		bool _isArray = false;
 		AX^ _ax;
 		Int32 _spsId = 0;
+		Int32 _eventThreadCount = 0;
 		ManagedTypeConverter _converter;
 		AXInstance^ _instance;
 		char* _cName = nullptr;
@@ -60,6 +61,8 @@ namespace AutomationX
 		List<String^>^ _stringValues = nullptr;
 
 		bool HandleSpsIdChange();
+		void RaiseValueChanged(Object^ stateInfo);
+		void RaiseArrayValueChanged(Object^ index);
 		int GetRawType();
 		void Set(tagAxVariant& data, UInt16 index);
 		void GetAttributes();

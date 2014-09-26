@@ -29,6 +29,7 @@ namespace AutomationX
 		AXVariable^ _alarmTextVariable = nullptr;
 		String^ _statusText = "";
 		String^ _errorText = "";
+		Int32 _eventThreadCount = 0;
 		List<String^>^ _variableNames = gcnew List<String^>();
 		Mutex _variableListMutex;
 		List<AXVariable^>^ _variableList = gcnew List<AXVariable^>();
@@ -48,6 +49,8 @@ namespace AutomationX
 		void GetVariables();
 		void GetSubinstances();
 		void Worker();
+		void RaiseStatusEvent(Object^ statusText);
+		void RaiseErrorEvent(Object^ errorText);
 		void OnSpsIdChanged(AX^ sender);
 		void OnArrayValueChanged(AXVariable^ sender, UInt16 index);
 		void OnValueChanged(AXVariable^ sender);
