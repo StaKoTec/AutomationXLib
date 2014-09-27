@@ -24,12 +24,12 @@ namespace AutomationX
 		System::Threading::Thread^ _workerThread = nullptr;
 		volatile bool _spsIdIsChanging = false;
 		String^ _name = "";
+		String^ _className = "";
 		AXVariable^ _statusVariable = nullptr;
 		AXVariable^ _alarmVariable = nullptr;
 		AXVariable^ _alarmTextVariable = nullptr;
 		String^ _statusText = "";
 		String^ _errorText = "";
-		Int32 _eventThreadCount = 0;
 		List<String^>^ _variableNames = gcnew List<String^>();
 		Mutex _variableListMutex;
 		List<AXVariable^>^ _variableList = gcnew List<AXVariable^>();
@@ -74,6 +74,7 @@ namespace AutomationX
 		property AX^ AutomationX { AX^ get() { return _ax; } }
 		property String^ Name { String^ get() { return _name; } }
 		property String^ Path { String^ get() { if (_parent) return _parent->Path + "." + _name; else return _name; } }
+		property String^ ClassName { String^ get(); }
 		property String^ Remark { String^ get(); }
 		property Int32 PolledVariablesCount { Int32 get(); }
 

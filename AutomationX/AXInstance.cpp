@@ -3,6 +3,24 @@
 
 namespace AutomationX
 {
+	String^ AXInstance::ClassName::get()
+	{
+		if (!HandleSpsIdChange()) return "";
+		if (_className->Length > 0) return _className;
+		void* handle = GetHandle();
+		const char* result = AxGetInstanceClassPath(handle);
+		if (!result) throw gcnew AXInstanceException("The instance handle is invalid.");
+		String^ value = gcnew String(result);
+		Int32 startIndex = value->LastIndexOf('/');
+		if (startIndex < 0) return "";
+		startIndex++;
+		if (startIndex >= value->Length) return "";
+		Int32 stopIndex = value->LastIndexOf('.');
+		if (stopIndex < 0 || stopIndex < startIndex) return "";
+		_className = value->Substring(startIndex, stopIndex - startIndex);
+		return _className;
+	}
+
 	String^ AXInstance::Remark::get()
 	{
 		if (!HandleSpsIdChange()) return "";
@@ -33,7 +51,6 @@ namespace AutomationX
 	void AXInstance::Status::set(String^ value)
 	{
 		if (!HandleSpsIdChange()) return;
-		_eventThreadCount++;
 		ThreadPool::QueueUserWorkItem(gcnew WaitCallback(this, &AXInstance::RaiseStatusEvent), value);
 		if (_statusVariable == nullptr) return;
 		_statusVariable->Set(value);
@@ -42,7 +59,6 @@ namespace AutomationX
 	void AXInstance::Error::set(String^ value)
 	{
 		if (!HandleSpsIdChange()) return;
-		_eventThreadCount++;
 		ThreadPool::QueueUserWorkItem(gcnew WaitCallback(this, &AXInstance::RaiseErrorEvent), value);
 		if (_alarmVariable == nullptr) return;
 		_alarmVariable->Set(true);
@@ -163,8 +179,6 @@ namespace AutomationX
 		_onSpsIdChangedMutex.WaitOne();
 		_onSpsIdChangedMutex.ReleaseMutex();
 
-		while (_eventThreadCount > 0) Thread::Sleep(10);
-
 		_variableListMutex.WaitOne();
 		for each (AXVariable^ element in _variableList)
 		{
@@ -197,7 +211,6 @@ namespace AutomationX
 		{
 			System::Diagnostics::Debug::WriteLine(ex->Message + " " + ex->StackTrace);
 		}
-		_eventThreadCount--;
 	}
 
 	void AXInstance::RaiseErrorEvent(Object^ errorText)
@@ -210,7 +223,6 @@ namespace AutomationX
 		{
 			System::Diagnostics::Debug::WriteLine(ex->Message + " " + ex->StackTrace);
 		}
-		_eventThreadCount--;
 	}
 
 	bool AXInstance::HandleSpsIdChange()

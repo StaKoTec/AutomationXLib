@@ -153,7 +153,6 @@ namespace AutomationX
 	AXVariable::~AXVariable()
 	{
 		System::Diagnostics::Debug::WriteLine("D start " + _name);
-		while (_eventThreadCount > 0) Thread::Sleep(10);
 
 		if (_cName) Marshal::FreeHGlobal(IntPtr((void*)_cName)); //Always free memory! Don't remove this here! There is a memory leak, when this line is only in the finalizer
 		_cName = nullptr;
@@ -224,7 +223,6 @@ namespace AutomationX
 		{
 			System::Diagnostics::Debug::WriteLine(ex->Message + " " + ex->StackTrace);
 		}
-		_eventThreadCount--;
 	}
 
 	void AXVariable::RaiseArrayValueChanged(Object^ index)
@@ -237,7 +235,6 @@ namespace AutomationX
 		{
 			System::Diagnostics::Debug::WriteLine(ex->Message + " " + ex->StackTrace);
 		}
-		_eventThreadCount--;
 	}
 
 	void AXVariable::GetExecData()
@@ -425,7 +422,6 @@ namespace AutomationX
 		}
 		if (raiseEvents && valueChanged)
 		{
-			_eventThreadCount++;
 			if (_isArray) ThreadPool::QueueUserWorkItem(gcnew WaitCallback(this, &AXVariable::RaiseArrayValueChanged), gcnew Int32(index)); else ThreadPool::QueueUserWorkItem(gcnew WaitCallback(this, &AXVariable::RaiseValueChanged));
 		}
 	}

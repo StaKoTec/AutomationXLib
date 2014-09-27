@@ -41,7 +41,6 @@ namespace AutomationX
 		bool _isArray = false;
 		AX^ _ax;
 		Int32 _spsId = 0;
-		Int32 _eventThreadCount = 0;
 		ManagedTypeConverter _converter;
 		AXInstance^ _instance;
 		char* _cName = nullptr;
