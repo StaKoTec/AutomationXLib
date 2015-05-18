@@ -418,6 +418,7 @@ namespace AutomationX
 						variable = gcnew AXVariable(this, name);
 					}
 					catch (const AXVariableTypeException^) { continue; }
+					catch (const Exception^) { continue; }
 					variable->ValueChanged += _variableValueChangedDelegate;
 					variable->ArrayValueChanged += _arrayValueChangedDelegate;
 					_variables->Add(name, variable);
