@@ -16,7 +16,7 @@ using namespace System::Security::Permissions;
 [assembly:AssemblyConfigurationAttribute(L"")];
 [assembly:AssemblyCompanyAttribute(L"Lopeware")];
 [assembly:AssemblyProductAttribute(L"AutomationX .NET Library")];
-[assembly:AssemblyCopyrightAttribute(L"Copyright (c) Lopeware 2014")];
+[assembly:AssemblyCopyrightAttribute(L"Copyright (c) Lopeware 2014-2016")];
 [assembly:AssemblyTrademarkAttribute(L"")];
 [assembly:AssemblyCultureAttribute(L"")];
 
@@ -32,7 +32,7 @@ using namespace System::Security::Permissions;
 // by using the '*' as shown below:
 
 // You need to change the version number in app.rc, too!!!
-[assembly:AssemblyVersionAttribute("0.1.7.0")];
+[assembly:AssemblyVersionAttribute("0.2.0.0")];
 
 [assembly:ComVisible(false)];
 

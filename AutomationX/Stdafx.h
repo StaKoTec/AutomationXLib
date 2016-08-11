@@ -5,10 +5,13 @@
 #pragma once
 #pragma comment(lib, "axsapi32.lib")
 
-#include "AXException.h"
-#include "AX.h"
-#include "AXInstance.h"
-#include "AXVariable.h"
+#include "Lock.h"
+#include "Binder.h"
+#include "AxException.h"
+#include "Ax.h"
+#include "AxHandle.h"
+#include "AxInstance.h"
+#include "AxVariable.h"
 
 #include "axsapi32.h"
 #include <string>

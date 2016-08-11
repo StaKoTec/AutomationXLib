@@ -27,7 +27,9 @@
 #undef AX_EXPORT
 #if !linux
 
+#ifndef	DLL_EXPORT
 #define DLL_EXPORT __declspec(dllexport)
+#endif 	
  
 #ifdef AX_MAKE_DLL
 #define AX_EXPORT __declspec(dllexport)
@@ -38,7 +40,7 @@
 #define AX_EXPORT
 #endif
 
-#define DLL_EXPORT __declspec(dllexport)
+
 
 #ifdef __cplusplus
 extern "C" {

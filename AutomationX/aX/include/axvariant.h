@@ -254,6 +254,10 @@ typedef struct
 	int size;
 } AxWsDirRecordArray, *AxWsDirRecordArrayPt;
 
+#define AX_TREND_MODE_FILE	(1<<0)
+#define AX_TREND_MODE_RAM	(1<<1)
+#define AX_TREND_MODE_ALL	(AX_TREND_MODE_FILE|AX_TREND_MODE_RAM)
+
 #if !defined(AX_TREND_DATA)
 #define AX_TREND_DATA
 
@@ -287,6 +291,18 @@ typedef struct AXTreeData
 	double licPoints;
 	void* res1;
 } AXTreeData;
+
+typedef struct
+{
+	char	szName[256];
+	char	szPwd[256];
+	char	szRemark[256];
+	int		iPwdChangeInterval;
+	int		iChangePwdNext;
+	int		iDisableUser;
+	int		iLockUser;
+	int		iCantChangePwd;
+} AXUserInfo;
 
 
 #endif

@@ -1,0 +1,2 @@
+GetEnumRemark
+String-Länge

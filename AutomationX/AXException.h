@@ -4,52 +4,52 @@ using namespace System;
 
 namespace AutomationX
 {
-	public ref class AXException : public System::Exception
+	public ref class AxException : public System::Exception
 	{
 	public:
-		AXException();
-		AXException(String^ message);
+		AxException();
+		AxException(String^ message);
 	};
 
-	public ref class AXNotRunningException : public AXException
+	public ref class AxNotRunningException : public AxException
 	{
 	public:
-		AXNotRunningException();
-		AXNotRunningException(String^ message);
+		AxNotRunningException();
+		AxNotRunningException(String^ message);
 	};
 
-	public ref class AXInstanceException : public AXException
+	public ref class AxInstanceException : public AxException
 	{
 	public:
-		AXInstanceException();
-		AXInstanceException(String^ message);
+		AxInstanceException();
+		AxInstanceException(String^ message);
 	};
 
-	public ref class AXVariableException : public AXInstanceException
+	public ref class AxVariableException : public AxInstanceException
 	{
 	public:
-		AXVariableException();
-		AXVariableException(String^ message);
+		AxVariableException();
+		AxVariableException(String^ message);
 	};
 
-	public ref class AXVariableReadOnlyException : public AXVariableException
+	public ref class AxVariableReadOnlyException : public AxVariableException
 	{
 	public:
-		AXVariableReadOnlyException();
-		AXVariableReadOnlyException(String^ message);
+		AxVariableReadOnlyException();
+		AxVariableReadOnlyException(String^ message);
 	};
 
-	public ref class AXVariableTypeException : public AXVariableException
+	public ref class AxVariableTypeException : public AxVariableException
 	{
 	public:
-		AXVariableTypeException();
-		AXVariableTypeException(String^ message);
+		AxVariableTypeException();
+		AxVariableTypeException(String^ message);
 	};
 
-	public ref class AXArrayIndexOutOfRangeException : public AXVariableException
+	public ref class AxArrayIndexOutOfRangeException : public AxVariableException
 	{
 	public:
-		AXArrayIndexOutOfRangeException();
-		AXArrayIndexOutOfRangeException(String^ message);
+		AxArrayIndexOutOfRangeException();
+		AxArrayIndexOutOfRangeException(String^ message);
 	};
 }

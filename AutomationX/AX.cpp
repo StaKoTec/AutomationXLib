@@ -2,133 +2,204 @@
 
 #include "stdafx.h"
 
-#include "AX.h"
+#include "Ax.h"
 
 namespace AutomationX
 {
-	bool AX::Connected::get()
+	bool Ax::Connected::get()
 	{ 
 		return AxIsRunning() && AxIsHostMaster();
 	}
 
-	AX::AX()
+	Ax::Ax(UInt32 eventThreadCount)
 	{
+		if (eventThreadCount > 500) eventThreadCount = 500;
+		else if (eventThreadCount < 1) eventThreadCount = 1;
+		_eventThreadCount = eventThreadCount;
+
 		AxInit(); //First function to call
 		//AxOmAttachToObjectMemory must be called after AxInit
-		if (!AxOmAttachToObjectMemory()) throw gcnew AXException("Could not attach to shared memory. Make sure AutomationX is running and the user running this program has enough privileges.");
+		if (!AxOmAttachToObjectMemory()) throw gcnew AxException("Could not attach to shared memory. Make sure AutomationX is running and the user running this program has enough privileges.");
 		AxOmQueryProcessGroupInfo(); //No interpretable return value, must be called after AxOmAttachToObjectMemory
 		_spsId = new int;
 		AxHasSpsIdChanged(_spsId);
-		_workerTimer = gcnew Timers::Timer(1000);
-		_workerTimer->Elapsed += gcnew System::Timers::ElapsedEventHandler(this, &AutomationX::AX::OnWorkerTimerElapsed);
-		_workerTimer->Start();
-	}
+		_stopEventThreads = false;
+		_stopWorkerThread = false;
+		_workerThread = gcnew Thread(gcnew ThreadStart(this, &Ax::Worker));
+		_workerThread->Priority = ThreadPriority::Highest;
+		_workerThread->Start();
 
-	AX::~AX()
-	{
-		while (_spsIdChangedThreadCount > 0) Thread::Sleep(10);
-		if (_spsId)	delete _spsId;
-	}
-
-	void AX::OnWorkerTimerElapsed(System::Object ^sender, System::Timers::ElapsedEventArgs ^e)
-	{
-		if (AxShutdownEvent() == 1 || !Connected) ShuttingDown(this);
-	}
-
-	void AX::CheckRunning()
-	{
-		if (!Connected) throw gcnew AXNotRunningException("aX is not running.");
-	}
-
-	void AX::Shutdown()
-	{
-		ShuttingDown(this);
-		AxSendShutdownEvent();
-	}
-
-	System::Collections::Generic::List<String^>^ AX::GetInstanceNames(String^ className)
-	{
-		System::Collections::Generic::List<String^>^ instanceNames = gcnew System::Collections::Generic::List<String^>();
-		char* cName = _converter.GetCString(className);
-		AX_INSTANCE data = nullptr;
-		while (data = AxGetInstance(data, cName))
+		for (UInt32 i = 0; i < eventThreadCount; i++)
 		{
-			String^ instanceName = gcnew String(AxGetInstanceName(data));
-			if (instanceName->Length == 0) continue;
-			instanceNames->Add(instanceName);
+			Thread^ eventThread = gcnew Thread(gcnew ThreadStart(this, &Ax::EventWorker));
+			eventThread->Priority = ThreadPriority::AboveNormal;
+			eventThread->Start();
+			_eventThreads->Add(eventThread);
 		}
-		Marshal::FreeHGlobal(IntPtr((void*)cName)); //Always free memory!
-		return instanceNames;
 	}
 
-	System::Collections::Generic::List<String^>^ AX::GetClassNames()
+	Ax::~Ax()
 	{
-		System::Collections::Generic::List<String^>^ classNames = gcnew System::Collections::Generic::List<String^>();
-		std::vector<char*> buffers(1);
-		AxGetAllClasses(&buffers.at(0), 1);
-		int numberOfClasses = AxGetNumberOfAllClasses();
-		buffers.resize(numberOfClasses);
-		int count = AxGetAllClasses(&buffers.at(0), numberOfClasses);
-		for (int i = 0; i < count; i++)
+		this->!Ax();
+	}
+
+	Ax::!Ax()
+	{
+		_stopEventThreads = true;
+		_stopWorkerThread = true;
+		if(_workerThread) _workerThread->Join();
+		for (Int32 i = 0; i < _eventThreads->Count; i++)
 		{
-			String^ name = gcnew String(buffers.at(i));
-			if (name->Length == 0) continue;
-			classNames->Add(name);
+			_eventThreads[i]->Join();
 		}
-		return classNames;
-	}
-
-	System::String^ AX::GetClassPath(String^ instanceName)
-	{
-		char* cName = _converter.GetCString(instanceName);
-		void* handle = AxQueryInstance(cName);
-		Marshal::FreeHGlobal(IntPtr((void*)cName)); //Always free memory!
-		if (!handle) throw gcnew AXInstanceException("Could not get instance handle for " + instanceName + ".");
-		String^ value = gcnew String(AxGetInstanceClassPath(handle));
-		return value;
-	}
-
-	Int32 AX::CheckSpsId()
-	{
-		if (AxHasSpsIdChanged(_spsId) == 1)
+		if (_spsId)
 		{
-			_spsIdChangedThreadCount++;
-			ThreadPool::QueueUserWorkItem(gcnew WaitCallback(this, &AX::RaiseSpsIdChanged));
+			delete _spsId;
+			_spsId = nullptr;
 		}
-		return *_spsId;
 	}
 
-	void AX::RaiseSpsIdChanged(Object^ stateInfo)
+	void Ax::QueueInitFunction(System::Action^ function)
 	{
-		try
+		_initQueue.Enqueue(function);
+	}
+
+	void Ax::QueueSynchronousFunction(System::Action^ function)
+	{
+		_synchronousQueue.Enqueue(function);
+	}
+
+	//{{{ Queueable methods
+		void Ax::InvokeWriteJournal(int priority, String^ position, String^ message, String^ value, String^ fileName, DateTime time)
 		{
-			System::Diagnostics::Debug::WriteLine("Calling SpsIdChanged");
-			SpsIdChanged(this);
-			System::Diagnostics::Debug::WriteLine("Finished calling SpsIdChanged");
+			Double aXTime = AxConvertDataTime_ToValue(time.Year, time.Month, time.Day, time.Hour, time.Minute, time.Second, time.Millisecond);
+			char* pPosition = _converter.GetCString(position);
+			char* pMessage = _converter.GetCString(message);
+			char* pValue = _converter.GetCString(value);
+			char* pFileName = _converter.GetCString(fileName);
+			AxLogTS(priority, pPosition, pMessage, pValue, pFileName, aXTime);
+			Marshal::FreeHGlobal(IntPtr((void*)pPosition));
+			Marshal::FreeHGlobal(IntPtr((void*)pMessage));
+			Marshal::FreeHGlobal(IntPtr((void*)pValue));
+			Marshal::FreeHGlobal(IntPtr((void*)pFileName));
 		}
-		catch (Exception^ ex)
+	//}}}
+
+	void Ax::WriteJournal(int priority, String^ position, String^ message, String^ value, String^ fileName)
+	{
+		_synchronousQueue.Enqueue(Binder::Bind(gcnew WriteJournalDelegate(this, &Ax::InvokeWriteJournal), priority, position, message, value, fileName, DateTime::Now));
+	}
+
+	void Ax::WriteJournal(int priority, String^ position, String^ message, String^ value, String^ fileName, DateTime time)
+	{
+		_synchronousQueue.Enqueue(Binder::Bind(gcnew WriteJournalDelegate(this, &Ax::InvokeWriteJournal), priority, position, message, value, fileName, time));
+	}
+
+	void Ax::AddVariableToPoll(AxVariable^ value)
+	{
+		if (!value) return;
+		Lock variablesToPollGuard(_variablesToPollMutex);
+		_variablesToPoll->TryAdd(value->Path, value);
+	}
+
+	void Ax::RemoveVariableToPoll(AxVariable^ value)
+	{
+		if (!value) return;
+		AxVariable^ returnedValue;
+		Lock variablesToPollGuard(_variablesToPollMutex);
+		_variablesToPoll->TryRemove(value->Path, returnedValue);
+	}
+
+	bool Ax::SpsIdChanged()
+	{
+		return AxHasSpsIdChanged(_spsId) == 1;
+	}
+
+	void Ax::EventWorker()
+	{
+		while (!_stopEventThreads)
 		{
-			System::Diagnostics::Debug::WriteLine("!!!!!" + ex->Message + " " + ex->StackTrace);
+			if(!_eventResetEvent->WaitOne(1000, false)) continue;
+			while (_eventQueue.Count > 0 && !_stopEventThreads)
+			{
+				AxVariableEventData^ eventData;
+				if (_eventQueue.TryDequeue(eventData))
+				{
+					if (eventData->Variable->IsArray) eventData->Variable->RaiseArrayValueChanged(eventData->Index);
+					else eventData->Variable->RaiseValueChanged();
+				}
+			}
 		}
-		_spsIdChangedThreadCount--;
 	}
 
-	void AX::WriteJournal(int priority, String^ position, String^ message, String^ value, String^ fileName)
+	void Ax::Worker()
 	{
-		WriteJournal(priority, position, message, value, fileName, DateTime::Now);
-	}
+		DateTime time;
+		Int32 timeToSleep = 0;
+		bool spsIdChanged = false;
+		Action^ action;
 
-	void AX::WriteJournal(int priority, String^ position, String^ message, String^ value, String^ fileName, DateTime time)
-	{
-		Double aXTime = AxConvertDataTime_ToValue(time.Year, time.Month, time.Day, time.Hour, time.Minute, time.Second, time.Millisecond);
-		char* pPosition = _converter.GetCString(position);
-		char* pMessage = _converter.GetCString(message);
-		char* pValue = _converter.GetCString(value);
-		char* pFileName = _converter.GetCString(fileName);
-		AxLogTS(priority, pPosition, pMessage, pValue, pFileName, aXTime);
-		Marshal::FreeHGlobal(IntPtr((void*)pPosition));
-		Marshal::FreeHGlobal(IntPtr((void*)pMessage));
-		Marshal::FreeHGlobal(IntPtr((void*)pValue));
-		Marshal::FreeHGlobal(IntPtr((void*)pFileName));
+		while (!_stopWorkerThread)
+		{
+			time = DateTime::Now;
+			if (AxShutdownEvent() || !AxIsRunning())
+			{
+				ShuttingDown(this);
+				break;
+			}
+
+			while (_initQueue.Count > 0)
+			{
+				spsIdChanged = SpsIdChanged();
+				if (spsIdChanged) break;
+				
+				if (_initQueue.TryDequeue(action) && action) action();
+			}
+			
+			if (spsIdChanged)
+			{
+				spsIdChanged = false;
+				continue;
+			}
+
+			{
+				Lock variablesToPollGuard(_variablesToPollMutex);
+				for each (KeyValuePair<String^, AxVariable^>^ pair in _variablesToPoll)
+				{
+					if (pair->Value->Changed)
+					{
+						spsIdChanged = SpsIdChanged();
+						if (spsIdChanged) break;
+						pair->Value->Push();
+					}
+					else
+					{
+						List<UInt16>^ changedIndexes = pair->Value->Pull();
+						for each (UInt16 index in changedIndexes)
+						{
+							_eventQueue.Enqueue(gcnew AxVariableEventData(pair->Value, index));
+						}
+						_eventResetEvent->Set();
+					}
+				}
+			}
+
+			if (spsIdChanged)
+			{
+				spsIdChanged = false;
+				continue;
+			}
+			
+			if (_synchronousQueue.Count > 0)
+			{
+				if(SpsIdChanged()) continue;
+				if (_synchronousQueue.TryDequeue(action) && action) action();
+			}
+								
+			if (_stopWorkerThread) return;
+			timeToSleep = _cycleTime - (Int32)DateTime::Now.Subtract(time).TotalMilliseconds;
+			if (timeToSleep < 1) timeToSleep = 1;
+			Threading::Thread::Sleep(timeToSleep);
+		}
 	}
 }

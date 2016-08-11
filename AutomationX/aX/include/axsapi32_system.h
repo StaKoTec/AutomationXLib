@@ -1,4 +1,4 @@
-/********************************************************************************/
+ /********************************************************************************/
 /* MODUL axsapi32.dll															*/
 /*			   FILE: axsapi32_system.h											*/
 /*           SYSTEM: NT4.0 / 2000 / Linux								    	*/
@@ -223,7 +223,7 @@ AX_EXPORT char *AxGetHostName(char	*pszBuff,
 /*		0 - Failure																			*/
 /*		Otherwise the name of the remote host												*/
 /********************************************************************************************/
-AX_EXPORT const char *AxGetRemoteHost(void);
+AX_EXPORT char *AxGetRemoteHost(void);
 
 /********************************************************************************************/
 /*	AxGetProjectDir																			*/
@@ -450,9 +450,84 @@ AX_EXPORT int AxKill(long	pid,
 /********************************************************************************************/
 AX_EXPORT int AxHasSpsIdChanged(int* piOldId);
 
+
+/********************************************************************************************/
+/*	AxGetOnTouchKeyboardType																*/
+/*		This function gets the keyboard type for the on touch keyboard.						*/
+/*																							*/
+/* Parameters:																				*/
+/*																							*/
+/* Return Value:																			*/
+/*		0..Astute, 1..Maistro Lite															*/
+/********************************************************************************************/
+AX_EXPORT int AxGetOnTouchKeyboardType();
+
+/********************************************************************************************/
+/*	AxGetOnTouchKeyboard																	*/
+/*		This function gets if the on touch keyboard is active an returns the scaling factor */
+/*		of the keyboard.																	*/
+/*																							*/
+/* Parameters:																				*/
+/*																							*/
+/* Return Value:																			*/
+/*		0 - On touch keyboard not active													*/
+/*		Otherwise the scaling factor of the keyboard										*/
+/********************************************************************************************/
+AX_EXPORT int AxGetOnTouchKeyboard();
+
+
+/********************************************************************************************/
+/*	AxGetOnTouchKeyDoubleClick																*/
+/*		This function gets if the on touch keyboard is on double click active.				*/
+/*																							*/
+/* Parameters:																				*/
+/*																							*/
+/* Return Value:																			*/
+/*		0 - On touch keyboard double click not active										*/
+/*		Otherwise the on touch double click active											*/
+/********************************************************************************************/
+AX_EXPORT int AxGetOnTouchKeyDoubleClick();
+
+/********************************************************************************************/
+/*	AxGetOnTouchKeyPosMode																	*/
+/*		This function gets the on touch keyboard position mode behaviour.					*/
+/*		of the keyboard.																	*/
+/*																							*/
+/* Parameters:																				*/
+/*																							*/
+/* Return Value:																			*/
+/*		On touch Position mode behaviour													*/
+/********************************************************************************************/
+AX_EXPORT int AxGetOnTouchKeyPosMode();
+
+/********************************************************************************************/
+/*	AxGetDoubleClickInterval																*/
+/*		This function gets the maximum Interval between mouse-clicks to	raise				*/
+/*		Double-click event																	*/
+/*																							*/
+/*																							*/
+/* Parameters:																				*/
+/*																							*/
+/* Return Value:																			*/
+/*		Max Interval between two mouse clicks												*/
+/********************************************************************************************/
+AX_EXPORT int AxGetDoubleClickInterval();
+
+/********************************************************************************************/
+/*	AxGetDoubleClickRange																	*/
+/*		This function gets the maximum difference of x and y-positions between				*/
+/*		mouse-clicks to	raise Double-click event											*/
+/*																							*/
+/* Parameters:																				*/
+/*																							*/
+/* Return Value:																			*/
+/*		Max difference of x and y-position between two mouse clicks							*/
+/********************************************************************************************/
+AX_EXPORT int AxGetDoubleClickRange();
+
 // neat
 AX_EXPORT void* AxGetMem();
-
+AX_EXPORT int AxGetCycleCounter();
 AX_EXPORT int AxGetNumberOfTreeData();
 AX_EXPORT int AxGetTreeData(AXTreeData pTreeData[], int size);
 AX_EXPORT int AxSpsIsRunning();
@@ -460,6 +535,12 @@ AX_EXPORT int AxCheckLoginUserPassword(char* username, char* password, int remot
 AX_EXPORT int AxCryptDecrypt(const char *pIn, char *pOut );
 AX_EXPORT int AxGetLevelId(int UserID);
 AX_EXPORT int AxProcessRunningCount( const char *name );
+AX_EXPORT int AxInstallSignalHandlers(void (*user_cb)(int sig),int ctrl_C);
 
+
+AX_EXPORT char* AxGetDisplayName(void);
+AX_EXPORT char* AxGetUserName(void);
+AX_EXPORT int AxGetUserLevel(void);
+AX_EXPORT char* AxGetUserRemark(void);
 
 #endif

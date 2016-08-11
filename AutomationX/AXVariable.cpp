@@ -1,162 +1,46 @@
 #include "stdafx.h"
-#include "AXVariable.h"
-#include "AXInstance.h"
+#include "AxVariable.h"
 
 namespace AutomationX
 {
-	bool AXVariable::Events::get()
+	bool AxVariable::Events::get()
 	{
 		return _events;
 	}
 
-	void AXVariable::Events::set(bool value)
+	void AxVariable::Events::set(bool value)
 	{
 		_events = value;
-		if (_events) _instance->RegisterVariableToPoll(this);
-		else _instance->UnregisterVariableToPoll(this);
+		if (_events) _ax->AddVariableToPoll(this);
+		else _ax->RemoveVariableToPoll(this);
 	}
 
-	bool AXVariable::Retentive::get()
+	String^ AxVariable::Path::get()
 	{
-		if(!HandleSpsIdChange()) return false;
-		int result = AxGetRetentiveFlag(_execData);
-		if (result == -1) throw gcnew AXVariableException("The variable data handle is invalid.");
-		if (result == 0) return false;
-		return true;
+		return _path;
 	}
 
-	bool AXVariable::Constant::get()
+	AxVariable::AxVariable(AxInstance^ instance, String^ name)
 	{
-		if(!HandleSpsIdChange()) return false;
-		int result = AxGetConstantFlag(_execData);
-		if (result == -1) throw gcnew AXVariableException("The variable data handle is invalid.");
-		if (result == 0) return false;
-		return true;
-	}
-
-	bool AXVariable::Private::get()
-	{
-		if(!HandleSpsIdChange()) return false;
-		int result = AxGetPrivateFlag(_execData);
-		if (result == -1) throw gcnew AXVariableException("The variable data handle is invalid.");
-		if (result == 0) return false;
-		return true;
-	}
-
-	bool AXVariable::Local::get()
-	{
-		if(!HandleSpsIdChange()) return false;
-		int result = AxGetLocalFlag(_execData);
-		if (result == -1) throw gcnew AXVariableException("The variable data handle is invalid.");
-		if (result == 0) return false;
-		return true;
-	}
-
-	bool AXVariable::ConfigurationValue::get()
-	{
-		if(!HandleSpsIdChange()) return false;
-		int result = AxGetConfValueFlag(_execData);
-		if (result == -1) throw gcnew AXVariableException("The variable data handle is invalid.");
-		if (result == 0) return false;
-		return true;
-	}
-
-	bool AXVariable::Parameter::get()
-	{
-		if(!HandleSpsIdChange()) return false;
-		int result = AxGetParameterFlag(_execData);
-		if (result == -1) throw gcnew AXVariableException("The variable data handle is invalid.");
-		if (result == 0) return false;
-		return true;
-	}
-
-	bool AXVariable::Remote::get()
-	{
-		if(!HandleSpsIdChange()) return false;
-		int result = AxGetRemoteFlag(_execData);
-		if (result == -1) throw gcnew AXVariableException("The variable data handle is invalid.");
-		if (result == 0) return false;
-		return true;
-	}
-
-	bool AXVariable::NotConnected::get()
-	{
-		if(!HandleSpsIdChange()) return false;
-		int result = AxGetNcFlag(_execData);
-		if (result == -1) throw gcnew AXVariableException("The variable data handle is invalid.");
-		if (result == 0) return false;
-		return true;
-	}
-
-	String^ AXVariable::ReferenceName::get()
-	{
-		if(!HandleSpsIdChange()) return "";
-		const char* reference = AxGetVarReference(_execData);
-		if (!reference) throw gcnew AXVariableException("The data handle is invalid, the variable is not a reference type variable or the variable is not connected.");
-		return gcnew String(reference);
-	}
-
-	AXVariableDeclaration AXVariable::Declaration::get()
-	{
-		if(!HandleSpsIdChange()) return AXVariableDeclaration::axVar;
-		int declaration = AxGetVarDeclaration(_execData);
-		if (declaration == -1) throw gcnew AXVariableException("The data handle is invalid.");
-		return (AXVariableDeclaration)declaration;
-	}
-
-	String^ AXVariable::Remark::get()
-	{
-		if(!HandleSpsIdChange()) return "";
-		String^ value = gcnew String(AxGetRemark(_execData));
-		return value;
-	}
-
-	/*void AXVariable::Remark::set(String^ value)
-	{
-		_ax->SpsIdChanged();
-		static AX_EXEC_DATA execData;
-		int result = AxQueryVariable(_cName, &execData);
-		if (!result) throw gcnew AXVariableException("Variable or object was not found.");
-		std::string temp = _converter.GetString(value);
-		char* remark = new char[temp.size() + 1];
-		strcpy_s(remark, temp.size() + 1, temp.c_str());
-		if (!AxSetRemark(&execData, remark))
-		{
-			delete[] remark;
-			throw gcnew AXVariableException("The variable was not found or the name was found but not a variable type.");
-		}
-		delete[] remark;
-	}*/
-
-	String^ AXVariable::Path::get()
-	{
-		return _instance->Path + "." + _name;
-	}
-
-	UInt16 AXVariable::Length::get()
-	{
-		if(!HandleSpsIdChange()) return false;
-		return AxGetArrayCnt(_execData);
-	}
-
-	AXVariable::AXVariable(AXInstance^ instance, String^ name)
-	{
+		_ax = instance->AxObject;
 		_instance = instance;
 		_name = name;
-		_cName = _converter.GetCString(Path);
-		_ax = instance->AutomationX;
-		Int32 _spsId = _ax->SpsId;
+		_path = instance->Path + "." + _name;
+		_cName = _converter.GetCString(_path);
 		GetExecData();
-		Refresh();
+		if (!_execData) throw gcnew AxVariableException("The variable " + _path + " was not found.");
 	}
 
-	AXVariable::~AXVariable()
+	AxVariable::~AxVariable()
 	{
-		System::Diagnostics::Debug::WriteLine("D start " + _name);
+		this->!AxVariable();
+	}
 
-		if (_cName) Marshal::FreeHGlobal(IntPtr((void*)_cName)); //Always free memory! Don't remove this here! There is a memory leak, when this line is only in the finalizer
+	AxVariable::!AxVariable()
+	{
+		_ax->RemoveVariableToPoll(this);
+		if (_cName) Marshal::FreeHGlobal(IntPtr((void*)_cName));
 		_cName = nullptr;
-		_ax = nullptr;
 		_instance = nullptr;
 		if (_boolValues) _boolValues->Clear();
 		_boolValues = nullptr;
@@ -168,52 +52,9 @@ namespace AutomationX
 		_realValues = nullptr;
 		if (_execData) AxFreeExecData(_execData);
 		_execData = nullptr;
-		//GC::Collect(); //Uncomment to check for memory leaks
-		System::Diagnostics::Debug::WriteLine("D end " + _name);
 	}
 
-	AXVariable::!AXVariable()
-	{
-		System::Diagnostics::Debug::WriteLine("F start " + _name);
-		if (_cName) Marshal::FreeHGlobal(IntPtr((void*)_cName)); //Always free memory!
-		if (_execData) AxFreeExecData(_execData);
-		System::Diagnostics::Debug::WriteLine("F end " + _name);
-	}
-
-	bool AXVariable::HandleSpsIdChange()
-	{
-		if (_spsId != _ax->CheckSpsId())
-		{
-			try
-			{
-				_spsIdChangeMutex.WaitOne();
-				//Don't call AxFreeExecData as it causes writing into invalid memory locations
-				//if (_execData) AxFreeExecData(_execData);
-				_execData = nullptr;
-				char* cName = _converter.GetCString(Path);
-				void* handle = AxQueryExecDataEx(cName);
-				Marshal::FreeHGlobal(IntPtr((void*)cName)); //Always free memory!
-				if (!handle)
-				{
-					_spsIdChangeMutex.ReleaseMutex();
-					return false;
-				}
-				AxFreeExecData(handle);
-				_spsId = _ax->SpsId;
-				GetExecData();
-				_spsIdChangeMutex.ReleaseMutex();
-				Refresh();
-			}
-			catch (const Exception^ ex)
-			{
-				_spsIdChangeMutex.ReleaseMutex();
-				throw ex;
-			}
-		}
-		return true;
-	}
-
-	void AXVariable::RaiseValueChanged(Object^ stateInfo)
+	void AxVariable::RaiseValueChanged()
 	{
 		try
 		{
@@ -225,11 +66,11 @@ namespace AutomationX
 		}
 	}
 
-	void AXVariable::RaiseArrayValueChanged(Object^ index)
+	void AxVariable::RaiseArrayValueChanged(UInt16 index)
 	{
 		try
 		{
-			ArrayValueChanged(this, *((Int32^)index));
+			ArrayValueChanged(this, index);
 		}
 		catch (Exception^ ex)
 		{
@@ -237,640 +78,896 @@ namespace AutomationX
 		}
 	}
 
-	void AXVariable::GetExecData()
+	void AxVariable::GetExecData()
 	{
 		if (_execData) AxFreeExecData(_execData);
 		_execData = AxQueryExecDataEx(_cName);
-		if (!_execData) throw gcnew AXVariableException("The variable was not found.");
 	}
 
-	int AXVariable::GetRawType()
+	void AxVariable::ReloadStaticProperties()
 	{
-		if(!HandleSpsIdChange()) return false;
-		return AxGetType(_execData);
+		GetLength(); // Needed by GetType()
+		GetReferenceName();
+		GetDeclaration();
+		GetType(); // Needed by GetFlags()
+		GetRemark();
+		GetFlags();
 	}
 
-	void AXVariable::Clear()
+	// {{{ Queueable methods
+	void AxVariable::InvokeGetReferenceName(ManualResetEvent^ resetEvent)
 	{
-		int type = 0;
-		try
-		{
-			type = GetRawType();
-		}
-		catch (const AXVariableException^)
-		{
-			throw gcnew AXVariableTypeException("Could not determine type of variable " + Path + ".");
-		}
-		if (type == AX_BT_BOOL || type == AX_BT_ALARM)
-		{
-			_boolValues = gcnew List<bool>(_length);
-			for (int i = 0; i < _length; i++) _boolValues->Add(false);
-		}
-		else if (type == AX_BT_BYTE || type == AX_BT_SINT || type == AX_BT_INT || type == AX_BT_DINT || type == AX_BT_USINT || type == AX_BT_UINT || type == AX_BT_UDINT)
-		{
-			_integerValues = gcnew List<Int64>(_length);
-			for (int i = 0; i < _length; i++) _integerValues->Add(0);
-		}
-		else if (type == AX_BT_REAL || type == AX_BT_LREAL)
-		{
-			_realValues = gcnew List<Double>(_length);
-			for (int i = 0; i < _length; i++) _realValues->Add(0);
-		}
-		else if (type == AX_BT_STRING)
-		{
-			_stringValues = gcnew List<String^>(_length);
-			for (int i = 0; i < _length; i++) _stringValues->Add("");
-		}
-		else throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " of instance " + _instance->Path + " has unknown type.");
+		ResetEventLock resetEventGuard(resetEvent);
+		const char* reference = AxGetVarReference(_execData);
+		if (reference) _referenceName = gcnew String(reference);
+		// Todo: Wird nicht für Klassenreferenzen und Input-Referenzen zurückgegeben.
 	}
 
-	void AXVariable::Refresh()
+	void AxVariable::GetReferenceName()
 	{
-		Refresh(false);
+		ManualResetEvent^ resetEvent = gcnew ManualResetEvent(false);
+		_ax->QueueInitFunction(Binder::Bind(gcnew NoParameterDelegate(this, &AxVariable::InvokeGetReferenceName), resetEvent));
+		resetEvent->WaitOne();
 	}
 
-	void AXVariable::Refresh(bool raiseEvents)
+	void AxVariable::InvokeGetDeclaration(ManualResetEvent^ resetEvent)
 	{
-		if (!raiseEvents)
-		{
-			try
-			{
-				_length = Length;
-			}
-			catch (const AXVariableException^) {}
-			if (_length == 0) _length = 1;
-			_isArray = _length > 1;
-			Clear();
-			GetAttributes();
-		}
-		for (UInt16 i = 0; i < _length; i++)
-		{
-			Refresh(i, raiseEvents);
-		}
+		ResetEventLock resetEventGuard(resetEvent);
+		int declaration = AxGetVarDeclaration(_execData);
+		_declaration = (AxVariableDeclaration)declaration;
 	}
 
-	void AXVariable::Refresh(UInt16 index)
+	void AxVariable::GetDeclaration()
 	{
-		Refresh(index, false);
+		ManualResetEvent^ resetEvent = gcnew ManualResetEvent(false);
+		_ax->QueueInitFunction(Binder::Bind(gcnew NoParameterDelegate(this, &AxVariable::InvokeGetDeclaration), resetEvent));
+		resetEvent->WaitOne();
 	}
 
-	void AXVariable::Refresh(UInt16 index, bool raiseEvents)
+	void AxVariable::InvokeGetType(ManualResetEvent^ resetEvent)
 	{
-		if(!HandleSpsIdChange()) return;
-		if (index >= _length) throw gcnew AXArrayIndexOutOfRangeException("The index exceeds the array boundaries.");
+		ResetEventLock resetEventGuard(resetEvent);
 		struct tagAxVariant data;
-		int result = _isArray ? AxGetArray(_execData, &data, index) : AxGet(_execData, &data);
-		if (!result) throw (AXException^)(gcnew AXVariableException("The data handle is invalid or does not represent a variable type."));
-		bool valueChanged = false;
-		if (data.ucVarType == AX_BT_BOOL || data.ucVarType == AX_BT_ALARM)
-		{
-			_type = (AXVariableType)data.ucVarType;
-#pragma warning (disable: 4800)
-			bool newValue = data.AXVAL.btBOOL;
-#pragma warning (default: 4800)
-			if (_boolValues[index] != newValue)
-			{
-				_boolValues[index] = newValue;
-				valueChanged = true;
-			}
-		}
-		else if (data.ucVarType == AX_BT_BYTE || data.ucVarType == AX_BT_USINT)
-		{
-			_type = (AXVariableType)data.ucVarType;
-			if (_integerValues[index] != data.AXVAL.btBYTE)
-			{
-				_integerValues[index] = data.AXVAL.btBYTE;
-				valueChanged = true;
-			}
-		}
-		else if (data.ucVarType == AX_BT_SINT)
-		{
-			_type = (AXVariableType)data.ucVarType;
-			if (_integerValues[index] != data.AXVAL.btSINT)
-			{
-				_integerValues[index] = data.AXVAL.btSINT;
-				valueChanged = true;
-			}
-		}
-		else if (data.ucVarType == AX_BT_INT)
-		{
-			_type = (AXVariableType)data.ucVarType;
-			if (_integerValues[index] != data.AXVAL.btINT)
-			{
-				_integerValues[index] = data.AXVAL.btINT;
-				valueChanged = true;
-			}
-		}
-		else if (data.ucVarType == AX_BT_DINT)
-		{
-			_type = (AXVariableType)data.ucVarType;
-			if (_integerValues[index] != data.AXVAL.btDINT)
-			{
-				_integerValues[index] = data.AXVAL.btDINT;
-				valueChanged = true;
-			}
-		}
-		else if (data.ucVarType == AX_BT_UINT)
-		{
-			_type = (AXVariableType)data.ucVarType;
-			if (_integerValues[index] != data.AXVAL.btUINT)
-			{
-				_integerValues[index] = data.AXVAL.btUINT;
-				valueChanged = true;
-			}
-		}
-		else if (data.ucVarType == AX_BT_UDINT)
-		{
-			_type = (AXVariableType)data.ucVarType;
-			if (_integerValues[index] != data.AXVAL.btUDINT)
-			{
-				_integerValues[index] = data.AXVAL.btUDINT;
-				valueChanged = true;
-			}
-		}
-		else if (data.ucVarType == AX_BT_REAL)
-		{
-			_type = (AXVariableType)data.ucVarType;
-			if (_realValues[index] != data.AXVAL.btREAL)
-			{
-				_realValues[index] = data.AXVAL.btREAL;
-				valueChanged = true;
-			}
-		}
-		else if (data.ucVarType == AX_BT_LREAL)
-		{
-			_type = (AXVariableType)data.ucVarType;
-			if (_realValues[index] != data.AXVAL.btLREAL)
-			{
-				_realValues[index] = data.AXVAL.btLREAL;
-				valueChanged = true;
-			}
-		}
-		else if (data.ucVarType == AX_BT_STRING)
-		{
-			_type = (AXVariableType)data.ucVarType;
-			String^ newValue = gcnew String(data.AXVAL.btSTRING);
-			if (_stringValues[index] != newValue)
-			{
-				_stringValues[index] = newValue;
-				valueChanged = true;
-			}
-		}
-		else
-		{
-			throw gcnew AXVariableTypeException("The type of the variable is unknown.");
-		}
-		if (raiseEvents && valueChanged)
-		{
-			if (_isArray) ThreadPool::QueueUserWorkItem(gcnew WaitCallback(this, &AXVariable::RaiseArrayValueChanged), gcnew Int32(index)); else ThreadPool::QueueUserWorkItem(gcnew WaitCallback(this, &AXVariable::RaiseValueChanged));
-		}
+		int result = _isArray ? AxGetArray(_execData, &data, 0) : AxGet(_execData, &data);
+		if (result) _type = (AxVariableType)data.ucVarType;
+		else _type = AxVariableType::axUndefined;
 	}
 
-	void AXVariable::Set(tagAxVariant& data, UInt16 index)
+	void AxVariable::GetType()
 	{
-		if(!HandleSpsIdChange()) return;
-		int result = _isArray ? AxSetArray(_execData, &data, index) : AxSet(_execData, &data);
-		if (!result) throw gcnew AXVariableException("The data handle is invalid or does not represent a variable type.");
+		ManualResetEvent^ resetEvent = gcnew ManualResetEvent(false);
+		_ax->QueueInitFunction(Binder::Bind(gcnew NoParameterDelegate(this, &AxVariable::InvokeGetType), resetEvent));
+		resetEvent->WaitOne();
+		if (_type == AxVariableType::axBool || _type == AxVariableType::axAlarm) _boolValues = System::Linq::Enumerable::ToList(System::Linq::Enumerable::Repeat(false, _length));
+		else if (_type == AxVariableType::axByte || _type == AxVariableType::axUnsignedShortInteger || _type == AxVariableType::axShortInteger || _type == AxVariableType::axInteger || _type == AxVariableType::axLongInteger || _type == AxVariableType::axUnsignedInteger || _type == AxVariableType::axUnsignedLongInteger) _integerValues = System::Linq::Enumerable::ToList(System::Linq::Enumerable::Repeat((Int32)0, _length));
+		else if (_type == AxVariableType::axReal || _type == AxVariableType::axLongReal) _realValues = System::Linq::Enumerable::ToList(System::Linq::Enumerable::Repeat((Double)0, _length));
+		else if (_type == AxVariableType::axString) _stringValues = System::Linq::Enumerable::ToList(System::Linq::Enumerable::Repeat(gcnew String(""), _length));
 	}
 
-	bool AXVariable::GetBool()
+	void AxVariable::InvokeGetRemark(ManualResetEvent^ resetEvent)
 	{
-		if(!HandleSpsIdChange()) return false;
-		if (_type != AXVariableType::axBool && _type != AXVariableType::axAlarm) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is not of type BOOL.");
-		if (_isArray) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is an array. Please specify the element index.");
-		Refresh((UInt16)0);
-		return _boolValues[0];
+		ResetEventLock resetEventGuard(resetEvent);
+		const char* result = AxGetRemark(_execData);
+		if (result) _remark = gcnew String(result);
 	}
 
-	void AXVariable::Set(bool value)
+	void AxVariable::GetRemark()
 	{
-		if(!HandleSpsIdChange()) return;
-		if (_type != AXVariableType::axBool && _type != AXVariableType::axAlarm) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is not of type BOOL.");
-		if (_isArray) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is an array. Please specify the element index.");
-		struct tagAxVariant data;
-		data.ucVarType = (unsigned char)_type;
-		data.AXVAL.btBOOL = value;
-		_boolValues[0] = value;
-		Set(data, 0);
+		ManualResetEvent^ resetEvent = gcnew ManualResetEvent(false);
+		_ax->QueueInitFunction(Binder::Bind(gcnew NoParameterDelegate(this, &AxVariable::InvokeGetRemark), resetEvent));
+		resetEvent->WaitOne();
 	}
 
-	bool AXVariable::GetBool(UInt16 index)
+	void AxVariable::InvokeGetLength(ManualResetEvent^ resetEvent)
 	{
-		if(!HandleSpsIdChange()) return false;
-		if (_type != AXVariableType::axBool && _type != AXVariableType::axAlarm) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is not of type BOOL.");
-		if (!_isArray) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is no array.");
-		Refresh((UInt16)index);
-		return _boolValues[index];
+		ResetEventLock resetEventGuard(resetEvent);
+		_length = AxGetArrayCnt(_execData);
+		if (_length > 1) _isArray = true;
+		else if (_length == 0) _length = 1;
 	}
 
-	void AXVariable::Set(UInt16 index, bool value)
+	void AxVariable::GetLength()
 	{
-		if(!HandleSpsIdChange()) return;
-		if (_type != AXVariableType::axBool && _type != AXVariableType::axAlarm) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is not of type BOOL.");
-		if (!_isArray) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is no array.");
-		struct tagAxVariant data;
-		data.ucVarType = (unsigned char)_type;
-		data.AXVAL.btBOOL = value;
-		_boolValues[index] = value;
-		Set(data, index);
+		ManualResetEvent^ resetEvent = gcnew ManualResetEvent(false);
+		_ax->QueueInitFunction(Binder::Bind(gcnew NoParameterDelegate(this, &AxVariable::InvokeGetLength), resetEvent));
+		resetEvent->WaitOne();
 	}
 
-	Byte AXVariable::GetByte()
+	void AxVariable::InvokeGetFlags(ManualResetEvent^ resetEvent)
 	{
-		if(!HandleSpsIdChange()) return 0;
-		if (_type != AXVariableType::axByte && _type != AXVariableType::axUnsignedShortInteger) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is not of type BYTE.");
-		if (_isArray) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is an array. Please specify the element index.");
-		Refresh((UInt16)0);
-		return (Byte)_integerValues[0];
-	}
+		ResetEventLock resetEventGuard(resetEvent);
+		if (_type == AxVariableType::axUndefined) return;
+		_io = AxGetIOVarFlag(_execData) == 1;
+		_notConnected = AxGetNcFlag(_execData) == 1;
+		_retentive = AxGetRetentiveFlag(_execData) == 1;
+		_constant = AxGetConstantFlag(_execData) == 1;
+		_private = AxGetPrivateFlag(_execData) == 1;
+		_local = AxGetLocalFlag(_execData) == 1;
+		_configurationValue = AxGetConfValueFlag(_execData) == 1;
+		_parameter = AxGetParameterFlag(_execData) == 1;
+		_remote = AxGetRemoteFlag(_execData) == 1;
 
-	void AXVariable::Set(Byte value)
-	{
-		if(!HandleSpsIdChange()) return;
-		if (_type != AXVariableType::axByte && _type != AXVariableType::axUnsignedShortInteger) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is not of type BYTE.");
-		if (_isArray) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is an array. Please specify the element index.");
-		struct tagAxVariant data;
-		data.ucVarType = (unsigned char)_type;
-		data.AXVAL.btBYTE = value;
-		_integerValues[0] = value;
-		Set(data, 0);
-	}
-
-	Byte AXVariable::GetByte(UInt16 index)
-	{
-		if(!HandleSpsIdChange()) return 0;
-		if (_type != AXVariableType::axByte && _type != AXVariableType::axUnsignedShortInteger) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is not of type BYTE.");
-		if (!_isArray) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is no array.");
-		Refresh((UInt16)index);
-		return (Byte)_integerValues[index];
-	}
-
-	void AXVariable::Set(UInt16 index, Byte value)
-	{
-		if(!HandleSpsIdChange()) return;
-		if (_type != AXVariableType::axByte && _type != AXVariableType::axUnsignedShortInteger) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is not of type BYTE.");
-		if (!_isArray) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is no array.");
-		struct tagAxVariant data;
-		data.ucVarType = (unsigned char)_type;
-		data.AXVAL.btBYTE = value;
-		_integerValues[index] = value;
-		Set(data, index);
-	}
-
-	char AXVariable::GetShortInteger()
-	{
-		if(!HandleSpsIdChange()) return 0;
-		if (_type != AXVariableType::axShortInteger) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is not of type INT.");
-		if (_isArray) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is an array. Please specify the element index.");
-		Refresh((UInt16)0);
-		return (char)_integerValues[0];
-	}
-
-	void AXVariable::Set(char value)
-	{
-		if(!HandleSpsIdChange()) return;
-		if (_type != AXVariableType::axShortInteger) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is not of type SINT.");
-		if (_isArray) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is an array. Please specify the element index.");
-		struct tagAxVariant data;
-		data.ucVarType = (unsigned char)_type;
-		data.AXVAL.btSINT = value;
-		_integerValues[0] = value;
-		Set(data, 0);
-	}
-
-	char AXVariable::GetShortInteger(UInt16 index)
-	{
-		if(!HandleSpsIdChange()) return 0;
-		if (_type != AXVariableType::axShortInteger) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is not of type SINT.");
-		if (!_isArray) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is no array.");
-		Refresh((UInt16)index);
-		return (char)_integerValues[index];
-	}
-
-	void AXVariable::Set(UInt16 index, char value)
-	{
-		if(!HandleSpsIdChange()) return;
-		if (_type != AXVariableType::axShortInteger) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is not of type SINT.");
-		if (!_isArray) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is no array.");
-		struct tagAxVariant data;
-		data.ucVarType = (unsigned char)_type;
-		data.AXVAL.btSINT = value;
-		_integerValues[index] = value;
-		Set(data, index);
-	}
-
-	Int16 AXVariable::GetInteger()
-	{
-		if(!HandleSpsIdChange()) return 0;
-		if (_type != AXVariableType::axInteger) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is not of type SINT.");
-		if (_isArray) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is an array. Please specify the element index.");
-		Refresh((UInt16)0);
-		return (Int16)_integerValues[0];
-	}
-
-	void AXVariable::Set(Int16 value)
-	{
-		if(!HandleSpsIdChange()) return;
-		if (_type != AXVariableType::axInteger) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is not of type INT.");
-		if (_isArray) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is an array. Please specify the element index.");
-		struct tagAxVariant data;
-		data.ucVarType = (unsigned char)_type;
-		data.AXVAL.btINT = value;
-		_integerValues[0] = value;
-		Set(data, 0);
-	}
-
-	Int16 AXVariable::GetInteger(UInt16 index)
-	{
-		if(!HandleSpsIdChange()) return 0;
-		if (_type != AXVariableType::axInteger) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is not of type INT.");
-		if (!_isArray) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is no array.");
-		Refresh((UInt16)index);
-		return (Int16)_integerValues[index];
-	}
-
-	void AXVariable::Set(UInt16 index, Int16 value)
-	{
-		if(!HandleSpsIdChange()) return;
-		if (_type != AXVariableType::axInteger) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is not of type INT.");
-		if (!_isArray) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is no array.");
-		struct tagAxVariant data;
-		data.ucVarType = (unsigned char)_type;
-		data.AXVAL.btINT = value;
-		_integerValues[index] = value;
-		Set(data, index);
-	}
-
-	Int32 AXVariable::GetLongInteger()
-	{
-		if(!HandleSpsIdChange()) return 0;
-		if (_type != AXVariableType::axLongInteger) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is not of type DINT.");
-		if (_isArray) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is an array. Please specify the element index.");
-		Refresh((UInt16)0);
-		return (Int32)_integerValues[0];
-	}
-
-	void AXVariable::Set(Int32 value)
-	{
-		if(!HandleSpsIdChange()) return;
-		if (_type != AXVariableType::axLongInteger) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is not of type DINT.");
-		if (_isArray) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is an array. Please specify the element index.");
-		struct tagAxVariant data;
-		data.ucVarType = (unsigned char)_type;
-		data.AXVAL.btDINT = value;
-		_integerValues[0] = value;
-		Set(data, 0);
-	}
-
-	Int32 AXVariable::GetLongInteger(UInt16 index)
-	{
-		if(!HandleSpsIdChange()) return 0;
-		if (_type != AXVariableType::axLongInteger) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is not of type DINT.");
-		if (!_isArray) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is no array.");
-		Refresh((UInt16)index);
-		return (Int32)_integerValues[index];
-	}
-
-	void AXVariable::Set(UInt16 index, Int32 value)
-	{
-		if(!HandleSpsIdChange()) return;
-		if (_type != AXVariableType::axLongInteger) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is not of type DINT.");
-		if (!_isArray) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is no array.");
-		struct tagAxVariant data;
-		data.ucVarType = (unsigned char)_type;
-		data.AXVAL.btDINT = value;
-		_integerValues[index] = value;
-		Set(data, index);
-	}
-
-	UInt16 AXVariable::GetUnsignedInteger()
-	{
-		if(!HandleSpsIdChange()) return 0;
-		if (_type != AXVariableType::axUnsignedInteger) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is not of type UINT.");
-		if (_isArray) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is an array. Please specify the element index.");
-		Refresh((UInt16)0);
-		return (UInt16)_integerValues[0];
-	}
-
-	void AXVariable::Set(UInt16 value)
-	{
-		if(!HandleSpsIdChange()) return;
-		if (_type != AXVariableType::axUnsignedInteger) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is not of type UINT.");
-		if (_isArray) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is an array. Please specify the element index.");
-		struct tagAxVariant data;
-		data.ucVarType = (unsigned char)_type;
-		data.AXVAL.btUINT = value;
-		_integerValues[0] = value;
-		Set(data, 0);
-	}
-
-	UInt16 AXVariable::GetUnsignedInteger(UInt16 index)
-	{
-		if(!HandleSpsIdChange()) return 0;
-		if (_type != AXVariableType::axUnsignedInteger) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is not of type UINT.");
-		if (!_isArray) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is no array.");
-		Refresh((UInt16)index);
-		return (UInt16)_integerValues[index];
-	}
-
-	void AXVariable::Set(UInt16 index, UInt16 value)
-	{
-		if(!HandleSpsIdChange()) return;
-		if (_type != AXVariableType::axUnsignedInteger) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is not of type UINT.");
-		if (!_isArray) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is no array.");
-		struct tagAxVariant data;
-		data.ucVarType = (unsigned char)_type;
-		data.AXVAL.btUINT = value;
-		_integerValues[index] = value;
-		Set(data, index);
-	}
-
-	UInt32 AXVariable::GetUnsignedLongInteger()
-	{
-		if(!HandleSpsIdChange()) return 0;
-		if (_type != AXVariableType::axUnsignedLongInteger) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is not of type UDINT.");
-		if (_isArray) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is an array. Please specify the element index.");
-		Refresh((UInt16)0);
-		return (UInt32)_integerValues[0];
-	}
-
-	void AXVariable::Set(UInt32 value)
-	{
-		if(!HandleSpsIdChange()) return;
-		if (_type != AXVariableType::axUnsignedLongInteger) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is not of type UDINT.");
-		if (_isArray) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is an array. Please specify the element index.");
-		struct tagAxVariant data;
-		data.ucVarType = (unsigned char)_type;
-		data.AXVAL.btUDINT = value;
-		_integerValues[0] = value;
-		Set(data, 0);
-	}
-
-	UInt32 AXVariable::GetUnsignedLongInteger(UInt16 index)
-	{
-		if(!HandleSpsIdChange()) return 0;
-		if (_type != AXVariableType::axUnsignedLongInteger) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is not of type UDINT.");
-		if (!_isArray) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is no array.");
-		Refresh((UInt16)index);
-		return (UInt32)_integerValues[index];
-	}
-
-	void AXVariable::Set(UInt16 index, UInt32 value)
-	{
-		if(!HandleSpsIdChange()) return;
-		if (_type != AXVariableType::axUnsignedLongInteger) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is not of type UDINT.");
-		if (!_isArray) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is no array.");
-		struct tagAxVariant data;
-		data.ucVarType = (unsigned char)_type;
-		data.AXVAL.btUDINT = value;
-		_integerValues[index] = value;
-		Set(data, index);
-	}
-
-	Single AXVariable::GetReal()
-	{
-		if(!HandleSpsIdChange()) return 0;
-		if (_type != AXVariableType::axReal) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is not of type REAL.");
-		if (_isArray) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is an array. Please specify the element index.");
-		Refresh((UInt16)0);
-		return (Single)_realValues[0];
-	}
-
-	void AXVariable::Set(Single value)
-	{
-		if(!HandleSpsIdChange()) return;
-		if (_type != AXVariableType::axReal) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is not of type REAL.");
-		if (_isArray) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is an array. Please specify the element index.");
-		struct tagAxVariant data;
-		data.ucVarType = (unsigned char)_type;
-		data.AXVAL.btREAL = value;
-		_realValues[0] = value;
-		Set(data, 0);
-	}
-
-	Single AXVariable::GetReal(UInt16 index)
-	{
-		if(!HandleSpsIdChange()) return 0;
-		if (_type != AXVariableType::axReal) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is not of type REAL.");
-		if (!_isArray) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is no array.");
-		Refresh((UInt16)index);
-		return (Single)_realValues[index];
-	}
-
-	void AXVariable::Set(UInt16 index, Single value)
-	{
-		if(!HandleSpsIdChange()) return;
-		if (_type != AXVariableType::axReal) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is not of type REAL.");
-		if (!_isArray) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is no array.");
-		struct tagAxVariant data;
-		data.ucVarType = (unsigned char)_type;
-		data.AXVAL.btREAL = value;
-		_realValues[index] = value;
-		Set(data, index);
-	}
-
-	Double AXVariable::GetLongReal()
-	{
-		if(!HandleSpsIdChange()) return 0;
-		if (_type != AXVariableType::axLongReal) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is not of type REAL.");
-		if (_isArray) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is an array. Please specify the element index.");
-		Refresh((UInt16)0);
-		return _realValues[0];
-	}
-
-	void AXVariable::Set(Double value)
-	{
-		if(!HandleSpsIdChange()) return;
-		if (_type != AXVariableType::axLongReal) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is not of type REAL.");
-		if (_isArray) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is an array. Please specify the element index.");
-		struct tagAxVariant data;
-		data.ucVarType = (unsigned char)_type;
-		data.AXVAL.btLREAL = value;
-		_realValues[0] = value;
-		Set(data, 0);
-	}
-
-	Double AXVariable::GetLongReal(UInt16 index)
-	{
-		if(!HandleSpsIdChange()) return 0;
-		if (_type != AXVariableType::axLongReal) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is not of type REAL.");
-		if (!_isArray) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is no array.");
-		Refresh((UInt16)index);
-		return _realValues[index];
-	}
-
-	void AXVariable::Set(UInt16 index, Double value)
-	{
-		if(!HandleSpsIdChange()) return;
-		if (_type != AXVariableType::axLongReal) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is not of type REAL.");
-		if (!_isArray) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is no array.");
-		struct tagAxVariant data;
-		data.ucVarType = (unsigned char)_type;
-		data.AXVAL.btLREAL = value;
-		_realValues[index] = value;
-		Set(data, index);
-	}
-
-	String^ AXVariable::GetString()
-	{
-		if(!HandleSpsIdChange()) return "";
-		if (_type != AXVariableType::axString) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is not of type STRING.");
-		if (_isArray) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is an array. Please specify the element index.");
-		Refresh((UInt16)0);
-		return _stringValues[0];
-	}
-
-	void AXVariable::Set(String^ value)
-	{
-		if(!HandleSpsIdChange()) return;
-		if (_type != AXVariableType::axString) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is not of type STRING.");
-		if (_isArray) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is an array. Please specify the element index.");
-		struct tagAxVariant data;
-		data.ucVarType = (unsigned char)_type;
-		strcpy_s(data.AXVAL.btSTRING, _converter.GetString(value).c_str());
-		_stringValues[0] = value;
-		Set(data, 0);
-	}
-
-	String^ AXVariable::GetString(UInt16 index)
-	{
-		if(!HandleSpsIdChange()) return "";
-		if (_type != AXVariableType::axString) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is not of type STRING.");
-		if (!_isArray) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is no array.");
-		Refresh((UInt16)index);
-		return _stringValues[index];
-	}
-
-	void AXVariable::Set(UInt16 index, String^ value)
-	{
-		if(!HandleSpsIdChange()) return;
-		if (_type != AXVariableType::axString) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is not of type STRING.");
-		if (!_isArray) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is no array.");
-		struct tagAxVariant data;
-		data.ucVarType = (unsigned char)_type;
-		strcpy_s(data.AXVAL.btSTRING, _converter.GetString(value).c_str());
-		_stringValues[index] = value;
-		Set(data, index);
-	}
-
-	void AXVariable::GetAttributes()
-	{
-		if(!HandleSpsIdChange()) return;
 		AX_ATTR attrs;
-		if (AxGetAttributes(_execData, &attrs) == -1) throw gcnew AXVariableException("The variable data handle is invalid.");
+		if (AxGetAttributes(_execData, &attrs) == -1) return;
 		_decimalPoints = attrs.dec_point;
 		if (attrs.dim) _dimension = gcnew String(attrs.dim);
-		if (attrs.rem == 0) _global = false; else _global = true;
-		if (attrs.trend == 0) _trending = false; else _trending = true;
+		_global = attrs.rem != 0;
+		_trending = attrs.trend != 0;
 	}
 
-	String^ AXVariable::GetEnumRemark(Int32 enumValue)
+	void AxVariable::GetFlags()
 	{
-		if (!HandleSpsIdChange()) return "";
-		if (_type != AXVariableType::axLongInteger) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is not of type ENUM.");
-		if (_isArray) throw gcnew AXVariableTypeException("Variable " + _instance->Path + "." + _name + " is an array. Please specify the element index.");
-		char buffer[50] = "";
-		AxGetEnumText(_execData, enumValue, buffer, 50);
-		return gcnew String(buffer);
+		ManualResetEvent^ resetEvent = gcnew ManualResetEvent(false);
+		_ax->QueueInitFunction(Binder::Bind(gcnew NoParameterDelegate(this, &AxVariable::InvokeGetFlags), resetEvent));
+		resetEvent->WaitOne();
 	}
+	// }}}
+
+	List<UInt16>^ AxVariable::Pull()
+	{
+		List<UInt16>^ changedIndexes = gcnew List<UInt16>();
+		if (!_execData) return changedIndexes;
+		struct tagAxVariant data;
+		if (_type == AxVariableType::axBool || _type == AxVariableType::axAlarm)
+		{
+			bool changed = false;
+			for (UInt16 i = 0; i < _length; i++)
+			{
+				if (_isArray) AxGetArray(_execData, &data, i); else AxGet(_execData, &data);
+				if ((data.AXVAL.btBOOL != 0) != _boolValues[i])
+				{
+					_boolValues[i] = data.AXVAL.btBOOL != 0;
+					changedIndexes->Add(i);
+				}
+			}
+		}
+		else if (_type == AxVariableType::axByte)
+		{
+			bool changed = false;
+			for (UInt16 i = 0; i < _length; i++)
+			{
+				if (_isArray) AxGetArray(_execData, &data, i); else AxGet(_execData, &data);
+				if ((char)data.AXVAL.btBYTE != _integerValues[i])
+				{
+					_integerValues[i] = (char)data.AXVAL.btBYTE;
+					changedIndexes->Add(i);
+				}
+			}
+		}
+		else if (_type == AxVariableType::axUnsignedShortInteger)
+		{
+			bool changed = false;
+			for (UInt16 i = 0; i < _length; i++)
+			{
+				if (_isArray) AxGetArray(_execData, &data, i); else AxGet(_execData, &data);
+				if (data.AXVAL.btUSINT != _integerValues[i])
+				{
+					_integerValues[i] = data.AXVAL.btUSINT;
+					changedIndexes->Add(i);
+				}
+			}
+		}
+		else if (_type == AxVariableType::axShortInteger)
+		{
+			bool changed = false;
+			for (UInt16 i = 0; i < _length; i++)
+			{
+				if (_isArray) AxGetArray(_execData, &data, i); else AxGet(_execData, &data);
+				if (data.AXVAL.btSINT != _integerValues[i])
+				{
+					_integerValues[i] = data.AXVAL.btSINT;
+					changedIndexes->Add(i);
+				}
+			}
+		}
+		else if (_type == AxVariableType::axInteger)
+		{
+			bool changed = false;
+			for (UInt16 i = 0; i < _length; i++)
+			{
+				if (_isArray) AxGetArray(_execData, &data, i); else AxGet(_execData, &data);
+				if (data.AXVAL.btINT != _integerValues[i])
+				{
+					_integerValues[i] = data.AXVAL.btINT;
+					changedIndexes->Add(i);
+				}
+			}
+		}
+		else if (_type == AxVariableType::axLongInteger)
+		{
+			bool changed = false;
+			for (UInt16 i = 0; i < _length; i++)
+			{
+				if (_isArray) AxGetArray(_execData, &data, i); else AxGet(_execData, &data);
+				if (data.AXVAL.btDINT != _integerValues[i])
+				{
+					_integerValues[i] = data.AXVAL.btDINT;
+					changedIndexes->Add(i);
+				}
+			}
+		}
+		else if (_type == AxVariableType::axUnsignedInteger)
+		{
+			bool changed = false;
+			for (UInt16 i = 0; i < _length; i++)
+			{
+				if (_isArray) AxGetArray(_execData, &data, i); else AxGet(_execData, &data);
+				if (data.AXVAL.btUINT != _integerValues[i])
+				{
+					_integerValues[i] = data.AXVAL.btUINT;
+					changedIndexes->Add(i);
+				}
+			}
+		}
+		else if (_type == AxVariableType::axUnsignedLongInteger)
+		{
+			bool changed = false;
+			for (UInt16 i = 0; i < _length; i++)
+			{
+				if (_isArray) AxGetArray(_execData, &data, i); else AxGet(_execData, &data);
+				if (data.AXVAL.btUDINT != _integerValues[i])
+				{
+					_integerValues[i] = data.AXVAL.btUDINT;
+					changedIndexes->Add(i);
+				}
+			}
+		}
+		else if (_type == AxVariableType::axReal)
+		{
+			bool changed = false;
+			for (UInt16 i = 0; i < _length; i++)
+			{
+				if (_isArray) AxGetArray(_execData, &data, i); else AxGet(_execData, &data);
+				if (data.AXVAL.btREAL != (Single)_realValues[i])
+				{
+					_realValues[i] = (Single)data.AXVAL.btREAL;
+					changedIndexes->Add(i);
+				}
+			}
+		}
+		else if (_type == AxVariableType::axLongReal)
+		{
+			bool changed = false;
+			for (UInt16 i = 0; i < _length; i++)
+			{
+				if (_isArray) AxGetArray(_execData, &data, i); else AxGet(_execData, &data);
+				if (data.AXVAL.btLREAL != _realValues[i])
+				{
+					_realValues[i] = data.AXVAL.btLREAL;
+					changedIndexes->Add(i);
+				}
+			}
+		}
+		else if (_type == AxVariableType::axString)
+		{
+			bool changed = false;
+			for (UInt16 i = 0; i < _length; i++)
+			{
+				if (_isArray) AxGetArray(_execData, &data, i); else AxGet(_execData, &data);
+				String^ newValue = gcnew String(data.AXVAL.btSTRING);
+				if (newValue != _stringValues[i])
+				{
+					_stringValues[i] = newValue;
+					changedIndexes->Add(i);
+				}
+			}
+		}
+		return changedIndexes;
+	}
+
+	void AxVariable::Push()
+	{
+		if (_type == AxVariableType::axBool || _type == AxVariableType::axAlarm)
+		{
+			if (_isArray)
+			{
+				Lock changedIndexesGuard(_changedIndexesMutex);
+				struct tagAxVariant data;
+				data.ucVarType = (unsigned char)_type;
+				for each (UInt16 index in _changedIndexes)
+				{
+					data.AXVAL.btBOOL = _boolValues[index];
+					AxSetArray(_execData, &data, index);
+				}
+				_changedIndexes->Clear();
+			}
+			else
+			{
+				struct tagAxVariant data;
+				data.ucVarType = (unsigned char)_type;
+				data.AXVAL.btBOOL = _boolValues[0];
+				AxSet(_execData, &data);
+			}
+		}
+		else if (_type == AxVariableType::axByte)
+		{
+			if (_isArray)
+			{
+				Lock changedIndexesGuard(_changedIndexesMutex);
+				struct tagAxVariant data;
+				data.ucVarType = (unsigned char)_type;
+				for each (UInt16 index in _changedIndexes)
+				{
+					data.AXVAL.btBYTE = (unsigned char)_integerValues[index];
+					AxSetArray(_execData, &data, index);
+				}
+				_changedIndexes->Clear();
+			}
+			else
+			{
+				struct tagAxVariant data;
+				data.ucVarType = (unsigned char)_type;
+				data.AXVAL.btBYTE = (unsigned char)_integerValues[0];
+				AxSet(_execData, &data);
+			}
+		}
+		else if (_type == AxVariableType::axUnsignedShortInteger)
+		{
+			if (_isArray)
+			{
+				Lock changedIndexesGuard(_changedIndexesMutex);
+				struct tagAxVariant data;
+				data.ucVarType = (unsigned char)_type;
+				for each (UInt16 index in _changedIndexes)
+				{
+					data.AXVAL.btUSINT = (unsigned char)_integerValues[index];
+					AxSetArray(_execData, &data, index);
+				}
+				_changedIndexes->Clear();
+			}
+			else
+			{
+				struct tagAxVariant data;
+				data.ucVarType = (unsigned char)_type;
+				data.AXVAL.btUSINT = (unsigned char)_integerValues[0];
+				AxSet(_execData, &data);
+			}
+		}
+		else if (_type == AxVariableType::axShortInteger)
+		{
+			if (_isArray)
+			{
+				Lock changedIndexesGuard(_changedIndexesMutex);
+				struct tagAxVariant data;
+				data.ucVarType = (unsigned char)_type;
+				for each (UInt16 index in _changedIndexes)
+				{
+					data.AXVAL.btSINT = (char)_integerValues[index];
+					AxSetArray(_execData, &data, index);
+				}
+				_changedIndexes->Clear();
+			}
+			else
+			{
+				struct tagAxVariant data;
+				data.ucVarType = (unsigned char)_type;
+				data.AXVAL.btSINT = (char)_integerValues[0];
+				AxSet(_execData, &data);
+			}
+		}
+		else if (_type == AxVariableType::axInteger)
+		{
+			if (_isArray)
+			{
+				Lock changedIndexesGuard(_changedIndexesMutex);
+				struct tagAxVariant data;
+				data.ucVarType = (unsigned char)_type;
+				for each (UInt16 index in _changedIndexes)
+				{
+					data.AXVAL.btINT = (Int16)_integerValues[index];
+					AxSetArray(_execData, &data, index);
+				}
+				_changedIndexes->Clear();
+			}
+			else
+			{
+				struct tagAxVariant data;
+				data.ucVarType = (unsigned char)_type;
+				data.AXVAL.btINT = (Int16)_integerValues[0];
+				AxSet(_execData, &data);
+			}
+		}
+		else if (_type == AxVariableType::axLongInteger)
+		{
+			if (_isArray)
+			{
+				Lock changedIndexesGuard(_changedIndexesMutex);
+				struct tagAxVariant data;
+				data.ucVarType = (unsigned char)_type;
+				for each (UInt16 index in _changedIndexes)
+				{
+					data.AXVAL.btDINT = _integerValues[index];
+					AxSetArray(_execData, &data, index);
+				}
+				_changedIndexes->Clear();
+			}
+			else
+			{
+				struct tagAxVariant data;
+				data.ucVarType = (unsigned char)_type;
+				data.AXVAL.btDINT = _integerValues[0];
+				AxSet(_execData, &data);
+			}
+		}
+		else if (_type == AxVariableType::axUnsignedInteger)
+		{
+			if (_isArray)
+			{
+				Lock changedIndexesGuard(_changedIndexesMutex);
+				struct tagAxVariant data;
+				data.ucVarType = (unsigned char)_type;
+				for each (UInt16 index in _changedIndexes)
+				{
+					data.AXVAL.btUINT = (UInt16)_integerValues[index];
+					AxSetArray(_execData, &data, index);
+				}
+				_changedIndexes->Clear();
+			}
+			else
+			{
+				struct tagAxVariant data;
+				data.ucVarType = (unsigned char)_type;
+				data.AXVAL.btUINT = (UInt16)_integerValues[0];
+				AxSet(_execData, &data);
+			}
+		}
+		else if (_type == AxVariableType::axUnsignedLongInteger)
+		{
+			if (_isArray)
+			{
+				Lock changedIndexesGuard(_changedIndexesMutex);
+				struct tagAxVariant data;
+				data.ucVarType = (unsigned char)_type;
+				for each (UInt16 index in _changedIndexes)
+				{
+					data.AXVAL.btUDINT = (UInt32)_integerValues[index];
+					AxSetArray(_execData, &data, index);
+				}
+				_changedIndexes->Clear();
+			}
+			else
+			{
+				struct tagAxVariant data;
+				data.ucVarType = (unsigned char)_type;
+				data.AXVAL.btUDINT = (UInt32)_integerValues[0];
+				AxSet(_execData, &data);
+			}
+		}
+		else if (_type == AxVariableType::axReal)
+		{
+			if (_isArray)
+			{
+				Lock changedIndexesGuard(_changedIndexesMutex);
+				struct tagAxVariant data;
+				data.ucVarType = (unsigned char)_type;
+				for each (UInt16 index in _changedIndexes)
+				{
+					data.AXVAL.btREAL = (Single)_realValues[index];
+					AxSetArray(_execData, &data, index);
+				}
+				_changedIndexes->Clear();
+			}
+			else
+			{
+				struct tagAxVariant data;
+				data.ucVarType = (unsigned char)_type;
+				data.AXVAL.btREAL = (Single)_realValues[0];
+				AxSet(_execData, &data);
+			}
+		}
+		else if (_type == AxVariableType::axLongReal)
+		{
+			if (_isArray)
+			{
+				Lock changedIndexesGuard(_changedIndexesMutex);
+				struct tagAxVariant data;
+				data.ucVarType = (unsigned char)_type;
+				for each (UInt16 index in _changedIndexes)
+				{
+					data.AXVAL.btLREAL = _realValues[index];
+					AxSetArray(_execData, &data, index);
+				}
+				_changedIndexes->Clear();
+			}
+			else
+			{
+				struct tagAxVariant data;
+				data.ucVarType = (unsigned char)_type;
+				data.AXVAL.btLREAL = _realValues[0];
+				AxSet(_execData, &data);
+			}
+		}
+		else if (_type == AxVariableType::axString)
+		{
+			if (_isArray)
+			{
+				Lock changedIndexesGuard(_changedIndexesMutex);
+				struct tagAxVariant data;
+				data.ucVarType = (unsigned char)_type;
+				for each (UInt16 index in _changedIndexes)
+				{
+					strcpy_s(data.AXVAL.btSTRING, _converter.GetString(_stringValues[index]).c_str());
+					AxSetArray(_execData, &data, index);
+				}
+				_changedIndexes->Clear();
+			}
+			else
+			{
+				struct tagAxVariant data;
+				data.ucVarType = (unsigned char)_type;
+				strcpy_s(data.AXVAL.btSTRING, _converter.GetString(_stringValues[0]).c_str());
+				AxSet(_execData, &data);
+			}
+		}
+
+		_changed = false;
+	}
+
+	//{{{ BOOL
+		bool AxVariable::GetBool()
+		{
+			if (_type != AxVariableType::axBool && _type != AxVariableType::axAlarm) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type BOOL.");
+			if (_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is an array. Please specify the element index.");
+			return _boolValues[0];
+		}
+
+		bool AxVariable::GetBool(UInt16 index)
+		{
+			if (_type != AxVariableType::axBool && _type != AxVariableType::axAlarm) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type BOOL.");
+			if (!_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is no array.");
+			return _boolValues[index];
+		}
+
+		void AxVariable::Set(bool value)
+		{
+			if (_type != AxVariableType::axBool && _type != AxVariableType::axAlarm) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type BOOL.");
+			if (_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is an array. Please specify the element index.");
+			_boolValues[0] = value;
+			_changed = true;
+		}
+
+		void AxVariable::Set(UInt16 index, bool value)
+		{
+			if (_type != AxVariableType::axBool && _type != AxVariableType::axAlarm) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type BOOL.");
+			if (!_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is no array.");
+			if (index >= _length) throw gcnew AxArrayIndexOutOfRangeException("Index for variable " + _path + " is out of range (" + index.ToString() + " >= " + _length.ToString() + ").");
+			_boolValues[index] = value;
+			_changed = true;
+			Lock changedIndexesGuard(_changedIndexesMutex);
+			_changedIndexes->Add(index);
+		}
+	//}}}
+
+	//{{{ BYTE
+		char AxVariable::GetByte()
+		{
+			if (_type != AxVariableType::axByte) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type BYTE.");
+			if (_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is an array. Please specify the element index.");
+			return (unsigned char)_integerValues[0];
+		}
+
+		char AxVariable::GetByte(UInt16 index)
+		{
+			if (_type != AxVariableType::axByte) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type BYTE.");
+			if (!_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is no array.");
+			return (unsigned char)_integerValues[index];
+		}
+
+		void AxVariable::Set(char value)
+		{
+			if (_type != AxVariableType::axByte && _type != AxVariableType::axShortInteger) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type BYTE or SINT.");
+			if (_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is an array. Please specify the element index.");
+			_integerValues[0] = value;
+			_changed = true;
+		}
+
+		void AxVariable::Set(UInt16 index, char value)
+		{
+			if (_type != AxVariableType::axByte && _type != AxVariableType::axShortInteger) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type BYTE or SINT.");
+			if (!_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is no array.");
+			if (index >= _length) throw gcnew AxArrayIndexOutOfRangeException("Index for variable " + _path + " is out of range (" + index.ToString() + " >= " + _length.ToString() + ").");
+			_integerValues[index] = value;
+			_changed = true;
+			Lock changedIndexesGuard(_changedIndexesMutex);
+			_changedIndexes->Add(index);
+		}
+	//}}}
+
+	//{{{ USINT
+		Byte AxVariable::GetUnsignedShortInteger()
+		{
+			if (_type != AxVariableType::axUnsignedShortInteger) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type USINT.");
+			if (_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is an array. Please specify the element index.");
+			return (unsigned char)_integerValues[0];
+		}
+
+		Byte AxVariable::GetUnsignedShortInteger(UInt16 index)
+		{
+			if (_type != AxVariableType::axUnsignedShortInteger) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type USINT.");
+			if (!_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is no array.");
+			return (unsigned char)_integerValues[index];
+		}
+
+		void AxVariable::Set(Byte value)
+		{
+			if (_type != AxVariableType::axUnsignedShortInteger) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type USINT.");
+			if (_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is an array. Please specify the element index.");
+			_integerValues[0] = value;
+			_changed = true;
+		}
+
+		void AxVariable::Set(UInt16 index, Byte value)
+		{
+			if (_type != AxVariableType::axUnsignedShortInteger) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type USINT.");
+			if (!_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is no array.");
+			if (index >= _length) throw gcnew AxArrayIndexOutOfRangeException("Index for variable " + _path + " is out of range (" + index.ToString() + " >= " + _length.ToString() + ").");
+			_integerValues[index] = value;
+			_changed = true;
+			Lock changedIndexesGuard(_changedIndexesMutex);
+			_changedIndexes->Add(index);
+		}
+	//}}}
+
+	//{{{ SINT
+		char AxVariable::GetShortInteger()
+		{
+			if (_type != AxVariableType::axShortInteger) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type SINT.");
+			if (_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is an array. Please specify the element index.");
+			return (unsigned char)_integerValues[0];
+		}
+
+		char AxVariable::GetShortInteger(UInt16 index)
+		{
+			if (_type != AxVariableType::axShortInteger) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type SINT.");
+			if (!_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is no array.");
+			return (unsigned char)_integerValues[index];
+		}
+	//}}}
+
+	//{{{ INT
+		Int16 AxVariable::GetInteger()
+		{
+			if (_type != AxVariableType::axInteger) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type INT.");
+			if (_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is an array. Please specify the element index.");
+			return (Int16)_integerValues[0];
+		}
+
+		Int16 AxVariable::GetInteger(UInt16 index)
+		{
+			if (_type != AxVariableType::axInteger) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type INT.");
+			if (!_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is no array.");
+			return (Int16)_integerValues[index];
+		}
+
+		void AxVariable::Set(Int16 value)
+		{
+			if (_type != AxVariableType::axInteger) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type INT.");
+			if (_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is an array. Please specify the element index.");
+			_integerValues[0] = value;
+			_changed = true;
+		}
+
+		void AxVariable::Set(UInt16 index, Int16 value)
+		{
+			if (_type != AxVariableType::axInteger) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type INT.");
+			if (!_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is no array.");
+			if (index >= _length) throw gcnew AxArrayIndexOutOfRangeException("Index for variable " + _path + " is out of range (" + index.ToString() + " >= " + _length.ToString() + ").");
+			_integerValues[index] = value;
+			_changed = true;
+			Lock changedIndexesGuard(_changedIndexesMutex);
+			_changedIndexes->Add(index);
+		}
+	//}}}
+
+	//{{{ DINT
+		Int32 AxVariable::GetLongInteger()
+		{
+			if (_type != AxVariableType::axLongInteger) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type DINT.");
+			if (_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is an array. Please specify the element index.");
+			return _integerValues[0];
+		}
+
+		Int32 AxVariable::GetLongInteger(UInt16 index)
+		{
+			if (_type != AxVariableType::axLongInteger) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type DINT.");
+			if (!_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is no array.");
+			return _integerValues[index];
+		}
+
+		void AxVariable::Set(Int32 value)
+		{
+			if (_type != AxVariableType::axLongInteger) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type DINT.");
+			if (_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is an array. Please specify the element index.");
+			_integerValues[0] = value;
+			_changed = true;
+		}
+
+		void AxVariable::Set(UInt16 index, Int32 value)
+		{
+			if (_type != AxVariableType::axLongInteger) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type DINT.");
+			if (!_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is no array.");
+			if (index >= _length) throw gcnew AxArrayIndexOutOfRangeException("Index for variable " + _path + " is out of range (" + index.ToString() + " >= " + _length.ToString() + ").");
+			_integerValues[index] = value;
+			_changed = true;
+			Lock changedIndexesGuard(_changedIndexesMutex);
+			_changedIndexes->Add(index);
+		}
+	//}}}
+
+	//{{{ UINT
+		UInt16 AxVariable::GetUnsignedInteger()
+		{
+			if (_type != AxVariableType::axUnsignedInteger) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type UINT.");
+			if (_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is an array. Please specify the element index.");
+			return (UInt16)_integerValues[0];
+		}
+
+		UInt16 AxVariable::GetUnsignedInteger(UInt16 index)
+		{
+			if (_type != AxVariableType::axUnsignedInteger) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type UINT.");
+			if (!_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is no array.");
+			return (UInt16)_integerValues[index];
+		}
+
+		void AxVariable::Set(UInt16 value)
+		{
+			if (_type != AxVariableType::axUnsignedInteger) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type UINT.");
+			if (_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is an array. Please specify the element index.");
+			_integerValues[0] = value;
+			_changed = true;
+		}
+
+		void AxVariable::Set(UInt16 index, UInt16 value)
+		{
+			if (_type != AxVariableType::axUnsignedInteger) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type UINT.");
+			if (!_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is no array.");
+			if (index >= _length) throw gcnew AxArrayIndexOutOfRangeException("Index for variable " + _path + " is out of range (" + index.ToString() + " >= " + _length.ToString() + ").");
+			_integerValues[index] = value;
+			_changed = true;
+			Lock changedIndexesGuard(_changedIndexesMutex);
+			_changedIndexes->Add(index);
+		}
+	//}}}
+
+	//{{{ UDINT
+		UInt32 AxVariable::GetUnsignedLongInteger()
+		{
+			if (_type != AxVariableType::axUnsignedLongInteger) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type UDINT.");
+			if (_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is an array. Please specify the element index.");
+			return (UInt32)_integerValues[0];
+		}
+
+		UInt32 AxVariable::GetUnsignedLongInteger(UInt16 index)
+		{
+			if (_type != AxVariableType::axUnsignedLongInteger) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type UDINT.");
+			if (!_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is no array.");
+			return (UInt32)_integerValues[index];
+		}
+
+		void AxVariable::Set(UInt32 value)
+		{
+			if (_type != AxVariableType::axUnsignedLongInteger) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type UDINT.");
+			if (_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is an array. Please specify the element index.");
+			_integerValues[0] = value;
+			_changed = true;
+		}
+
+		void AxVariable::Set(UInt16 index, UInt32 value)
+		{
+			if (_type != AxVariableType::axUnsignedLongInteger) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type UDINT.");
+			if (!_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is no array.");
+			if (index >= _length) throw gcnew AxArrayIndexOutOfRangeException("Index for variable " + _path + " is out of range (" + index.ToString() + " >= " + _length.ToString() + ").");
+			_integerValues[index] = value;
+			_changed = true;
+			Lock changedIndexesGuard(_changedIndexesMutex);
+			_changedIndexes->Add(index);
+		}
+	//}}}
+
+	//{{{ REAL
+		Single AxVariable::GetReal()
+		{
+			if (_type != AxVariableType::axReal) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type REAL.");
+			if (_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is an array. Please specify the element index.");
+			return (Single)_realValues[0];
+		}
+
+		Single AxVariable::GetReal(UInt16 index)
+		{
+			if (_type != AxVariableType::axReal) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type REAL.");
+			if (!_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is no array.");
+			return (Single)_realValues[index];
+		}
+
+		void AxVariable::Set(Single value)
+		{
+			if (_type != AxVariableType::axReal) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type REAL.");
+			if (_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is an array. Please specify the element index.");
+			_realValues[0] = value;
+			_changed = true;
+		}
+
+		void AxVariable::Set(UInt16 index, Single value)
+		{
+			if (_type != AxVariableType::axReal) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type REAL.");
+			if (!_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is no array.");
+			if (index >= _length) throw gcnew AxArrayIndexOutOfRangeException("Index for variable " + _path + " is out of range (" + index.ToString() + " >= " + _length.ToString() + ").");
+			_realValues[index] = value;
+			_changed = true;
+			Lock changedIndexesGuard(_changedIndexesMutex);
+			_changedIndexes->Add(index);
+		}
+	//}}}
+
+	//{{{ LREAL
+		Double AxVariable::GetLongReal()
+		{
+			if (_type != AxVariableType::axLongReal) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type LREAL.");
+			if (_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is an array. Please specify the element index.");
+			return _realValues[0];
+		}
+
+		Double AxVariable::GetLongReal(UInt16 index)
+		{
+			if (_type != AxVariableType::axLongReal) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type LREAL.");
+			if (!_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is no array.");
+			return _realValues[index];
+		}
+
+		void AxVariable::Set(Double value)
+		{
+			if (_type != AxVariableType::axLongReal) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type LREAL.");
+			if (_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is an array. Please specify the element index.");
+			_realValues[0] = value;
+			_changed = true;
+		}
+
+		void AxVariable::Set(UInt16 index, Double value)
+		{
+			if (_type != AxVariableType::axLongReal) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type LREAL.");
+			if (!_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is no array.");
+			if (index >= _length) throw gcnew AxArrayIndexOutOfRangeException("Index for variable " + _path + " is out of range (" + index.ToString() + " >= " + _length.ToString() + ").");
+			_realValues[index] = value;
+			_changed = true;
+			Lock changedIndexesGuard(_changedIndexesMutex);
+			_changedIndexes->Add(index);
+		}
+	//}}}
+
+	//{{{ STRING
+		String^ AxVariable::GetString()
+		{
+			if (_type != AxVariableType::axString) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type STRING.");
+			if (_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is an array. Please specify the element index.");
+			return _stringValues[0];
+		}
+
+		String^ AxVariable::GetString(UInt16 index)
+		{
+			if (_type != AxVariableType::axString) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type STRING.");
+			if (!_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is no array.");
+			return _stringValues[index];
+		}
+
+		void AxVariable::Set(String^ value)
+		{
+			if (_type != AxVariableType::axString) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type STRING.");
+			if (_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is an array. Please specify the element index.");
+			if (value->Length > 1023) value = value->Substring(0, 1023);
+			_stringValues[0] = value;
+			_changed = true;
+		}
+
+		void AxVariable::Set(UInt16 index, String^ value)
+		{
+			if (_type != AxVariableType::axString) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type STRING.");
+			if (!_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is no array.");
+			if (index >= _length) throw gcnew AxArrayIndexOutOfRangeException("Index for variable " + _path + " is out of range (" + index.ToString() + " >= " + _length.ToString() + ").");
+			if (value->Length > 1023) value = value->Substring(0, 1023);
+			_stringValues[index] = value;
+			_changed = true;
+			Lock changedIndexesGuard(_changedIndexesMutex);
+			_changedIndexes->Add(index);
+		}
+	//}}}
 }

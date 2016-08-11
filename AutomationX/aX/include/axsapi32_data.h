@@ -343,6 +343,16 @@ AX_EXPORT int AxQueryVariableExInterface(AX_PROGRAM		pProgram,
 AX_EXPORT void AxFreeExecData(AX_EXEC_DATA pExecData);
 
 /********************************************************************************************/
+/*	AxAllocExecData																			*/
+/*		This function allocates the memory for an EXEC_DATA entry            				*/
+/*																							*/
+/* Return Value:																			*/
+/*		Pointer to the entry																*/
+/********************************************************************************************/
+AX_EXPORT void *AxAllocExecData(void);
+AX_EXPORT void AxCopyExecData(void *dest,void* src);
+
+/********************************************************************************************/
 /*	AxGet																					*/
 /*		This function gets the value of a varaible using its executable data information.	*/
 /*		This is more efficient than using AxQueryGet if many reads of the same data are		*/
@@ -592,6 +602,8 @@ AX_EXPORT int AxSetValueEx(AX_EXEC_DATA	pExecData,
 AX_EXPORT int AxSetLong(AX_EXEC_DATA	pExecData,
 						long			lVal);
 
+AX_EXPORT int AxSetLongForced(void* pExecData, long lval);
+
 /********************************************************************************************/
 /*	AxSetLongToArray																		*/
 /*		This function sets the value of an integer type varaible array using its executable */
@@ -613,6 +625,8 @@ AX_EXPORT int AxSetLongToArray(AX_EXEC_DATA	pExecData,
 								long			lVal,
 								int				iIndex);
 
+AX_EXPORT int AxSetLongToArrayForced(void* pExecData, long lval, int iIndex);
+
 /********************************************************************************************/
 /*	AxSetDouble																				*/
 /*		This function sets the value of a floating point type varaible using its executable	*/
@@ -631,6 +645,7 @@ AX_EXPORT int AxSetLongToArray(AX_EXEC_DATA	pExecData,
 /********************************************************************************************/
 AX_EXPORT int AxSetDouble(AX_EXEC_DATA	pExecData,
 						  double		dVal);
+AX_EXPORT int AxSetDoubleForced(void* pExecData, double dval);
 
 /********************************************************************************************/
 /*	AxSetDoubleToArray																		*/
@@ -652,6 +667,7 @@ AX_EXPORT int AxSetDouble(AX_EXEC_DATA	pExecData,
 AX_EXPORT int AxSetDoubleToArray(AX_EXEC_DATA	pExecData,
 									double		dVal,
 									int			iIndex);
+AX_EXPORT int AxSetDoubleToArrayForced(void* pExecData, double dval, int iIndex );
 
 /********************************************************************************************/
 /*	AxSetString																				*/
@@ -671,6 +687,7 @@ AX_EXPORT int AxSetDoubleToArray(AX_EXEC_DATA	pExecData,
 /********************************************************************************************/
 AX_EXPORT int AxSetString(AX_EXEC_DATA	pExecData,
 						  char			*pszStr);
+AX_EXPORT int AxSetStringForced(void* pExecData, char* str);
 
 /********************************************************************************************/
 /*	AxSetStringToArray																		*/
@@ -692,6 +709,7 @@ AX_EXPORT int AxSetString(AX_EXEC_DATA	pExecData,
 AX_EXPORT int AxSetStringToArray(AX_EXEC_DATA	pExecData,
 									char		*pszStr,
 									int			iIndex);
+AX_EXPORT int AxSetStringToArrayForced(void* pExecData, char* str, int iIndex );
 
 /********************************************************************************************/
 /*	AxSetArray																				*/
@@ -2024,15 +2042,46 @@ AX_EXPORT int AxQc_QueryVariableFromQc(void * pqc,	//Query_context
 
 AX_EXPORT int AxQtree_QueryVariable(void* tree);	// Q_tree
 
+
+AX_EXPORT int AxCheckCodeStream(AX_PROGRAM prog_data,char*** error_messages_pt);
+AX_EXPORT void AxFreeMessageList(char** error_messages);
+
 AX_EXPORT int ED_free_index_handle(void* pExec_data);
 AX_EXPORT int ED_free_index_handle_N(void* pExec_data, unsigned nel);
 
 ///#endif	/* !AX_VER_46ML */
 
 AX_EXPORT int SendDataToMaster(AX_EXEC_DATA pExec_data,void* pval);
+AX_EXPORT int SendDataToMaster_ArrayMember(void* pExec_data,void* pval,int idx);
 
 AX_EXPORT int AxIsWriteVariable(void* execdata);
 AX_EXPORT int AxIsReadVariable(void* execdata);
+
+AX_EXPORT int AxIsVarForced(void* pExecData);
+AX_EXPORT int AxExtensionIsValue(void* pExecData);
+AX_EXPORT void* AxQueryExecDataFromVarDSC(void* pvardesc);
+typedef int (*ADDNODE_UA)(				// neat
+					   const char*,		// node name
+					   void*,			// parent node
+					   void**,	 		// new node
+					   int*,			// access
+					   void*);			// SPS_ProgData
+
+/*
+	return 0 success , != 0 some error !!!
+*/ 
+typedef int (*ADDLEAF_UA)(					// neat
+					    const char*,	// leaf name
+					    void*, 			// parent node
+						void*,			// sps_block_descr
+						int fReadOnly,	// is read_only 
+						int fGlobal,		// is global
+						char* program_name
+					  );
+
+AX_EXPORT int AxScanVariables(const char* cpClassToSkip, ADDNODE_UA addNode, ADDLEAF_UA addLeaf);
+
+AX_EXPORT int AxGetShortAlarmInfoAx5(void* pExecData, void* vpShortAlarmBitAx5);
 
 #endif
 

@@ -1,61 +1,61 @@
 #include "stdafx.h"
-#include "AXException.h"
+#include "AxException.h"
 
 namespace AutomationX
 {
-	AXException::AXException() : System::Exception()
+	AxException::AxException() : System::Exception()
 	{
 	}
 
-	AXException::AXException(String^ message) : System::Exception(message)
+	AxException::AxException(String^ message) : System::Exception(message)
 	{
 	}
 
-	AXNotRunningException::AXNotRunningException() : AXException()
+	AxNotRunningException::AxNotRunningException() : AxException()
 	{
 	}
 
-	AXNotRunningException::AXNotRunningException(String^ message) : AXException(message)
+	AxNotRunningException::AxNotRunningException(String^ message) : AxException(message)
 	{
 	}
 
-	AXInstanceException::AXInstanceException() : AXException()
+	AxInstanceException::AxInstanceException() : AxException()
 	{
 	}
 
-	AXInstanceException::AXInstanceException(String^ message) : AXException(message)
+	AxInstanceException::AxInstanceException(String^ message) : AxException(message)
 	{
 	}
 
-	AXVariableException::AXVariableException() : AXInstanceException()
+	AxVariableException::AxVariableException() : AxInstanceException()
 	{
 	}
 
-	AXVariableException::AXVariableException(String^ message) : AXInstanceException(message)
+	AxVariableException::AxVariableException(String^ message) : AxInstanceException(message)
 	{
 	}
 
-	AXVariableReadOnlyException::AXVariableReadOnlyException() : AXVariableException()
+	AxVariableReadOnlyException::AxVariableReadOnlyException() : AxVariableException()
 	{
 	}
 
-	AXVariableReadOnlyException::AXVariableReadOnlyException(String^ message) : AXVariableException(message)
+	AxVariableReadOnlyException::AxVariableReadOnlyException(String^ message) : AxVariableException(message)
 	{
 	}
 
-	AXVariableTypeException::AXVariableTypeException() : AXVariableException()
+	AxVariableTypeException::AxVariableTypeException() : AxVariableException()
 	{
 	}
 
-	AXVariableTypeException::AXVariableTypeException(String^ message) : AXVariableException(message)
+	AxVariableTypeException::AxVariableTypeException(String^ message) : AxVariableException(message)
 	{
 	}
 
-	AXArrayIndexOutOfRangeException::AXArrayIndexOutOfRangeException() : AXVariableException()
+	AxArrayIndexOutOfRangeException::AxArrayIndexOutOfRangeException() : AxVariableException()
 	{
 	}
 
-	AXArrayIndexOutOfRangeException::AXArrayIndexOutOfRangeException(String^ message) : AXVariableException(message)
+	AxArrayIndexOutOfRangeException::AxArrayIndexOutOfRangeException(String^ message) : AxVariableException(message)
 	{
 	}
 }

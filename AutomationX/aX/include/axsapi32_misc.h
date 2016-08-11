@@ -253,6 +253,65 @@ AX_EXPORT int AxTrendGetSetRealPts(char *pszName,
 
 
 /********************************************************************************************/
+/*	AxTrendGetRealPoints																	*/
+/*		This function gets the historical real point data from the automationX trend system */
+/*		for the	specified variable.	NEW function: USE THIS!!!								*/
+/*																							*/
+/* Parameters:																				*/
+/*		pszName			The variable name to search for in the automationX trend system		*/
+/*		dStartTime_Sec	The oldest time to get data from (see AxConvertDateTime_ToValue to	*/
+/*						derive a correct value for this parameter)							*/
+/*		dEndTime_Sec	The newest time to get data from (see AxConvertDateTime_ToValue to	*/
+/*						derive a correct value for this parameter)							*/
+/*		iLoadMode		The load mode. Use AX_TREND_MODE_FILE for load from file. Use		*/
+/*						AX_TREND_MODE_RAM for load only from ram or use						*/
+/*                      AX_TREND_MODE_LOAD_ALL to load data from both.						*/
+/*						AX_TREND_CUT_TIME cuts the time to the selected time period.		*/						
+/*		pDataList		The data structure to write the trend information into				*/
+/*		iCntMax			The maximum number of elements to get from the trend system.		*/
+/*		*piCnt			The number of elements got from the trend system.					*/
+/*																							*/
+/* Return Value:																			*/
+/*	  <=0 - The data could not be retrieved													*/
+/*	    1 - The trend information was retrieved												*/
+/********************************************************************************************/
+AX_EXPORT int AxTrendGetRealPoints(char *pszName, 
+									double dStartTime_Sec, 
+									double dEndTime_Sec,
+									int iLoadMode,
+								    AXHistData *pDataList,
+								    int iCntMax, int *piCnt );
+
+
+/********************************************************************************************/
+/*	AxTrendGetHistoricData																	*/
+/*		This function gets the historical data from the automationX trend system			*/
+/*		for the	specified variable. NEW function: USE THIS!!!								*/
+/*																							*/
+/* Parameters:																				*/
+/*		pszName			The variable name to search for in the automationX trend system		*/
+/*		dStartTime_Sec	The oldest time to get data. (see AxConvertDateTime_ToValue to		*/
+/*						derive a correct value for this parameter)							*/
+/*		dEndTime_Sec	The newest time to get data. (see AxConvertDateTime_ToValue to		*/
+/*						derive a correct value for this parameter)							*/
+/*		dResolution_Sec	The number of seconds that the retrieved trend data should span		*/
+/*		iLoadMode		The load mode. Use AX_TREND_MODE_FILE for load from file. Use		*/
+/*						AX_TREND_MODE_RAM for load only from ram or use						*/
+/*                      AX_TREND_MODE_LOAD_ALL to load data from both.						*/
+/*		pDataList		The data structure to write the trend information into				*/
+/*		iCntMax			The maximum number of elements to get from the trend system.		*/
+/*		*piCnt			The number of elements got from the trend system.					*/
+/*																							*/
+/* Return Value:																			*/
+/*	  <=0 - The data could not be retrieved													*/
+/*	    1 - The trend information was retrieved												*/
+/********************************************************************************************/
+AX_EXPORT int AxTrendGetHistoricData(char *pszName, double dStartTime_Sec, double dEndTime_Sec, 
+											double dResoulution_Sec, int iLoadMode, 
+											AXHistData *pDataList, int iCntMax, int *piCnt );
+
+
+/********************************************************************************************/
 /*	AxGetHistoricalDataInfo																	*/
 /*		This function gets the trend configuration information that is defined for the		*/
 /*		specified variable in the automationX trend system. (i.e. trend mode, scaling, etc)	*/
@@ -269,6 +328,23 @@ AX_EXPORT int AxGetHistoricalDataInfo(char				*pszName,
 									  AXHistDataInfo	*pDataInfo);
 
 
+
+/********************************************************************************************/
+/*	AxSetHistoricalDataInfo																	*/
+/*		This function sets the trend configuration information that is defined for the		*/
+/*		specified variable in the automationX trend system. (i.e. trend mode, scaling, etc)	*/
+/*																							*/
+/* Parameters:																				*/
+/*		pszName			The variable name to search for in the automationX trend system		*/
+/*		pDataInfo		The data structure to write the trend configuration data into		*/
+/*																							*/
+/* Return Value:																			*/
+/*		0 - The data could not be set														*/
+/*		1 - The trend configuration was set													*/
+/********************************************************************************************/
+AX_EXPORT int AxSetHistoricalDataInfo(char *pszName, AXHistDataInfo *pDataInfo);
+
+AX_EXPORT int AxTrendGetNumberOfRecords(char *pszName);
 
 /********************************************************************************************/
 /********************************* Redundancy File Functions ********************************/
@@ -588,10 +664,38 @@ AX_EXPORT int AxsapiRegistrySetValue(char* keyword, char* buff);
 
 AX_EXPORT int AxMakeDir(char* dirpath);
 
+///////////////////////////
+AX_EXPORT int AxsapiStoreParameter(char* path,char* inst_name,char* file_name,int append,int max_entries,char* num_array_var);
+AX_EXPORT int AxsapiReplaceParameter(char* path,char* inst_name,char* file_name,int pos);
+AX_EXPORT int AxsapiReadParameter(char* path,char* inst_name,char* file_name,char* var_val,int whence,char* num_array_var);
+AX_EXPORT int AxsapiDeleteParameter(char* path,char* inst_name,char* file_name,char* var_val,int whence,char* num_array_var);
+
+AX_EXPORT char* AxsapiGetLanguageText(char *class_name, char* original_text);
+AX_EXPORT char* AxsapiGetLanguageExtension();
+AX_EXPORT char* AxsapiRegistryGetValue(char* keyword, char* retbuff, int buffsize);
+AX_EXPORT int AxsapiRegistrySetValue(char* keyword, char* buff);
+
+AX_EXPORT int AxMakeDir(char* dirpath);
+
 AX_EXPORT int AxsapiCheckLoginUserPassword(char* username, char* password, int* level);
 AX_EXPORT int AxsapiGetAccess(char* item, int  level);
 
 AX_EXPORT int AxsapiCreateUserRemote(char* username, char* password, int level);
 AX_EXPORT int AxsapiChangePasswordRemote(char* username, char* password_old, char* password_new, int nocheck);
+
+AX_EXPORT int AxsapiCreateUser( AXUserInfo* pUser, int iLevel, int iCryptPwd );
+AX_EXPORT int AxsapiRemoveUser( char *username );
+AX_EXPORT int AxsapiReadUser( char *username, AXUserInfo* pUser );
+AX_EXPORT int AxTrendGetOldestValue(char *pszName);
+AX_EXPORT int AxTxSaveConfig( struct TxOvw_Struct *pTxStruct, int iCnt );
+
+// function for opws_plc5
+AX_EXPORT char* AxGetCwd(char*  path,int size);
+AX_EXPORT char** AxGetDirlist(char*  path);
+AX_EXPORT char** AxGetFilelist(char*  path);
+AX_EXPORT char** AxGetFilelistTimeSorted(char*  path);
+AX_EXPORT int AxRename(char *from,char*to);
+AX_EXPORT int AxGetFileSize(char *path);
+AX_EXPORT int AxGetFileTime(char *path);
 
 #endif
