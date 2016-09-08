@@ -11,8 +11,8 @@ namespace AutomationX
 	void AxVariable::Events::set(bool value)
 	{
 		_events = value;
-		if (_events) _ax->AddVariableToPoll(this);
-		else _ax->RemoveVariableToPoll(this);
+		if (_events) _pollId = _ax->AddVariableToPoll(this);
+		else _ax->RemoveVariableToPoll(_pollId);
 	}
 
 	String^ AxVariable::Path::get()
@@ -38,7 +38,7 @@ namespace AutomationX
 
 	AxVariable::!AxVariable()
 	{
-		_ax->RemoveVariableToPoll(this);
+		_ax->RemoveVariableToPoll(_pollId);
 		if (_cName) Marshal::FreeHGlobal(IntPtr((void*)_cName));
 		_cName = nullptr;
 		_instance = nullptr;
@@ -84,20 +84,20 @@ namespace AutomationX
 		_execData = AxQueryExecDataEx(_cName);
 	}
 
-	void AxVariable::ReloadStaticProperties()
+	void AxVariable::ReloadStaticProperties(bool wait)
 	{
+		_initResetEvent->Reset();
 		GetLength(); // Needed by GetType()
 		GetReferenceName();
 		GetDeclaration();
 		GetType(); // Needed by GetFlags()
 		GetRemark();
-		GetFlags();
+		GetFlags(wait); //Waits to be finished if "wait" is true
 	}
 
-	// {{{ Queueable methods
-	void AxVariable::InvokeGetReferenceName(ManualResetEvent^ resetEvent)
+	// {{{ Queued init methods
+	void AxVariable::InvokeGetReferenceName()
 	{
-		ResetEventLock resetEventGuard(resetEvent);
 		const char* reference = AxGetVarReference(_execData);
 		if (reference) _referenceName = gcnew String(reference);
 		// Todo: Wird nicht für Klassenreferenzen und Input-Referenzen zurückgegeben.
@@ -105,62 +105,51 @@ namespace AutomationX
 
 	void AxVariable::GetReferenceName()
 	{
-		ManualResetEvent^ resetEvent = gcnew ManualResetEvent(false);
-		_ax->QueueInitFunction(Binder::Bind(gcnew NoParameterDelegate(this, &AxVariable::InvokeGetReferenceName), resetEvent));
-		resetEvent->WaitOne();
+		_ax->QueueInitFunction(Binder::Bind(gcnew NoParameterDelegate(this, &AxVariable::InvokeGetReferenceName)));
 	}
 
-	void AxVariable::InvokeGetDeclaration(ManualResetEvent^ resetEvent)
+	void AxVariable::InvokeGetDeclaration()
 	{
-		ResetEventLock resetEventGuard(resetEvent);
 		int declaration = AxGetVarDeclaration(_execData);
 		_declaration = (AxVariableDeclaration)declaration;
 	}
 
 	void AxVariable::GetDeclaration()
 	{
-		ManualResetEvent^ resetEvent = gcnew ManualResetEvent(false);
-		_ax->QueueInitFunction(Binder::Bind(gcnew NoParameterDelegate(this, &AxVariable::InvokeGetDeclaration), resetEvent));
-		resetEvent->WaitOne();
+		_ax->QueueInitFunction(Binder::Bind(gcnew NoParameterDelegate(this, &AxVariable::InvokeGetDeclaration)));
 	}
 
-	void AxVariable::InvokeGetType(ManualResetEvent^ resetEvent)
+	void AxVariable::InvokeGetType()
 	{
-		ResetEventLock resetEventGuard(resetEvent);
 		struct tagAxVariant data;
 		int result = _isArray ? AxGetArray(_execData, &data, 0) : AxGet(_execData, &data);
 		if (result) _type = (AxVariableType)data.ucVarType;
 		else _type = AxVariableType::axUndefined;
-	}
 
-	void AxVariable::GetType()
-	{
-		ManualResetEvent^ resetEvent = gcnew ManualResetEvent(false);
-		_ax->QueueInitFunction(Binder::Bind(gcnew NoParameterDelegate(this, &AxVariable::InvokeGetType), resetEvent));
-		resetEvent->WaitOne();
 		if (_type == AxVariableType::axBool || _type == AxVariableType::axAlarm) _boolValues = System::Linq::Enumerable::ToList(System::Linq::Enumerable::Repeat(false, _length));
 		else if (_type == AxVariableType::axByte || _type == AxVariableType::axUnsignedShortInteger || _type == AxVariableType::axShortInteger || _type == AxVariableType::axInteger || _type == AxVariableType::axLongInteger || _type == AxVariableType::axUnsignedInteger || _type == AxVariableType::axUnsignedLongInteger) _integerValues = System::Linq::Enumerable::ToList(System::Linq::Enumerable::Repeat((Int32)0, _length));
 		else if (_type == AxVariableType::axReal || _type == AxVariableType::axLongReal) _realValues = System::Linq::Enumerable::ToList(System::Linq::Enumerable::Repeat((Double)0, _length));
 		else if (_type == AxVariableType::axString) _stringValues = System::Linq::Enumerable::ToList(System::Linq::Enumerable::Repeat(gcnew String(""), _length));
 	}
 
-	void AxVariable::InvokeGetRemark(ManualResetEvent^ resetEvent)
+	void AxVariable::GetType()
 	{
-		ResetEventLock resetEventGuard(resetEvent);
+		_ax->QueueInitFunction(Binder::Bind(gcnew NoParameterDelegate(this, &AxVariable::InvokeGetType)));
+	}
+
+	void AxVariable::InvokeGetRemark()
+	{
 		const char* result = AxGetRemark(_execData);
 		if (result) _remark = gcnew String(result);
 	}
 
 	void AxVariable::GetRemark()
 	{
-		ManualResetEvent^ resetEvent = gcnew ManualResetEvent(false);
-		_ax->QueueInitFunction(Binder::Bind(gcnew NoParameterDelegate(this, &AxVariable::InvokeGetRemark), resetEvent));
-		resetEvent->WaitOne();
+		_ax->QueueInitFunction(Binder::Bind(gcnew NoParameterDelegate(this, &AxVariable::InvokeGetRemark)));
 	}
 
-	void AxVariable::InvokeGetLength(ManualResetEvent^ resetEvent)
+	void AxVariable::InvokeGetLength()
 	{
-		ResetEventLock resetEventGuard(resetEvent);
 		_length = AxGetArrayCnt(_execData);
 		if (_length > 1) _isArray = true;
 		else if (_length == 0) _length = 1;
@@ -168,9 +157,7 @@ namespace AutomationX
 
 	void AxVariable::GetLength()
 	{
-		ManualResetEvent^ resetEvent = gcnew ManualResetEvent(false);
-		_ax->QueueInitFunction(Binder::Bind(gcnew NoParameterDelegate(this, &AxVariable::InvokeGetLength), resetEvent));
-		resetEvent->WaitOne();
+		_ax->QueueInitFunction(Binder::Bind(gcnew NoParameterDelegate(this, &AxVariable::InvokeGetLength)));
 	}
 
 	void AxVariable::InvokeGetFlags(ManualResetEvent^ resetEvent)
@@ -193,20 +180,49 @@ namespace AutomationX
 		if (attrs.dim) _dimension = gcnew String(attrs.dim);
 		_global = attrs.rem != 0;
 		_trending = attrs.trend != 0;
+		_reloadComplete = true;
+		_initResetEvent->Set();
 	}
 
-	void AxVariable::GetFlags()
+	void AxVariable::GetFlags(bool wait)
 	{
 		ManualResetEvent^ resetEvent = gcnew ManualResetEvent(false);
-		_ax->QueueInitFunction(Binder::Bind(gcnew NoParameterDelegate(this, &AxVariable::InvokeGetFlags), resetEvent));
-		resetEvent->WaitOne();
+		_ax->QueueInitFunction(Binder::Bind(gcnew ResetEventDelegate(this, &AxVariable::InvokeGetFlags), resetEvent));
+		if(wait) resetEvent->WaitOne();
 	}
-	// }}}
+	//}}}
+
+	//{{{ Queued synchronous methods
+	void AxVariable::InvokeGetEnumText(ManualResetEvent^ resetEvent, Int32 enumIndex)
+	{
+		ResetEventLock resetEventGuard(resetEvent);
+		if (!_execData || !AxVarIsEnum(_execData)) return;
+
+		char buffer[51] = "";
+		AxGetEnumText(_execData, enumIndex, buffer, 50);
+		buffer[50] = 0;
+		_enumTexts[enumIndex] = gcnew String(buffer);
+	}
+
+	String^ AxVariable::GetEnumText(Int32 enumIndex)
+	{
+		if (_enumTexts && _enumTexts->ContainsKey(enumIndex)) return _enumTexts[enumIndex];
+		ManualResetEvent^ resetEvent = gcnew ManualResetEvent(false);
+		_ax->QueueSynchronousFunction(Binder::Bind(gcnew OneIntegerParameterDelegate(this, &AxVariable::InvokeGetEnumText), resetEvent, enumIndex));
+		resetEvent->WaitOne();
+		if (_enumTexts && _enumTexts->ContainsKey(enumIndex)) return _enumTexts[enumIndex]; else return "";
+	}
+	//}}}
+
+	void AxVariable::WaitForReloadCompleted()
+	{
+		if (!_reloadComplete) _initResetEvent->WaitOne();
+	}
 
 	List<UInt16>^ AxVariable::Pull()
 	{
 		List<UInt16>^ changedIndexes = gcnew List<UInt16>();
-		if (!_execData) return changedIndexes;
+		if (!_execData || !_reloadComplete) return changedIndexes;
 		struct tagAxVariant data;
 		if (_type == AxVariableType::axBool || _type == AxVariableType::axAlarm)
 		{
@@ -352,11 +368,17 @@ namespace AutomationX
 				}
 			}
 		}
+		if (!_initComplete)
+		{
+			_initComplete = true;
+			return gcnew List<UInt16>();
+		}
 		return changedIndexes;
 	}
 
 	void AxVariable::Push()
 	{
+		if (!_execData || !_reloadComplete) return;
 		if (_type == AxVariableType::axBool || _type == AxVariableType::axAlarm)
 		{
 			if (_isArray)

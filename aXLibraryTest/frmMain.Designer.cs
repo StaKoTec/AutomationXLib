@@ -38,12 +38,8 @@
             this.pInstance = new System.Windows.Forms.Panel();
             this.txtInstanceName = new System.Windows.Forms.TextBox();
             this.label12 = new System.Windows.Forms.Label();
-            this.txtError = new System.Windows.Forms.TextBox();
-            this.txtStatus = new System.Windows.Forms.TextBox();
-            this.label3 = new System.Windows.Forms.Label();
             this.txtInstanceRemark = new System.Windows.Forms.TextBox();
             this.label2 = new System.Windows.Forms.Label();
-            this.chkError = new System.Windows.Forms.CheckBox();
             this.pVariable = new System.Windows.Forms.Panel();
             this.txtDecimalPoints = new System.Windows.Forms.TextBox();
             this.label15 = new System.Windows.Forms.Label();
@@ -74,14 +70,9 @@
             this.label7 = new System.Windows.Forms.Label();
             this.txtVariableType = new System.Windows.Forms.TextBox();
             this.label6 = new System.Windows.Forms.Label();
-            this.txtStatusVariableName = new System.Windows.Forms.TextBox();
-            this.label4 = new System.Windows.Forms.Label();
-            this.label5 = new System.Windows.Forms.Label();
-            this.txtAlarmVariableName = new System.Windows.Forms.TextBox();
             this.label17 = new System.Windows.Forms.Label();
             this.label16 = new System.Windows.Forms.Label();
             this.txtCycleTime = new System.Windows.Forms.TextBox();
-            this.button1 = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
             this.splitContainer1.Panel1.SuspendLayout();
             this.splitContainer1.Panel2.SuspendLayout();
@@ -102,7 +93,7 @@
             this.txtLog.Multiline = true;
             this.txtLog.Name = "txtLog";
             this.txtLog.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.txtLog.Size = new System.Drawing.Size(1252, 179);
+            this.txtLog.Size = new System.Drawing.Size(1252, 187);
             this.txtLog.TabIndex = 2;
             // 
             // txtClassName
@@ -112,7 +103,7 @@
             this.txtClassName.Name = "txtClassName";
             this.txtClassName.Size = new System.Drawing.Size(306, 26);
             this.txtClassName.TabIndex = 3;
-            this.txtClassName.Text = "Aktor_1fach";
+            this.txtClassName.Text = "HomeGear";
             // 
             // label1
             // 
@@ -126,19 +117,20 @@
             // 
             // bnSetClassName
             // 
-            this.bnSetClassName.Location = new System.Drawing.Point(1146, 9);
+            this.bnSetClassName.Location = new System.Drawing.Point(638, 7);
             this.bnSetClassName.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.bnSetClassName.Name = "bnSetClassName";
             this.bnSetClassName.Size = new System.Drawing.Size(72, 31);
             this.bnSetClassName.TabIndex = 5;
             this.bnSetClassName.Text = "Set";
             this.bnSetClassName.UseVisualStyleBackColor = true;
+            this.bnSetClassName.Click += new System.EventHandler(this.bnSetClassName_Click);
             // 
             // splitContainer1
             // 
             this.splitContainer1.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.splitContainer1.Location = new System.Drawing.Point(18, 81);
+            this.splitContainer1.Location = new System.Drawing.Point(18, 49);
             this.splitContainer1.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.splitContainer1.Name = "splitContainer1";
             this.splitContainer1.Orientation = System.Windows.Forms.Orientation.Horizontal;
@@ -150,8 +142,8 @@
             // splitContainer1.Panel2
             // 
             this.splitContainer1.Panel2.Controls.Add(this.txtLog);
-            this.splitContainer1.Size = new System.Drawing.Size(1252, 793);
-            this.splitContainer1.SplitterDistance = 608;
+            this.splitContainer1.Size = new System.Drawing.Size(1252, 825);
+            this.splitContainer1.SplitterDistance = 632;
             this.splitContainer1.SplitterWidth = 6;
             this.splitContainer1.TabIndex = 6;
             // 
@@ -170,7 +162,7 @@
             // 
             this.splitContainer2.Panel2.Controls.Add(this.pInstance);
             this.splitContainer2.Panel2.Controls.Add(this.pVariable);
-            this.splitContainer2.Size = new System.Drawing.Size(1252, 608);
+            this.splitContainer2.Size = new System.Drawing.Size(1252, 632);
             this.splitContainer2.SplitterDistance = 370;
             this.splitContainer2.SplitterWidth = 6;
             this.splitContainer2.TabIndex = 0;
@@ -181,7 +173,7 @@
             this.tvInstances.Location = new System.Drawing.Point(0, 0);
             this.tvInstances.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.tvInstances.Name = "tvInstances";
-            this.tvInstances.Size = new System.Drawing.Size(370, 608);
+            this.tvInstances.Size = new System.Drawing.Size(370, 632);
             this.tvInstances.TabIndex = 0;
             this.tvInstances.AfterSelect += new System.Windows.Forms.TreeViewEventHandler(this.tvInstances_AfterSelect);
             // 
@@ -189,17 +181,13 @@
             // 
             this.pInstance.Controls.Add(this.txtInstanceName);
             this.pInstance.Controls.Add(this.label12);
-            this.pInstance.Controls.Add(this.txtError);
-            this.pInstance.Controls.Add(this.txtStatus);
-            this.pInstance.Controls.Add(this.label3);
             this.pInstance.Controls.Add(this.txtInstanceRemark);
             this.pInstance.Controls.Add(this.label2);
-            this.pInstance.Controls.Add(this.chkError);
             this.pInstance.Dock = System.Windows.Forms.DockStyle.Fill;
             this.pInstance.Location = new System.Drawing.Point(0, 0);
             this.pInstance.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.pInstance.Name = "pInstance";
-            this.pInstance.Size = new System.Drawing.Size(876, 608);
+            this.pInstance.Size = new System.Drawing.Size(876, 632);
             this.pInstance.TabIndex = 0;
             // 
             // txtInstanceName
@@ -223,37 +211,6 @@
             this.label12.TabIndex = 7;
             this.label12.Text = "Name:";
             // 
-            // txtError
-            // 
-            this.txtError.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.txtError.Location = new System.Drawing.Point(84, 125);
-            this.txtError.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
-            this.txtError.Name = "txtError";
-            this.txtError.Size = new System.Drawing.Size(786, 26);
-            this.txtError.TabIndex = 5;
-            // 
-            // txtStatus
-            // 
-            this.txtStatus.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.txtStatus.Location = new System.Drawing.Point(84, 85);
-            this.txtStatus.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
-            this.txtStatus.Name = "txtStatus";
-            this.txtStatus.ReadOnly = true;
-            this.txtStatus.Size = new System.Drawing.Size(786, 26);
-            this.txtStatus.TabIndex = 3;
-            // 
-            // label3
-            // 
-            this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(4, 89);
-            this.label3.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
-            this.label3.Name = "label3";
-            this.label3.Size = new System.Drawing.Size(60, 20);
-            this.label3.TabIndex = 2;
-            this.label3.Text = "Status:";
-            // 
             // txtInstanceRemark
             // 
             this.txtInstanceRemark.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
@@ -264,6 +221,7 @@
             this.txtInstanceRemark.ReadOnly = true;
             this.txtInstanceRemark.Size = new System.Drawing.Size(786, 26);
             this.txtInstanceRemark.TabIndex = 1;
+            this.txtInstanceRemark.TextChanged += new System.EventHandler(this.txtInstanceRemark_TextChanged);
             // 
             // label2
             // 
@@ -274,17 +232,6 @@
             this.label2.Size = new System.Drawing.Size(69, 20);
             this.label2.TabIndex = 0;
             this.label2.Text = "Remark:";
-            // 
-            // chkError
-            // 
-            this.chkError.AutoSize = true;
-            this.chkError.Location = new System.Drawing.Point(9, 128);
-            this.chkError.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
-            this.chkError.Name = "chkError";
-            this.chkError.Size = new System.Drawing.Size(74, 24);
-            this.chkError.TabIndex = 6;
-            this.chkError.Text = "Error:";
-            this.chkError.UseVisualStyleBackColor = true;
             // 
             // pVariable
             // 
@@ -321,7 +268,7 @@
             this.pVariable.Location = new System.Drawing.Point(0, 0);
             this.pVariable.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.pVariable.Name = "pVariable";
-            this.pVariable.Size = new System.Drawing.Size(876, 608);
+            this.pVariable.Size = new System.Drawing.Size(876, 632);
             this.pVariable.TabIndex = 8;
             // 
             // txtDecimalPoints
@@ -460,6 +407,7 @@
             this.txtRemark.ReadOnly = true;
             this.txtRemark.Size = new System.Drawing.Size(720, 26);
             this.txtRemark.TabIndex = 16;
+            this.txtRemark.TextChanged += new System.EventHandler(this.txtRemark_TextChanged);
             // 
             // label8
             // 
@@ -645,105 +593,52 @@
             this.label6.TabIndex = 0;
             this.label6.Text = "Type:";
             // 
-            // txtStatusVariableName
-            // 
-            this.txtStatusVariableName.Location = new System.Drawing.Point(608, 9);
-            this.txtStatusVariableName.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
-            this.txtStatusVariableName.Name = "txtStatusVariableName";
-            this.txtStatusVariableName.Size = new System.Drawing.Size(175, 26);
-            this.txtStatusVariableName.TabIndex = 7;
-            this.txtStatusVariableName.Text = "Status";
-            // 
-            // label4
-            // 
-            this.label4.AutoSize = true;
-            this.label4.Location = new System.Drawing.Point(435, 14);
-            this.label4.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
-            this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(168, 20);
-            this.label4.TabIndex = 8;
-            this.label4.Text = "Status Variable Name:";
-            // 
-            // label5
-            // 
-            this.label5.AutoSize = true;
-            this.label5.Location = new System.Drawing.Point(794, 14);
-            this.label5.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
-            this.label5.Name = "label5";
-            this.label5.Size = new System.Drawing.Size(162, 20);
-            this.label5.TabIndex = 9;
-            this.label5.Text = "Alarm Variable Name:";
-            // 
-            // txtAlarmVariableName
-            // 
-            this.txtAlarmVariableName.Location = new System.Drawing.Point(960, 9);
-            this.txtAlarmVariableName.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
-            this.txtAlarmVariableName.Name = "txtAlarmVariableName";
-            this.txtAlarmVariableName.Size = new System.Drawing.Size(175, 26);
-            this.txtAlarmVariableName.TabIndex = 10;
-            this.txtAlarmVariableName.Text = "err";
-            // 
             // label17
             // 
             this.label17.AutoSize = true;
-            this.label17.Location = new System.Drawing.Point(190, 48);
+            this.label17.Location = new System.Drawing.Point(600, 14);
             this.label17.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label17.Name = "label17";
             this.label17.Size = new System.Drawing.Size(30, 20);
-            this.label17.TabIndex = 30;
+            this.label17.TabIndex = 27;
             this.label17.Text = "ms";
             // 
             // label16
             // 
             this.label16.AutoSize = true;
-            this.label16.Location = new System.Drawing.Point(14, 48);
+            this.label16.Location = new System.Drawing.Point(432, 12);
             this.label16.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label16.Name = "label16";
             this.label16.Size = new System.Drawing.Size(85, 20);
-            this.label16.TabIndex = 29;
+            this.label16.TabIndex = 26;
             this.label16.Text = "Cycle time:";
             // 
             // txtCycleTime
             // 
             this.txtCycleTime.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.txtCycleTime.Location = new System.Drawing.Point(118, 45);
+            this.txtCycleTime.Location = new System.Drawing.Point(525, 9);
             this.txtCycleTime.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.txtCycleTime.Name = "txtCycleTime";
             this.txtCycleTime.Size = new System.Drawing.Size(64, 26);
-            this.txtCycleTime.TabIndex = 28;
-            // 
-            // button1
-            // 
-            this.button1.Location = new System.Drawing.Point(768, 41);
-            this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(75, 34);
-            this.button1.TabIndex = 31;
-            this.button1.Text = "button1";
-            this.button1.UseVisualStyleBackColor = true;
-            this.button1.Click += new System.EventHandler(this.button1_Click);
+            this.txtCycleTime.TabIndex = 25;
+            this.txtCycleTime.TextChanged += new System.EventHandler(this.txtCycleTime_TextChanged);
             // 
             // frmMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1288, 892);
-            this.Controls.Add(this.button1);
             this.Controls.Add(this.label17);
-            this.Controls.Add(this.label16);
-            this.Controls.Add(this.txtCycleTime);
-            this.Controls.Add(this.txtAlarmVariableName);
-            this.Controls.Add(this.label5);
-            this.Controls.Add(this.label4);
-            this.Controls.Add(this.txtStatusVariableName);
             this.Controls.Add(this.splitContainer1);
+            this.Controls.Add(this.label16);
             this.Controls.Add(this.bnSetClassName);
+            this.Controls.Add(this.txtCycleTime);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.txtClassName);
             this.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.Name = "frmMain";
             this.Text = "aXLibraryTest";
-            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.frmMain_FormClosing);
             this.Load += new System.EventHandler(this.frmMain_Load);
             this.splitContainer1.Panel1.ResumeLayout(false);
             this.splitContainer1.Panel2.ResumeLayout(false);
@@ -775,14 +670,6 @@
         private System.Windows.Forms.Panel pInstance;
         private System.Windows.Forms.TextBox txtInstanceRemark;
         private System.Windows.Forms.Label label2;
-        private System.Windows.Forms.TextBox txtError;
-        private System.Windows.Forms.TextBox txtStatus;
-        private System.Windows.Forms.Label label3;
-        private System.Windows.Forms.CheckBox chkError;
-        private System.Windows.Forms.TextBox txtStatusVariableName;
-        private System.Windows.Forms.Label label4;
-        private System.Windows.Forms.Label label5;
-        private System.Windows.Forms.TextBox txtAlarmVariableName;
         private System.Windows.Forms.Panel pVariable;
         private System.Windows.Forms.TextBox txtVariableType;
         private System.Windows.Forms.Label label6;
@@ -818,7 +705,6 @@
         private System.Windows.Forms.Label label17;
         private System.Windows.Forms.Label label16;
         private System.Windows.Forms.TextBox txtCycleTime;
-        private System.Windows.Forms.Button button1;
     }
 }
 

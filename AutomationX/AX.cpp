@@ -69,7 +69,7 @@ namespace AutomationX
 		_synchronousQueue.Enqueue(function);
 	}
 
-	//{{{ Queueable methods
+	//{{{ Queued methods
 		void Ax::InvokeWriteJournal(int priority, String^ position, String^ message, String^ value, String^ fileName, DateTime time)
 		{
 			Double aXTime = AxConvertDataTime_ToValue(time.Year, time.Month, time.Day, time.Hour, time.Minute, time.Second, time.Millisecond);
@@ -83,32 +83,100 @@ namespace AutomationX
 			Marshal::FreeHGlobal(IntPtr((void*)pValue));
 			Marshal::FreeHGlobal(IntPtr((void*)pFileName));
 		}
+
+		void Ax::WriteJournal(int priority, String^ position, String^ message, String^ value, String^ fileName)
+		{
+			_synchronousQueue.Enqueue(Binder::Bind(gcnew WriteJournalDelegate(this, &Ax::InvokeWriteJournal), priority, position, message, value, fileName, DateTime::Now));
+		}
+
+		void Ax::WriteJournal(int priority, String^ position, String^ message, String^ value, String^ fileName, DateTime time)
+		{
+			_synchronousQueue.Enqueue(Binder::Bind(gcnew WriteJournalDelegate(this, &Ax::InvokeWriteJournal), priority, position, message, value, fileName, time));
+		}
+
+		void Ax::InvokeGetClassNames(ManualResetEvent^ resetEvent, List<String^>^ result)
+		{
+			ResetEventLock resetEventGuard(resetEvent);
+			std::vector<char*> buffers(1);
+			AxGetAllClasses(&buffers.at(0), 1);
+			int numberOfClasses = AxGetNumberOfAllClasses();
+			buffers.resize(numberOfClasses);
+			int count = AxGetAllClasses(&buffers.at(0), numberOfClasses);
+			for (int i = 0; i < count; i++)
+			{
+				String^ name = gcnew String(buffers.at(i));
+				if (name->Length == 0) continue;
+				result->Add(name);
+			}
+		}
+
+		void Ax::InvokeGetInstanceNames(ManualResetEvent^ resetEvent, String^ className, List<String^>^ result)
+		{
+			ResetEventLock resetEventGuard(resetEvent);
+			char* cName = _converter.GetCString(className);
+			AX_INSTANCE data = nullptr;
+			while (data = AxGetInstance(data, cName))
+			{
+				String^ instanceName = gcnew String(AxGetInstanceName(data));
+				if (instanceName->Length == 0) continue;
+				result->Add(instanceName);
+			}
+			Marshal::FreeHGlobal(IntPtr((void*)cName)); //Always free memory!
+		}
+
+		System::Collections::Generic::List<String^>^ Ax::GetInstanceNames(String^ className)
+		{
+			List<String^>^ result = gcnew List<String^>();
+			ManualResetEvent^ resetEvent = gcnew ManualResetEvent(false);
+			QueueSynchronousFunction(Binder::Bind(gcnew GetInstanceNamesDelegate(this, &Ax::InvokeGetInstanceNames), resetEvent, className, result));
+			resetEvent->WaitOne();
+			return result;
+		}
+
+		System::Collections::Generic::List<String^>^ Ax::GetClassNames()
+		{
+			List<String^>^ result = gcnew List<String^>();
+			ManualResetEvent^ resetEvent = gcnew ManualResetEvent(false);
+			QueueSynchronousFunction(Binder::Bind(gcnew GetClassNamesDelegate(this, &Ax::InvokeGetClassNames), resetEvent, result));
+			resetEvent->WaitOne();
+			return result;
+		}
+
+		void Ax::InvokeAddVariableToPoll(UInt32 id, AxVariable^ value)
+		{
+			_variablesToPoll->Add(id, value);
+			_variablesToPollCount += value->Length;
+		}
+
+		UInt32 Ax::AddVariableToPoll(AxVariable^ value)
+		{
+			if (!value) return 0;
+			UInt32 id = 0;
+			{
+				Lock variablesToPollIdGuard(_variablesToPollIdMutex);
+				while (id == 0) id = _variablesToPollId++;
+			}
+
+			QueueInitFunction(Binder::Bind(gcnew AddVariableToPollDelegate(this, &Ax::InvokeAddVariableToPoll), id, value));
+			
+			return id;
+		}
+
+		void Ax::InvokeRemoveVariableToPoll(UInt32 id)
+		{
+			if (id == 0) return;
+			if (_variablesToPoll->ContainsKey(id))
+			{
+				_variablesToPollCount -= _variablesToPoll[id]->Length;
+				_variablesToPoll->Remove(id);
+			}
+		}
+
+		void Ax::RemoveVariableToPoll(UInt32 id)
+		{
+			QueueInitFunction(Binder::Bind(gcnew RemoveVariableToPollDelegate(this, &Ax::InvokeRemoveVariableToPoll), id));
+		}
 	//}}}
-
-	void Ax::WriteJournal(int priority, String^ position, String^ message, String^ value, String^ fileName)
-	{
-		_synchronousQueue.Enqueue(Binder::Bind(gcnew WriteJournalDelegate(this, &Ax::InvokeWriteJournal), priority, position, message, value, fileName, DateTime::Now));
-	}
-
-	void Ax::WriteJournal(int priority, String^ position, String^ message, String^ value, String^ fileName, DateTime time)
-	{
-		_synchronousQueue.Enqueue(Binder::Bind(gcnew WriteJournalDelegate(this, &Ax::InvokeWriteJournal), priority, position, message, value, fileName, time));
-	}
-
-	void Ax::AddVariableToPoll(AxVariable^ value)
-	{
-		if (!value) return;
-		Lock variablesToPollGuard(_variablesToPollMutex);
-		_variablesToPoll->TryAdd(value->Path, value);
-	}
-
-	void Ax::RemoveVariableToPoll(AxVariable^ value)
-	{
-		if (!value) return;
-		AxVariable^ returnedValue;
-		Lock variablesToPollGuard(_variablesToPollMutex);
-		_variablesToPoll->TryRemove(value->Path, returnedValue);
-	}
 
 	bool Ax::SpsIdChanged()
 	{
@@ -148,6 +216,12 @@ namespace AutomationX
 				break;
 			}
 
+			if (spsIdChanged)
+			{
+				//Handle spsIdChanged
+				spsIdChanged = false;
+			}
+
 			while (_initQueue.Count > 0)
 			{
 				spsIdChanged = SpsIdChanged();
@@ -156,25 +230,21 @@ namespace AutomationX
 				if (_initQueue.TryDequeue(action) && action) action();
 			}
 			
-			if (spsIdChanged)
-			{
-				spsIdChanged = false;
-				continue;
-			}
+			if (spsIdChanged) continue;
 
+			for each (KeyValuePair<UInt32, AxVariable^>^ pair in _variablesToPoll)
 			{
-				Lock variablesToPollGuard(_variablesToPollMutex);
-				for each (KeyValuePair<String^, AxVariable^>^ pair in _variablesToPoll)
+				spsIdChanged = SpsIdChanged();
+				if (spsIdChanged) break;
+				if (pair->Value->Changed)
 				{
-					if (pair->Value->Changed)
+					pair->Value->Push();
+				}
+				else
+				{
+					List<UInt16>^ changedIndexes = pair->Value->Pull();
+					if (changedIndexes->Count > 0)
 					{
-						spsIdChanged = SpsIdChanged();
-						if (spsIdChanged) break;
-						pair->Value->Push();
-					}
-					else
-					{
-						List<UInt16>^ changedIndexes = pair->Value->Pull();
 						for each (UInt16 index in changedIndexes)
 						{
 							_eventQueue.Enqueue(gcnew AxVariableEventData(pair->Value, index));
@@ -184,22 +254,21 @@ namespace AutomationX
 				}
 			}
 
-			if (spsIdChanged)
-			{
-				spsIdChanged = false;
-				continue;
-			}
+			if (spsIdChanged) continue;
 			
-			if (_synchronousQueue.Count > 0)
+			for (Int32 i = 0; i < 100 && _synchronousQueue.Count > 0; i++)
 			{
-				if(SpsIdChanged()) continue;
+				spsIdChanged = SpsIdChanged();
+				if (spsIdChanged) break;
 				if (_synchronousQueue.TryDequeue(action) && action) action();
 			}
+
+			if (spsIdChanged) continue;
 								
 			if (_stopWorkerThread) return;
-			timeToSleep = _cycleTime - (Int32)DateTime::Now.Subtract(time).TotalMilliseconds;
-			if (timeToSleep < 1) timeToSleep = 1;
-			Threading::Thread::Sleep(timeToSleep);
+			_lastCycleTime = (Int32)DateTime::Now.Subtract(time).TotalMilliseconds;
+			timeToSleep = _cycleTime - _lastCycleTime;
+			if (timeToSleep > 0) Threading::Thread::Sleep(timeToSleep);
 		}
 	}
 }

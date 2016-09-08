@@ -9,7 +9,6 @@
 #include "Binder.h"
 #include "AxException.h"
 #include "Ax.h"
-#include "AxHandle.h"
 #include "AxInstance.h"
 #include "AxVariable.h"
 

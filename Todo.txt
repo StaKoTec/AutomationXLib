@@ -1,2 +1,6 @@
+Aufruf von AddVariableToPoll zu langsam
 GetEnumRemark
-String-Länge
+GetGlobalEnums
+MinScale, MaxScale
+Aufräumen
+SpsIdChanged

@@ -42,9 +42,6 @@
     <ClInclude Include="AxVariable.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="AxHandle.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="AxException.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -66,9 +63,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="AxVariable.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="AxHandle.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="AxException.cpp">

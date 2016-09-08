@@ -69,6 +69,11 @@ namespace AutomationX
 		Ax^ _ax = nullptr;
 		char* _cName = nullptr;
 
+		UInt32 _pollId = 0;
+		bool _reloadComplete = false;
+		ManualResetEvent^ _initResetEvent = gcnew ManualResetEvent(false);
+		bool _initComplete = false;
+
 		// {{{ Properties
 		bool _events = false;
 		AxInstance^ _instance = nullptr;
@@ -76,7 +81,7 @@ namespace AutomationX
 		String^ _path = "";
 		String^ _referenceName = "";
 		AxVariableDeclaration _declaration = AxVariableDeclaration::axVar;
-		AxVariableType _type = AxVariableType::axBool;
+		AxVariableType _type = AxVariableType::axUndefined;
 		String^ _remark = "";
 		bool _isArray = false;
 		UInt16 _length = 1;
@@ -98,6 +103,7 @@ namespace AutomationX
 		List<UInt16>^ _changedIndexes = gcnew List<UInt16>();
 		// }}}
 
+		Dictionary<Int32, String^>^ _enumTexts = nullptr;
 		List<bool>^ _boolValues = nullptr;
 		List<Int32>^ _integerValues = nullptr;
 		List<Double>^ _realValues = nullptr;
@@ -105,28 +111,42 @@ namespace AutomationX
 
 		void GetExecData();
 
-		//{{{ Queueable methods
-		delegate void NoParameterDelegate(ManualResetEvent^ resetEvent);
+		//{{{ Queued init methods
+		delegate void NoParameterDelegate();
+		delegate void ResetEventDelegate(ManualResetEvent^ resetEvent);
 
-		void InvokeGetReferenceName(ManualResetEvent^ resetEvent);
+		void InvokeGetReferenceName();
 		void GetReferenceName();
-		void InvokeGetDeclaration(ManualResetEvent^ resetEvent);
+		void InvokeGetDeclaration();
 		void GetDeclaration();
-		void InvokeGetType(ManualResetEvent^ resetEvent);
+		void InvokeGetType();
 		void GetType();
-		void InvokeGetRemark(ManualResetEvent^ resetEvent);
+		void InvokeGetRemark();
 		void GetRemark();
-		void InvokeGetLength(ManualResetEvent^ resetEvent);
+		void InvokeGetLength();
 		void GetLength();
 		void InvokeGetFlags(ManualResetEvent^ resetEvent);
-		void GetFlags();
+		void GetFlags(bool wait);
+		//}}}
+
+		//{{{ Queued synchronous methods
+		delegate void OneIntegerParameterDelegate(ManualResetEvent^ resetEvent, Int32 integer);
+
+		void InvokeGetEnumText(ManualResetEvent^ resetEvent, Int32 enumIndex);
 		//}}}
 	internal:
+		/// <summary>Concstructor.</summary>
+		/// <param name="instance">The instance the variable belongs to.</param>
+		/// <param name="name">The name of the variable.</param>
+		/// <exception cref="AxVariableException">Thrown when variable was not found or on handle errors.</exception>
+		AxVariable(AxInstance^ instance, String^ name);
+
 		List<UInt16>^ Pull();
 		void Push();
 		void RaiseValueChanged();
 		void RaiseArrayValueChanged(UInt16 index);
-		void ReloadStaticProperties();
+		void ReloadStaticProperties(bool wait);
+		void WaitForReloadCompleted();
 	public:
 		delegate void ValueChangedEventHandler(AxVariable^ sender);
 		delegate void ArrayValueChangedEventHandler(AxVariable^ sender, UInt16 index);
@@ -206,15 +226,11 @@ namespace AutomationX
 		/// <summary>Determine if the remote flag is set.</summary>
 		property bool Remote { bool get() { return _remote; } }
 
+		property bool ReloadComplete { bool get() { return _reloadComplete; } }
+
 		property bool Changed { bool get() { return _changed; } }
 
 		property List<UInt16>^ ChangedIndexes { List<UInt16>^ get() { return _changedIndexes; } }
-
-		/// <summary>Concstructor.</summary>
-		/// <param name="instance">The instance the variable belongs to.</param>
-		/// <param name="name">The name of the variable.</param>
-		/// <exception cref="AxVariableException">Thrown when variable was not found or on handle errors.</exception>
-		AxVariable(AxInstance^ instance, String^ name);
 
 		virtual ~AxVariable();
 		!AxVariable();
@@ -444,5 +460,8 @@ namespace AutomationX
 			/// <exception cref="AxVariableTypeException">Thrown when variable is not of type STRING.</exception>
 			void Set(UInt16 index, String^ value);
 		//}}}
+
+		/// <summary>Gets the description text for an enumeration value.</summary>
+		String^ GetEnumText(Int32 enumIndex);
 	};
 }

@@ -92,7 +92,6 @@
   <ItemGroup>
     <ClInclude Include="Ax.h" />
     <ClInclude Include="AxException.h" />
-    <ClInclude Include="AxHandle.h" />
     <ClInclude Include="AxInstance.h" />
     <ClInclude Include="AxVariable.h" />
     <ClInclude Include="Binder.h" />
@@ -106,7 +105,6 @@
     <ClCompile Include="AssemblyInfo.cpp" />
     <ClCompile Include="Ax.cpp" />
     <ClCompile Include="AxException.cpp" />
-    <ClCompile Include="AxHandle.cpp" />
     <ClCompile Include="AxInstance.cpp" />
     <ClCompile Include="AxVariable.cpp" />
     <ClCompile Include="ManagedTypeConverter.cpp" />

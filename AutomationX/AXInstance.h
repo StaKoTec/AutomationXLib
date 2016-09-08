@@ -15,6 +15,8 @@ namespace AutomationX
 		ManagedTypeConverter _converter;
 		AxVariable::ValueChangedEventHandler^ _variableValueChangedDelegate = nullptr;
 		AxVariable::ArrayValueChangedEventHandler^ _arrayValueChangedDelegate = nullptr;
+		ManualResetEvent^ _initResetEvent = gcnew ManualResetEvent(false);
+		bool _initComplete = false;
 
 		//{{{ Properties
 			bool _cleanUp = false;
@@ -31,19 +33,16 @@ namespace AutomationX
 		//}}}
 
 		//{{{ Queueable methods
-			delegate void NoParameterDelegate(ManualResetEvent^ resetEvent);
+			delegate void NoParameterDelegate();
+			delegate void ResetEventParameterDelegate(ManualResetEvent^ resetEvent);
 
-			delegate void GetHandleDelegate(AxHandle^ handle, ManualResetEvent^ resetEvent);
-			void InvokeGetHandle(AxHandle^ handle, ManualResetEvent^ resetEvent);
-
-			void InvokeGetClassName(ManualResetEvent^ resetEvent);
+			void InvokeGetClassName();
 			void GetClassName();
 
-			void InvokeGetRemark(ManualResetEvent^ resetEvent);
+			void InvokeGetRemark();
 			void GetRemark();
 
-			void InvokeGetVariables(ManualResetEvent^ resetEvent);
-			void GetVariables();
+			void InvokeGetVariables();
 
 			ref class GetSubinstancesData
 			{
@@ -71,17 +70,23 @@ namespace AutomationX
 					CleanUp();
 				}
 			};
-			delegate void GetSubinstancesDelegate(ManualResetEvent^ resetEvent, GetSubinstancesData^ data);
-			void InvokeGetSubinstances(ManualResetEvent^ resetEvent, GetSubinstancesData^ data);
-			void GetSubinstances();
+			delegate void GetSubinstancesDelegate(GetSubinstancesData^ data);
+			void InvokeGetSubinstances(GetSubinstancesData^ data);
+			GetSubinstancesData^ GetVariablesAndSubinstances();
+			delegate void InitFinishedDelegate(ManualResetEvent^ resetEvent, GetSubinstancesData^ data);
+			void InvokeInitFinished(ManualResetEvent^ resetEvent, GetSubinstancesData^ data);
+			void InitFinished(GetSubinstancesData^ data, bool wait);
 		//}}}
+
+		/// <summary>Gets a raw aX handle. Only call this method if within the main loop!!!</summary>
+		void* GetRawHandle();
 
 		void OnValueChanged(AxVariable^ sender);
 
 		void OnArrayValueChanged(AxVariable^ sender, UInt16 index);
 	internal:
 		property Ax^ AxObject { Ax^ get() { return _ax; }; }
-		void ReloadStaticProperties();
+		bool ReloadStaticProperties(bool wait);
 	public:
 		/// <summary>Fired when the value of one the instance's a variable is changed in aX. Only raised, after "VariableEvents" has been enabled or after manually calling "Refresh".</summary>
 		event AxVariable::ValueChangedEventHandler^ VariableValueChanged;
@@ -119,14 +124,20 @@ namespace AutomationX
 		/// <param name='name'>Name of this aX subinstance.</param>
 		AxInstance(Ax^ ax, AxInstance^ parent, String^ name);
 
+		/// <summary>Constructor</summary>
+		/// <param name='ax'>The aX object.</param>
+		/// <param name='name'>Name of this aX instance.</param>
+		/// <param name='waitForInitCompleted'>Default is "true". When set to "false" the constructor returns immediately after all init methods are queued. Call "WaitForInitCompleted()" on the last constructed instance before using the object.</param>
+		AxInstance(Ax^ ax, String^ name, bool waitForInitCompleted);
+
+		/// <summary>Constructor</summary>
+		/// <param name='ax'>The aX object.</param>
+		/// <param name='name'>Name of this aX subinstance.</param>
+		/// <param name='waitForInitCompleted'>Default is "true". When set to "false" the constructor returns immediately after all init methods are queued. Call "WaitForInitCompleted()" on the last constructed instance before using the object.</param>
+		AxInstance(Ax^ ax, AxInstance^ parent, String^ name, bool waitForInitCompleted);
+
 		virtual ~AxInstance();
 		!AxInstance();
-
-		/// <summary>Gets a raw aX handle. Only call this method if within the main loop!!!</summary>
-		void* GetRawHandle();
-
-		/// <summary>Gets an aX handle. Call this method if outside the main loop.</summary>
-		AxHandle^ GetHandle();
 
 		/// <summary>Returns the aX variable of the specified name.</summary>
 		/// <param name='variableName'>The name of the variable.</param>
@@ -145,6 +156,9 @@ namespace AutomationX
 		/// <summary>Checks if a subinstance exists.</summary>
 		/// <returns>True when the subinstance name was found, otherwise false.</returns>
 		bool SubinstanceExists(String^ subinstanceName);
+
+		/// <summary>Waits for init to complete if "waitForInitComplete" is set to "false" in constructor. This method only needs to be called on the last initialized instance of the thread.</summary>
+		void WaitForInitCompleted();
 	};
 }
 

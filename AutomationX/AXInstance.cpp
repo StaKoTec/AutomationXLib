@@ -28,21 +28,27 @@ namespace AutomationX
 		return Get(variableName);
 	}
 
-	AxInstance::AxInstance(Ax^ ax, String^ name) : AxInstance(ax, nullptr, name)
+	AxInstance::AxInstance(Ax^ ax, String^ name) : AxInstance(ax, nullptr, name, true)
 	{
 	}
 
-	AxInstance::AxInstance(Ax^ ax, AxInstance^ parent, String^ name)
+	AxInstance::AxInstance(Ax^ ax, AxInstance^ parent, String^ name) : AxInstance(ax, parent, name, true)
+	{
+	}
+
+	AxInstance::AxInstance(Ax^ ax, String^ name, bool waitForInitCompleted) : AxInstance(ax, nullptr, name, waitForInitCompleted)
+	{
+	}
+
+	AxInstance::AxInstance(Ax^ ax, AxInstance^ parent, String^ name, bool waitForInitCompleted)
 	{
 		_ax = ax;
 		_parent = parent;
 		if (name->Length == 0) throw gcnew AxInstanceException("Instance name is empty.");
 		_name = name;
-		AxHandle^ handle = GetHandle(); //Check if instance exists
-		if (!handle->Valid) throw gcnew AxInstanceException("Could not get instance handle for " + _name);
 		_variableValueChangedDelegate = gcnew AxVariable::ValueChangedEventHandler(this, &AxInstance::OnValueChanged);
 		_arrayValueChangedDelegate = gcnew AxVariable::ArrayValueChangedEventHandler(this, &AxInstance::OnArrayValueChanged);
-		ReloadStaticProperties();
+		if (!ReloadStaticProperties(waitForInitCompleted)) throw gcnew AxInstanceException("Could not get instance handle for " + _name);
 	}
 
 	AxInstance::~AxInstance()
@@ -88,16 +94,10 @@ namespace AutomationX
 		return handle;
 	}
 
-	//{{{ Queueable methods
-	void AxInstance::InvokeGetHandle(AxHandle^ handle, ManualResetEvent^ resetEvent)
+	//{{{ Queued init methods
+	void AxInstance::InvokeGetClassName()
 	{
-		ResetEventLock resetEventGuard(resetEvent);
-		handle->Raw = GetRawHandle();
-	}
-
-	void AxInstance::InvokeGetClassName(ManualResetEvent^ resetEvent)
-	{
-		ResetEventLock resetEventGuard(resetEvent);
+		_className = "";
 		void* handle = GetRawHandle();
 		if (!handle) return;
 		const char* result = AxGetInstanceClassPath(handle);
@@ -114,14 +114,11 @@ namespace AutomationX
 
 	void AxInstance::GetClassName()
 	{
-		ManualResetEvent^ resetEvent = gcnew ManualResetEvent(false);
-		_ax->QueueInitFunction(Binder::Bind(gcnew NoParameterDelegate(this, &AxInstance::InvokeGetClassName), resetEvent));
-		resetEvent->WaitOne();
+		_ax->QueueInitFunction(Binder::Bind(gcnew NoParameterDelegate(this, &AxInstance::InvokeGetClassName)));
 	}
 
-	void AxInstance::InvokeGetRemark(ManualResetEvent^ resetEvent)
+	void AxInstance::InvokeGetRemark()
 	{
-		ResetEventLock resetEventGuard(resetEvent);
 		void* handle = GetRawHandle();
 		if (!handle) return;
 		const char* result = AxGetInstanceRemark(handle);
@@ -131,14 +128,11 @@ namespace AutomationX
 
 	void AxInstance::GetRemark()
 	{
-		ManualResetEvent^ resetEvent = gcnew ManualResetEvent(false);
-		_ax->QueueInitFunction(Binder::Bind(gcnew NoParameterDelegate(this, &AxInstance::InvokeGetRemark), resetEvent));
-		resetEvent->WaitOne();
+		_ax->QueueInitFunction(Binder::Bind(gcnew NoParameterDelegate(this, &AxInstance::InvokeGetRemark)));
 	}
 
-	void AxInstance::InvokeGetVariables(ManualResetEvent^ resetEvent)
+	void AxInstance::InvokeGetVariables()
 	{
-		ResetEventLock resetEventGuard(resetEvent);
 		Lock variableGuard(_variableListMutex);
 		_variables->Clear();
 		_variableList->Clear();
@@ -163,21 +157,8 @@ namespace AutomationX
 		}
 	}
 
-	void AxInstance::GetVariables()
+	void AxInstance::InvokeGetSubinstances(GetSubinstancesData^ data)
 	{
-		ManualResetEvent^ resetEvent = gcnew ManualResetEvent(false);
-		_ax->QueueInitFunction(Binder::Bind(gcnew NoParameterDelegate(this, &AxInstance::InvokeGetVariables), resetEvent));
-		resetEvent->WaitOne();
-		Lock variableGuard(_variableListMutex);
-		for each (AxVariable^ variable in _variableList)
-		{
-			variable->ReloadStaticProperties();
-		}
-	}
-
-	void AxInstance::InvokeGetSubinstances(ManualResetEvent^ resetEvent, GetSubinstancesData^ data)
-	{
-		ResetEventLock resetEventGuard(resetEvent);
 		Lock subinstanceGuard(_subinstanceListMutex);
 		_subinstances->Clear();
 		_subinstanceList->Clear();
@@ -189,12 +170,26 @@ namespace AutomationX
 		data->PInstanceList = pInstanceList;
 	}
 
-	void AxInstance::GetSubinstances()
+	AxInstance::GetSubinstancesData^ AxInstance::GetVariablesAndSubinstances()
 	{
-		ManualResetEvent^ resetEvent = gcnew ManualResetEvent(false);
+		_ax->QueueInitFunction(Binder::Bind(gcnew NoParameterDelegate(this, &AxInstance::InvokeGetVariables)));
+
 		GetSubinstancesData^ data = gcnew GetSubinstancesData();
-		_ax->QueueInitFunction(Binder::Bind(gcnew GetSubinstancesDelegate(this, &AxInstance::InvokeGetSubinstances), resetEvent, data));
-		resetEvent->WaitOne();
+		_ax->QueueInitFunction(Binder::Bind(gcnew GetSubinstancesDelegate(this, &AxInstance::InvokeGetSubinstances), data));
+
+		return data;
+	}
+
+	void AxInstance::InvokeInitFinished(ManualResetEvent^ resetEvent, GetSubinstancesData^ data)
+	{
+		ResetEventLock resetEventGuard(resetEvent);
+		{
+			Lock variableGuard(_variableListMutex);
+			for each (AxVariable^ variable in _variableList)
+			{
+				variable->ReloadStaticProperties(false);
+			}
+		}
 
 		for (UInt32 i = 0; i < data->InstanceCount; i++)
 		{
@@ -207,24 +202,35 @@ namespace AutomationX
 			_subinstanceList->Add(instance);
 		}
 		data->CleanUp();
+		_initComplete = true;
+	}
+
+	void AxInstance::InitFinished(GetSubinstancesData^ data, bool wait)
+	{
+		_initResetEvent->Reset();
+		_ax->QueueInitFunction(Binder::Bind(gcnew InitFinishedDelegate(this, &AxInstance::InvokeInitFinished), _initResetEvent, data));
+		if (wait) _initResetEvent->WaitOne();
 	}
 	//}}}
 
-	AxHandle^ AxInstance::GetHandle()
+	void AxInstance::WaitForInitCompleted()
 	{
-		AxHandle^ handle = gcnew AxHandle();
-		ManualResetEvent^ resetEvent = gcnew ManualResetEvent(false);
-		_ax->QueueInitFunction(Binder::Bind(gcnew GetHandleDelegate(this, &AxInstance::InvokeGetHandle), handle, resetEvent));
-		resetEvent->WaitOne();
-		return handle;
+		if(!_initComplete) _initResetEvent->WaitOne();
+		if (_variableList->Count > 0 && !_variableList[_variableList->Count - 1]->ReloadComplete) _variableList[_variableList->Count - 1]->WaitForReloadCompleted();
 	}
 
-	void AxInstance::ReloadStaticProperties()
+	bool AxInstance::ReloadStaticProperties(bool wait)
 	{
 		GetClassName();
 		GetRemark();
-		GetVariables();
-		GetSubinstances();
+		GetSubinstancesData^ data = GetVariablesAndSubinstances();
+		InitFinished(data, wait);
+		if(wait) return _className != ""; //_className is empty if handle could not be created
+		else
+		{
+			void* handle = GetRawHandle();
+			return handle != nullptr;
+		}
 	}
 
 	AxVariable^ AxInstance::Get(String^ variableName)
