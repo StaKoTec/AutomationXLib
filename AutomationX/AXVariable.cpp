@@ -10,9 +10,17 @@ namespace AutomationX
 
 	void AxVariable::Events::set(bool value)
 	{
+		if (_cleanUp) return;
 		_events = value;
-		if (_events) _pollId = _ax->AddVariableToPoll(this);
-		else _ax->RemoveVariableToPoll(_pollId);
+		if (_events)
+		{
+			if(_pollId == 0) _pollId = _ax->AddVariableToPoll(this);
+		}
+		else
+		{
+			_ax->RemoveVariableToPoll(_pollId);
+			_pollId = 0;
+		}
 	}
 
 	String^ AxVariable::Path::get()
@@ -52,6 +60,25 @@ namespace AutomationX
 		_realValues = nullptr;
 		if (_execData) AxFreeExecData(_execData);
 		_execData = nullptr;
+	}
+
+	bool AxVariable::SpsIdChanged()
+	{
+		GetExecData();
+		UInt16 oldLength = _length;
+		InvokeGetLength(); // Needed by GetType()
+		if (_length != oldLength) return false;
+		InvokeGetReferenceName();
+		AxVariableDeclaration oldDeclaration = _declaration;
+		InvokeGetDeclaration();
+		if (_declaration != oldDeclaration) return false;
+		AxVariableType oldType = _type;
+		InvokeGetType(); // Needed by GetFlags()
+		if (_type != oldType) return false;
+		InvokeGetRemark();
+		ManualResetEvent^ resetEvent = gcnew ManualResetEvent(false);
+		InvokeGetFlags(resetEvent); //Waits to be finished if "wait" is true
+		return true;
 	}
 
 	void AxVariable::RaiseValueChanged()
@@ -206,6 +233,7 @@ namespace AutomationX
 
 	String^ AxVariable::GetEnumText(Int32 enumIndex)
 	{
+		if (_cleanUp) return "";
 		if (_enumTexts && _enumTexts->ContainsKey(enumIndex)) return _enumTexts[enumIndex];
 		ManualResetEvent^ resetEvent = gcnew ManualResetEvent(false);
 		_ax->QueueSynchronousFunction(Binder::Bind(gcnew OneIntegerParameterDelegate(this, &AxVariable::InvokeGetEnumText), resetEvent, enumIndex));
@@ -221,12 +249,12 @@ namespace AutomationX
 
 	List<UInt16>^ AxVariable::Pull()
 	{
+		if (_cleanUp) return gcnew List<UInt16>();
 		List<UInt16>^ changedIndexes = gcnew List<UInt16>();
 		if (!_execData || !_reloadComplete) return changedIndexes;
 		struct tagAxVariant data;
 		if (_type == AxVariableType::axBool || _type == AxVariableType::axAlarm)
 		{
-			bool changed = false;
 			for (UInt16 i = 0; i < _length; i++)
 			{
 				if (_isArray) AxGetArray(_execData, &data, i); else AxGet(_execData, &data);
@@ -239,7 +267,6 @@ namespace AutomationX
 		}
 		else if (_type == AxVariableType::axByte)
 		{
-			bool changed = false;
 			for (UInt16 i = 0; i < _length; i++)
 			{
 				if (_isArray) AxGetArray(_execData, &data, i); else AxGet(_execData, &data);
@@ -252,7 +279,6 @@ namespace AutomationX
 		}
 		else if (_type == AxVariableType::axUnsignedShortInteger)
 		{
-			bool changed = false;
 			for (UInt16 i = 0; i < _length; i++)
 			{
 				if (_isArray) AxGetArray(_execData, &data, i); else AxGet(_execData, &data);
@@ -265,7 +291,6 @@ namespace AutomationX
 		}
 		else if (_type == AxVariableType::axShortInteger)
 		{
-			bool changed = false;
 			for (UInt16 i = 0; i < _length; i++)
 			{
 				if (_isArray) AxGetArray(_execData, &data, i); else AxGet(_execData, &data);
@@ -278,7 +303,6 @@ namespace AutomationX
 		}
 		else if (_type == AxVariableType::axInteger)
 		{
-			bool changed = false;
 			for (UInt16 i = 0; i < _length; i++)
 			{
 				if (_isArray) AxGetArray(_execData, &data, i); else AxGet(_execData, &data);
@@ -291,7 +315,6 @@ namespace AutomationX
 		}
 		else if (_type == AxVariableType::axLongInteger)
 		{
-			bool changed = false;
 			for (UInt16 i = 0; i < _length; i++)
 			{
 				if (_isArray) AxGetArray(_execData, &data, i); else AxGet(_execData, &data);
@@ -304,7 +327,6 @@ namespace AutomationX
 		}
 		else if (_type == AxVariableType::axUnsignedInteger)
 		{
-			bool changed = false;
 			for (UInt16 i = 0; i < _length; i++)
 			{
 				if (_isArray) AxGetArray(_execData, &data, i); else AxGet(_execData, &data);
@@ -317,7 +339,6 @@ namespace AutomationX
 		}
 		else if (_type == AxVariableType::axUnsignedLongInteger)
 		{
-			bool changed = false;
 			for (UInt16 i = 0; i < _length; i++)
 			{
 				if (_isArray) AxGetArray(_execData, &data, i); else AxGet(_execData, &data);
@@ -330,7 +351,6 @@ namespace AutomationX
 		}
 		else if (_type == AxVariableType::axReal)
 		{
-			bool changed = false;
 			for (UInt16 i = 0; i < _length; i++)
 			{
 				if (_isArray) AxGetArray(_execData, &data, i); else AxGet(_execData, &data);
@@ -343,7 +363,6 @@ namespace AutomationX
 		}
 		else if (_type == AxVariableType::axLongReal)
 		{
-			bool changed = false;
 			for (UInt16 i = 0; i < _length; i++)
 			{
 				if (_isArray) AxGetArray(_execData, &data, i); else AxGet(_execData, &data);
@@ -356,7 +375,6 @@ namespace AutomationX
 		}
 		else if (_type == AxVariableType::axString)
 		{
-			bool changed = false;
 			for (UInt16 i = 0; i < _length; i++)
 			{
 				if (_isArray) AxGetArray(_execData, &data, i); else AxGet(_execData, &data);
@@ -378,7 +396,7 @@ namespace AutomationX
 
 	void AxVariable::Push()
 	{
-		if (!_execData || !_reloadComplete) return;
+		if (!_execData || !_reloadComplete || _cleanUp) return;
 		if (_type == AxVariableType::axBool || _type == AxVariableType::axAlarm)
 		{
 			if (_isArray)

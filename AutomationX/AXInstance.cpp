@@ -48,6 +48,7 @@ namespace AutomationX
 		_name = name;
 		_variableValueChangedDelegate = gcnew AxVariable::ValueChangedEventHandler(this, &AxInstance::OnValueChanged);
 		_arrayValueChangedDelegate = gcnew AxVariable::ArrayValueChangedEventHandler(this, &AxInstance::OnArrayValueChanged);
+		_spsIdChangedCallbackId = _ax->AddSpsIdChangedInstanceCallback(Binder::Bind(gcnew NoParameterReturnBoolDelegate(this, &AxInstance::SpsIdChanged)));
 		if (!ReloadStaticProperties(waitForInitCompleted)) throw gcnew AxInstanceException("Could not get instance handle for " + _name);
 	}
 
@@ -58,6 +59,9 @@ namespace AutomationX
 
 	AxInstance::!AxInstance()
 	{
+		System::Diagnostics::Debug::WriteLine("Instanzdestruktor Start");
+		_ax->RemoveSpsIdChangedInstanceCallback(_spsIdChangedCallbackId);
+		Lock spsIdChangedGuard(_spsIdChangedMutex);
 		{
 			Lock variableGuard(_variableListMutex);
 			for each (AxVariable^ element in _variableList)
@@ -77,6 +81,125 @@ namespace AutomationX
 			_subinstances->Clear();
 		}
 		_ax = nullptr;
+		System::Diagnostics::Debug::WriteLine("Instanzdestruktor Ende");
+	}
+
+	void AxInstance::SetReloadRequired()
+	{
+		_reloadRequired = true;
+		{
+			Lock variableGuard(_variableListMutex);
+			for each (AxVariable^ element in _variableList)
+			{
+				element->Events = false;
+				element->SetCleanUp();
+			}
+		}
+
+		{
+			Lock subinstanceGuard(_subinstanceListMutex);
+			for each (AxInstance^ element in _subinstanceList)
+			{
+				element->SetReloadRequired();
+			}
+		}
+	}
+
+	void AxInstance::SetCleanUp()
+	{
+		_cleanUp = true;
+		{
+			Lock variableGuard(_variableListMutex);
+			for each (AxVariable^ element in _variableList)
+			{
+				element->Events = false;
+				element->SetCleanUp();
+			}
+		}
+
+		{
+			Lock subinstanceGuard(_subinstanceListMutex);
+			for each (AxInstance^ element in _subinstanceList)
+			{
+				element->SetCleanUp();
+			}
+		}
+	}
+
+	bool AxInstance::SpsIdChanged()
+	{
+		Lock spsIdChangedGuard(_spsIdChangedMutex);
+		if (!GetRawHandle())
+		{
+			SetCleanUp();
+			return false;
+		}
+		InvokeGetClassName();
+		InvokeGetRemark();
+
+		bool setReloadRequired = false;
+		
+		{
+			Lock variableGuard(_variableListMutex);
+			for each (AxVariable^ element in _variableList)
+			{
+				if (!element->SpsIdChanged())
+				{
+					setReloadRequired = true;
+					break;
+				}
+			}
+		}
+
+		{
+			Lock variableGuard(_variableListMutex);
+			void* handle = GetRawHandle();
+			if (handle)
+			{
+				AX_VAR_DSC data = 0;
+				while (data = AxVarDscFromInstance(handle, data))
+				{
+					String^ name = gcnew String(AxGetNameFromVarDSC(data));
+					if (name->Length == 0) continue;
+					if (!_variables->ContainsKey(name))
+					{
+						setReloadRequired = true;
+						break;
+					}
+				}
+			}
+			else
+			{
+				SetCleanUp();
+				return false;
+			}
+		}
+
+		if (setReloadRequired)
+		{
+			SetReloadRequired();
+			return false;
+		}
+
+		{
+			Lock subinstanceGuard(_subinstanceListMutex);
+			for each (AxInstance^ element in _subinstanceList)
+			{
+				if (!element->SpsIdChanged())
+				{
+					setReloadRequired = true;
+					break;
+				}
+			}
+		}
+
+		if (setReloadRequired)
+		{
+			SetReloadRequired();
+			return false;
+		}
+
+		return true;
 	}
 
 	void* AxInstance::GetRawHandle()
@@ -225,7 +348,11 @@ namespace AutomationX
 		GetRemark();
 		GetSubinstancesData^ data = GetVariablesAndSubinstances();
 		InitFinished(data, wait);
-		if(wait) return _className != ""; //_className is empty if handle could not be created
+		if (wait)
+		{
+			if (_variableList->Count > 0 && !_variableList[_variableList->Count - 1]->ReloadComplete) _variableList[_variableList->Count - 1]->WaitForReloadCompleted();
+			return _className != ""; //_className is empty if handle could not be created
+		}
 		else
 		{
 			void* handle = GetRawHandle();

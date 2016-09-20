@@ -76,6 +76,7 @@ namespace AutomationX
 
 		// {{{ Properties
 		bool _events = false;
+		bool _cleanUp = false;
 		AxInstance^ _instance = nullptr;
 		String^ _name = "";
 		String^ _path = "";
@@ -135,6 +136,8 @@ namespace AutomationX
 		void InvokeGetEnumText(ManualResetEvent^ resetEvent, Int32 enumIndex);
 		//}}}
 	internal:
+
+		/* Before making the constructor public, all references to AxVariable need to be removed from the Ax class. */
 		/// <summary>Concstructor.</summary>
 		/// <param name="instance">The instance the variable belongs to.</param>
 		/// <param name="name">The name of the variable.</param>
@@ -147,6 +150,8 @@ namespace AutomationX
 		void RaiseArrayValueChanged(UInt16 index);
 		void ReloadStaticProperties(bool wait);
 		void WaitForReloadCompleted();
+		void SetCleanUp() { _cleanUp = true; }
+		bool SpsIdChanged();
 	public:
 		delegate void ValueChangedEventHandler(AxVariable^ sender);
 		delegate void ArrayValueChangedEventHandler(AxVariable^ sender, UInt16 index);
@@ -156,6 +161,9 @@ namespace AutomationX
 
 		/// <summary>Fired when the value of an array element is changed in aX. Only raised, after "EnableVariableEvents" has been called on the variable's instance object or after manually calling "Refresh".</summary>
 		event ArrayValueChangedEventHandler^ ArrayValueChanged;
+
+		/// <summary>Returns true if the variable does not exist anymore.</summary>
+		property bool CleanUp { bool get() { return _cleanUp; } }
 
 		/// <summary>Set to true to enable checking this variable for changes.</summary>
 		property bool Events { bool get(); void set(bool value); }
@@ -188,7 +196,7 @@ namespace AutomationX
 		property UInt16 Length { UInt16 get() { return _length; } }
 
 		/// <summary>Gets the number of decimal places of a variable of type REAL.</summary>
-		property Int32 DecimalPoints { Int32 get() { return _decimalPoints; } }
+		property Int32 DecimalPoints { Int32 get() { return _type == AxVariableType::axReal ? _decimalPoints : 0; } }
 
 		/// <summary>Gets the dimension of a variable.</summary>
 		property String^ Dimension { String^ get() { return _dimension; } }

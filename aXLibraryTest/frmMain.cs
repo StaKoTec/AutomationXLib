@@ -14,6 +14,7 @@ namespace aXLibraryTest
     public partial class frmMain : Form
     {
         delegate void SetTextCallback(string text);
+        delegate void NoParameterCallback();
         Ax _aX = null;
         Dictionary<String, AxInstance> _instances;
         AxInstance _currentInstance = null;
@@ -32,7 +33,36 @@ namespace aXLibraryTest
 
                 _aX = new Ax(20);
                 _aX.ShuttingDown += _aX_OnShutdown;
-                //_aX.SpsIdChanged += _aX_OnSpsIdChanged;
+                _aX.SpsIdChangedBefore += _aX_SpsIdChangedBefore;
+                _aX.SpsIdChangedAfter += _aX_OnSpsIdChangedAfter;
+
+                /* Destruktor-Test */
+                for (Int32 i = 0; i < 100; i++)
+                {
+                    AxInstance newInstance = new AxInstance(_aX, "HomeGear");
+                    newInstance.VariableValueChanged += variable_OnValueChanged;
+                    newInstance.ArrayValueChanged += variable_OnArrayValueChanged;
+
+                    AxVariable[] variables = newInstance.Variables;
+                    foreach (AxVariable variable in variables)
+                    {
+                        variable.Events = true;
+                    }
+
+                    AxInstance[] subinstances = newInstance.Subinstances;
+                    foreach (AxInstance subinstance in subinstances)
+                    {
+                        subinstance.VariableValueChanged += variable_OnValueChanged;
+                        subinstance.ArrayValueChanged += variable_OnArrayValueChanged;
+                        _instances.Add(subinstance.Path, subinstance);
+                        variables = subinstance.Variables;
+                        foreach (AxVariable variable in variables)
+                        {
+                            variable.Events = true;
+                        }
+                    }
+                }
+                /* Test Ende */
             }
             catch (Exception ex)
             {
@@ -41,9 +71,57 @@ namespace aXLibraryTest
             }
         }
 
-        void _aX_OnSpsIdChanged(Ax sender)
+        void _aX_SpsIdChangedBefore(Ax sender)
+        {
+            WriteLog("SPS ID is changing.");
+        }
+
+        void _aX_OnSpsIdChangedAfter(Ax sender)
         {
             WriteLog("SPS ID has changed.");
+            List<KeyValuePair<String, AxInstance>> instancesToRemove = new List<KeyValuePair<String, AxInstance>>();
+            List<KeyValuePair<String, AxInstance>> instancesToReload = new List<KeyValuePair<String, AxInstance>>();
+            foreach(KeyValuePair<String, AxInstance> pair in _instances)
+            {
+                if (pair.Value.CleanUp) instancesToRemove.Add(pair);
+                else if (pair.Value.ReloadRequired) instancesToReload.Add(pair);
+            }
+            foreach (KeyValuePair<String, AxInstance> instance in instancesToRemove)
+            {
+                instance.Value.VariableValueChanged -= variable_OnValueChanged;
+                instance.Value.ArrayValueChanged -= variable_OnArrayValueChanged;
+                _instances.Remove(instance.Key);
+            }
+            foreach (KeyValuePair<String, AxInstance> instance in instancesToReload)
+            {
+                instance.Value.VariableValueChanged -= variable_OnValueChanged;
+                instance.Value.ArrayValueChanged -= variable_OnArrayValueChanged;
+                _instances.Remove(instance.Key);
+                AxInstance newInstance = new AxInstance(_aX, instance.Key);
+                _instances.Add(instance.Key, newInstance);
+                newInstance.VariableValueChanged += variable_OnValueChanged;
+                newInstance.ArrayValueChanged += variable_OnArrayValueChanged;
+
+                AxVariable[] variables = newInstance.Variables;
+                foreach (AxVariable variable in variables)
+                {
+                    variable.Events = true;
+                }
+
+                AxInstance[] subinstances = newInstance.Subinstances;
+                foreach (AxInstance subinstance in subinstances)
+                {
+                    subinstance.VariableValueChanged += variable_OnValueChanged;
+                    subinstance.ArrayValueChanged += variable_OnArrayValueChanged;
+                    _instances.Add(subinstance.Path, subinstance);
+                    variables = subinstance.Variables;
+                    foreach (AxVariable variable in variables)
+                    {
+                        variable.Events = true;
+                    }
+                }
+            }
+            updateTreeView();
         }
 
         void WriteLog(String text)
@@ -71,30 +149,63 @@ namespace aXLibraryTest
 
         }
 
-        List<AxInstance> bla = new List<AxInstance>();
+        private void updateTreeView()
+        {
+            if (tvInstances.InvokeRequired)
+            {
+                NoParameterCallback d = new NoParameterCallback(updateTreeView);
+                this.Invoke(d);
+            }
+            else
+            {
+                tvInstances.Nodes.Clear();
+                pInstance.Visible = false;
+                pVariable.Visible = false;
+                tvInstances.BeginUpdate();
+                foreach (KeyValuePair<String, AxInstance> pair in _instances)
+                {
+                    TreeNode node = new TreeNode(pair.Key);
+                    AxVariable[] variables = pair.Value.Variables;
+                    foreach (AxVariable variable in variables)
+                    {
+                        TreeNode variableNode = new TreeNode(variable.Name);
+                        if (variable.IsArray)
+                        {
+                            for (int i = 0; i < variable.Length; i++)
+                            {
+                                variableNode.Nodes.Add(i.ToString());
+                            }
+                        }
+                        node.Nodes.Add(variableNode);
+                    }
+                    tvInstances.Nodes.Add(node);
+
+                    AxInstance[] subinstances = pair.Value.Subinstances;
+                    foreach (AxInstance subinstance in subinstances)
+                    {
+                        node = new TreeNode(subinstance.Path);
+                        variables = subinstance.Variables;
+                        foreach (AxVariable variable in variables)
+                        {
+                            TreeNode variableNode = new TreeNode(variable.Name);
+                            if (variable.IsArray)
+                            {
+                                for (int i = 0; i < variable.Length; i++)
+                                {
+                                    variableNode.Nodes.Add(i.ToString());
+                                }
+                            }
+                            node.Nodes.Add(variableNode);
+                        }
+                        tvInstances.Nodes.Add(node);
+                    }
+                }
+                tvInstances.EndUpdate();
+            }
+        }
+
         private void bnSetClassName_Click(object sender, EventArgs e)
         {
-            DateTime startTime = DateTime.Now;
-            for (Int32 indexx = 0; indexx < 1000; indexx++)
-            {
-                AxInstance temp = new AxInstance(_aX, "HomeGear", false);
-                bla.Add(temp);
-            }
-            bla.Last().WaitForInitCompleted();
-            foreach(AxInstance temp in bla)
-            {
-                temp.VariableValueChanged += variable_OnValueChanged;
-                temp.ArrayValueChanged += variable_OnArrayValueChanged;
-                AxVariable[] variables = temp.Variables;
-                foreach (AxVariable variable in variables)
-                {
-                    variable.Events = true;
-                }
-            }
-
-            bla.Last()["testvar"].Set("Hallo Welt2");
-            MessageBox.Show(this, "Done " + DateTime.Now.Subtract(startTime).TotalMilliseconds.ToString() + " " + bla.Last()["testvar"].Type.ToString());
-            MessageBox.Show(this, _aX.VariablesToPollCount.ToString());
             if (_instances != null)
             {
                 foreach (KeyValuePair<String, AxInstance> instance in _instances)
@@ -111,32 +222,17 @@ namespace aXLibraryTest
             if (instanceNames.Count == 0) MessageBox.Show(this, "No instances with the specified class name were found.", "No instances", MessageBoxButtons.OK, MessageBoxIcon.Information);
             instanceNames.Sort();
             _instances = new Dictionary<String, AxInstance>();
-            tvInstances.Nodes.Clear();
-            pInstance.Visible = false;
-            pVariable.Visible = false;
-            tvInstances.BeginUpdate();
             foreach (String name in instanceNames)
             {
                 AxInstance instance = new AxInstance(_aX, name);
                 instance.VariableValueChanged += variable_OnValueChanged;
                 instance.ArrayValueChanged += variable_OnArrayValueChanged;
                 _instances.Add(name, instance);
-                TreeNode node = new TreeNode(name);
                 AxVariable[] variables = instance.Variables;
                 foreach (AxVariable variable in variables)
                 {
                     variable.Events = true;
-                    TreeNode variableNode = new TreeNode(variable.Name);
-                    if (variable.IsArray)
-                    {
-                        for (int i = 0; i < variable.Length; i++)
-                        {
-                            variableNode.Nodes.Add(i.ToString());
-                        }
-                    }
-                    node.Nodes.Add(variableNode);
                 }
-                tvInstances.Nodes.Add(node);
 
                 AxInstance[] subinstances = instance.Subinstances;
                 foreach (AxInstance subinstance in subinstances)
@@ -144,25 +240,14 @@ namespace aXLibraryTest
                     subinstance.VariableValueChanged += variable_OnValueChanged;
                     subinstance.ArrayValueChanged += variable_OnArrayValueChanged;
                     _instances.Add(subinstance.Path, subinstance);
-                    node = new TreeNode(subinstance.Path);
                     variables = subinstance.Variables;
                     foreach (AxVariable variable in variables)
                     {
                         variable.Events = true;
-                        TreeNode variableNode = new TreeNode(variable.Name);
-                        if (variable.IsArray)
-                        {
-                            for (int i = 0; i < variable.Length; i++)
-                            {
-                                variableNode.Nodes.Add(i.ToString());
-                            }
-                        }
-                        node.Nodes.Add(variableNode);
                     }
-                    tvInstances.Nodes.Add(node);
                 }
             }
-            tvInstances.EndUpdate();
+            updateTreeView();
         }
 
         void instance_OnStatus(AxInstance sender, string statusText)
@@ -392,6 +477,11 @@ namespace aXLibraryTest
             UInt32 interval = 100;
             UInt32.TryParse(txtCycleTime.Text, out interval);
             _aX.CycleTime = interval;
+        }
+
+        private void frmMain_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            _aX.Dispose();
         }
     }
 }

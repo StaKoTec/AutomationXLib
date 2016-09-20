@@ -17,8 +17,11 @@ namespace AutomationX
 		AxVariable::ArrayValueChangedEventHandler^ _arrayValueChangedDelegate = nullptr;
 		ManualResetEvent^ _initResetEvent = gcnew ManualResetEvent(false);
 		bool _initComplete = false;
+		Object^ _spsIdChangedMutex = gcnew Object();
+		UInt32 _spsIdChangedCallbackId = 0;
 
 		//{{{ Properties
+			bool _reloadRequired = false;
 			bool _cleanUp = false;
 			String^ _name = "";
 			String^ _className = "";
@@ -34,6 +37,7 @@ namespace AutomationX
 
 		//{{{ Queueable methods
 			delegate void NoParameterDelegate();
+			delegate bool NoParameterReturnBoolDelegate();
 			delegate void ResetEventParameterDelegate(ManualResetEvent^ resetEvent);
 
 			void InvokeGetClassName();
@@ -84,9 +88,13 @@ namespace AutomationX
 		void OnValueChanged(AxVariable^ sender);
 
 		void OnArrayValueChanged(AxVariable^ sender, UInt16 index);
+
+		bool SpsIdChanged();
 	internal:
 		property Ax^ AxObject { Ax^ get() { return _ax; }; }
 		bool ReloadStaticProperties(bool wait);
+		void SetReloadRequired();
+		void SetCleanUp();
 	public:
 		/// <summary>Fired when the value of one the instance's a variable is changed in aX. Only raised, after "VariableEvents" has been enabled or after manually calling "Refresh".</summary>
 		event AxVariable::ValueChangedEventHandler^ VariableValueChanged;
@@ -94,7 +102,11 @@ namespace AutomationX
 		/// <summary>Fired when the value of an array element is changed in aX. Only raised, after "VariableEvents" has been enabled or after manually calling "Refresh".</summary>
 		event AxVariable::ArrayValueChangedEventHandler^ ArrayValueChanged;
 
-		property bool CleanUp { bool get() { return _cleanUp; }; void set(bool value) { _cleanUp = value; }; }
+		/// <summary>Returns true if the instance needs to be recreated.</summary>
+		property bool ReloadRequired { bool get() { return _reloadRequired; } }
+
+		/// <summary>Returns true if the instance does not exist anymore.</summary>
+		property bool CleanUp { bool get() { return _cleanUp; }; }
 		property String^ Name { String^ get() { return _name; }; }
 		property String^ Path { String^ get() { if (_parent) return _parent->Path + "." + _name; else return _name; } }
 		property String^ ClassName { String^ get() { return _className; }; }

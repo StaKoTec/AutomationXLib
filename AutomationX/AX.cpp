@@ -45,6 +45,7 @@ namespace AutomationX
 
 	Ax::!Ax()
 	{
+		if (_spsIdChangedThread) _spsIdChangedThread->Join();
 		_stopEventThreads = true;
 		_stopWorkerThread = true;
 		if(_workerThread) _workerThread->Join();
@@ -174,13 +175,38 @@ namespace AutomationX
 
 		void Ax::RemoveVariableToPoll(UInt32 id)
 		{
+			if (id == 0) return;
 			QueueInitFunction(Binder::Bind(gcnew RemoveVariableToPollDelegate(this, &Ax::InvokeRemoveVariableToPoll), id));
 		}
 	//}}}
 
+	UInt32 Ax::AddSpsIdChangedInstanceCallback(System::Action^ function)
+	{
+		UInt32 id = 0;
+		{
+			Lock spsIdChangedInstanceIdGuard(_spsIdChangedInstanceIdMutex);
+			while (id == 0) id = _spsIdChangedInstanceId++;
+		}
+		Lock spsIdChangedInstanceCallbacksGuard(_spsIdChangedInstanceCallbacksMutex);
+		_spsIdChangedInstanceCallbacks->Add(id, function);
+		return id;
+	}
+	
+	void Ax::RemoveSpsIdChangedInstanceCallback(UInt32 id)
+	{
+		if (id == 0) return;
+		Lock spsIdChangedInstanceCallbacksGuard(_spsIdChangedInstanceCallbacksMutex);
+		_spsIdChangedInstanceCallbacks->Remove(id);
+	}
+
 	bool Ax::SpsIdChanged()
 	{
 		return AxHasSpsIdChanged(_spsId) == 1;
+	}
+
+	void Ax::SpsIdChangedThread()
+	{
+		SpsIdChangedAfter(this);
 	}
 
 	void Ax::EventWorker()
@@ -218,8 +244,23 @@ namespace AutomationX
 
 			if (spsIdChanged)
 			{
-				//Handle spsIdChanged
 				spsIdChanged = false;
+				SpsIdChangedBefore(this);
+				array<System::Action^>^ callbacks = nullptr;
+				{
+					Lock spsIdChangedInstanceCallbacksGuard(_spsIdChangedInstanceCallbacksMutex);
+					callbacks = gcnew array<System::Action^>(_spsIdChangedInstanceCallbacks->Values->Count);
+					_spsIdChangedInstanceCallbacks->Values->CopyTo(callbacks, 0);
+				}
+
+				for each (System::Action^ callback in callbacks)
+				{
+					if (callback) callback();
+				}
+
+				if (_spsIdChangedThread) _spsIdChangedThread->Join();
+				_spsIdChangedThread = gcnew Thread(gcnew ThreadStart(this, &Ax::SpsIdChangedThread));
+				_spsIdChangedThread->Start();
 			}
 
 			while (_initQueue.Count > 0)

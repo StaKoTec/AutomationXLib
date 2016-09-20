@@ -1,6 +1,5 @@
-Aufruf von AddVariableToPoll zu langsam
 GetEnumRemark
 GetGlobalEnums
-MinScale, MaxScale
-Aufräumen
-SpsIdChanged
+MinScale, MaxScale => String length?
+
+Destruktor wird noch nicht automatisch aufgerufen
