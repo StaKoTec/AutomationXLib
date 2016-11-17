@@ -81,11 +81,11 @@ namespace AutomationX
 		return true;
 	}
 
-	void AxVariable::RaiseValueChanged()
+	void AxVariable::RaiseValueChanged(AxVariableValue^ value, DateTime timestamp)
 	{
 		try
 		{
-			ValueChanged(this);
+			ValueChanged(this, value, timestamp);
 		}
 		catch (Exception^ ex)
 		{
@@ -93,11 +93,11 @@ namespace AutomationX
 		}
 	}
 
-	void AxVariable::RaiseArrayValueChanged(UInt16 index)
+	void AxVariable::RaiseArrayValueChanged(UInt16 index, AxVariableValue^ value, DateTime timestamp)
 	{
 		try
 		{
-			ArrayValueChanged(this, index);
+			ArrayValueChanged(this, index, value, timestamp);
 		}
 		catch (Exception^ ex)
 		{
@@ -153,10 +153,22 @@ namespace AutomationX
 		if (result) _type = (AxVariableType)data.ucVarType;
 		else _type = AxVariableType::axUndefined;
 
-		if (_type == AxVariableType::axBool || _type == AxVariableType::axAlarm) _boolValues = System::Linq::Enumerable::ToList(System::Linq::Enumerable::Repeat(false, _length));
-		else if (_type == AxVariableType::axByte || _type == AxVariableType::axUnsignedShortInteger || _type == AxVariableType::axShortInteger || _type == AxVariableType::axInteger || _type == AxVariableType::axLongInteger || _type == AxVariableType::axUnsignedInteger || _type == AxVariableType::axUnsignedLongInteger) _integerValues = System::Linq::Enumerable::ToList(System::Linq::Enumerable::Repeat((Int32)0, _length));
-		else if (_type == AxVariableType::axReal || _type == AxVariableType::axLongReal) _realValues = System::Linq::Enumerable::ToList(System::Linq::Enumerable::Repeat((Double)0, _length));
-		else if (_type == AxVariableType::axString) _stringValues = System::Linq::Enumerable::ToList(System::Linq::Enumerable::Repeat(gcnew String(""), _length));
+		if (_type == AxVariableType::axBool || _type == AxVariableType::axAlarm)
+		{
+			if(!_boolValues || _boolValues->Count != _length) _boolValues = System::Linq::Enumerable::ToList(System::Linq::Enumerable::Repeat(false, _length));
+		}
+		else if (_type == AxVariableType::axByte || _type == AxVariableType::axUnsignedShortInteger || _type == AxVariableType::axShortInteger || _type == AxVariableType::axInteger || _type == AxVariableType::axLongInteger || _type == AxVariableType::axUnsignedInteger || _type == AxVariableType::axUnsignedLongInteger)
+		{
+			if (!_integerValues || _integerValues->Count != _length) _integerValues = System::Linq::Enumerable::ToList(System::Linq::Enumerable::Repeat((Int32)0, _length));
+		}
+		else if (_type == AxVariableType::axReal || _type == AxVariableType::axLongReal)
+		{
+			if (!_realValues || _realValues->Count != _length) _realValues = System::Linq::Enumerable::ToList(System::Linq::Enumerable::Repeat((Double)0, _length));
+		}
+		else if (_type == AxVariableType::axString)
+		{
+			if (!_stringValues || _stringValues->Count != _length) _stringValues = System::Linq::Enumerable::ToList(System::Linq::Enumerable::Repeat(gcnew String(""), _length));
+		}
 	}
 
 	void AxVariable::GetType()
@@ -354,9 +366,9 @@ namespace AutomationX
 			for (UInt16 i = 0; i < _length; i++)
 			{
 				if (_isArray) AxGetArray(_execData, &data, i); else AxGet(_execData, &data);
-				if (data.AXVAL.btREAL != (Single)_realValues[i])
+				if ((double)data.AXVAL.btREAL != _realValues[i])
 				{
-					_realValues[i] = (Single)data.AXVAL.btREAL;
+					_realValues[i] = data.AXVAL.btREAL;
 					changedIndexes->Add(i);
 				}
 			}
@@ -582,7 +594,7 @@ namespace AutomationX
 				data.ucVarType = (unsigned char)_type;
 				for each (UInt16 index in _changedIndexes)
 				{
-					data.AXVAL.btREAL = (Single)_realValues[index];
+					data.AXVAL.btREAL = (float)_realValues[index];
 					AxSetArray(_execData, &data, index);
 				}
 				_changedIndexes->Clear();
@@ -591,7 +603,7 @@ namespace AutomationX
 			{
 				struct tagAxVariant data;
 				data.ucVarType = (unsigned char)_type;
-				data.AXVAL.btREAL = (Single)_realValues[0];
+				data.AXVAL.btREAL = (float)_realValues[0];
 				AxSet(_execData, &data);
 			}
 		}
@@ -642,6 +654,102 @@ namespace AutomationX
 
 		_changed = false;
 	}
+
+	//{{{ AxVariableValue
+		AxVariableValue^ AxVariable::GetValue()
+		{
+			if (_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is an array. Please specify the element index.");
+			AxVariableValue^ value = gcnew AxVariableValue();
+			value->Type = _type;
+			switch (_type)
+			{
+			case AxVariableType::axAlarm:
+				value->BoolValue = _boolValues[0];
+				break;
+			case AxVariableType::axBool:
+				value->BoolValue = _boolValues[0];
+				break;
+			case AxVariableType::axByte:
+				value->ByteValue = (unsigned char)_integerValues[0];
+				break;
+			case AxVariableType::axInteger:
+				value->IntegerValue = (Int16)_integerValues[0];
+				break;
+			case AxVariableType::axLongInteger:
+				value->LongIntegerValue = _integerValues[0];
+				break;
+			case AxVariableType::axLongReal:
+				value->LongRealValue = _realValues[0];
+				break;
+			case AxVariableType::axReal:
+				value->RealValue = (Single)_realValues[0];
+				break;
+			case AxVariableType::axShortInteger:
+				value->ShortIntegerValue = (unsigned char)_integerValues[0];
+				break;
+			case AxVariableType::axString:
+				value->StringValue = _stringValues[0];
+				break;
+			case AxVariableType::axUnsignedInteger:
+				value->UnsignedIntegerValue = (UInt16)_integerValues[0];
+				break;
+			case AxVariableType::axUnsignedLongInteger:
+				value->UnsignedLongIntegerValue = (UInt32)_integerValues[0];
+				break;
+			case AxVariableType::axUnsignedShortInteger:
+				value->UnsignedShortIntegerValue = (unsigned char)_integerValues[0];
+				break;
+			}
+			return value;
+		}
+
+		AxVariableValue^ AxVariable::GetValue(UInt16 index)
+		{
+			if (!_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is no array.");
+			AxVariableValue^ value = gcnew AxVariableValue();
+			value->Type = _type;
+			switch (_type)
+			{
+			case AxVariableType::axAlarm:
+				value->BoolValue = _boolValues[index];
+				break;
+			case AxVariableType::axBool:
+				value->BoolValue = _boolValues[index];
+				break;
+			case AxVariableType::axByte:
+				value->ByteValue = (unsigned char)_integerValues[index];
+				break;
+			case AxVariableType::axInteger:
+				value->IntegerValue = (Int16)_integerValues[index];
+				break;
+			case AxVariableType::axLongInteger:
+				value->LongIntegerValue = _integerValues[index];
+				break;
+			case AxVariableType::axLongReal:
+				value->LongRealValue = _realValues[index];
+				break;
+			case AxVariableType::axReal:
+				value->RealValue = (Single)_realValues[index];
+				break;
+			case AxVariableType::axShortInteger:
+				value->ShortIntegerValue = (unsigned char)_integerValues[index];
+				break;
+			case AxVariableType::axString:
+				value->StringValue = _stringValues[index];
+				break;
+			case AxVariableType::axUnsignedInteger:
+				value->UnsignedIntegerValue = (UInt16)_integerValues[index];
+				break;
+			case AxVariableType::axUnsignedLongInteger:
+				value->UnsignedLongIntegerValue = (UInt32)_integerValues[index];
+				break;
+			case AxVariableType::axUnsignedShortInteger:
+				value->UnsignedShortIntegerValue = (unsigned char)_integerValues[index];
+				break;
+			}
+			return value;
+		}
+	//}}}
 
 	//{{{ BOOL
 		bool AxVariable::GetBool()

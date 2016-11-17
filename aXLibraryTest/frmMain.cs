@@ -32,43 +32,21 @@ namespace aXLibraryTest
                 pVariable.Visible = false;
 
                 _aX = new Ax(20);
+                _aX.OnError += _aX_OnError;
                 _aX.ShuttingDown += _aX_OnShutdown;
                 _aX.SpsIdChangedBefore += _aX_SpsIdChangedBefore;
                 _aX.SpsIdChangedAfter += _aX_OnSpsIdChangedAfter;
-
-                /* Destruktor-Test */
-                for (Int32 i = 0; i < 100; i++)
-                {
-                    AxInstance newInstance = new AxInstance(_aX, "HomeGear");
-                    newInstance.VariableValueChanged += variable_OnValueChanged;
-                    newInstance.ArrayValueChanged += variable_OnArrayValueChanged;
-
-                    AxVariable[] variables = newInstance.Variables;
-                    foreach (AxVariable variable in variables)
-                    {
-                        variable.Events = true;
-                    }
-
-                    AxInstance[] subinstances = newInstance.Subinstances;
-                    foreach (AxInstance subinstance in subinstances)
-                    {
-                        subinstance.VariableValueChanged += variable_OnValueChanged;
-                        subinstance.ArrayValueChanged += variable_OnArrayValueChanged;
-                        _instances.Add(subinstance.Path, subinstance);
-                        variables = subinstance.Variables;
-                        foreach (AxVariable variable in variables)
-                        {
-                            variable.Events = true;
-                        }
-                    }
-                }
-                /* Test Ende */
             }
             catch (Exception ex)
             {
                 MessageBox.Show(this, ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
                 Environment.Exit(1);
             }
+        }
+
+        void _aX_OnError(Ax sender, uint errorId, string errorMessage)
+        {
+            WriteLog("Error: " + errorMessage);
         }
 
         void _aX_SpsIdChangedBefore(Ax sender)
@@ -88,14 +66,12 @@ namespace aXLibraryTest
             }
             foreach (KeyValuePair<String, AxInstance> instance in instancesToRemove)
             {
-                instance.Value.VariableValueChanged -= variable_OnValueChanged;
-                instance.Value.ArrayValueChanged -= variable_OnArrayValueChanged;
+                instance.Value.Dispose();
                 _instances.Remove(instance.Key);
             }
             foreach (KeyValuePair<String, AxInstance> instance in instancesToReload)
             {
-                instance.Value.VariableValueChanged -= variable_OnValueChanged;
-                instance.Value.ArrayValueChanged -= variable_OnArrayValueChanged;
+                instance.Value.Dispose();
                 _instances.Remove(instance.Key);
                 AxInstance newInstance = new AxInstance(_aX, instance.Key);
                 _instances.Add(instance.Key, newInstance);
@@ -210,9 +186,7 @@ namespace aXLibraryTest
             {
                 foreach (KeyValuePair<String, AxInstance> instance in _instances)
                 {
-                    instance.Value.VariableValueChanged -= variable_OnValueChanged;
-                    instance.Value.ArrayValueChanged -= variable_OnArrayValueChanged;
-                    instance.Value.Dispose();
+                    if (instance.Value != null) instance.Value.Dispose();
                 }
             }
             if (txtClassName.Text.Length == 0) return;
@@ -260,14 +234,15 @@ namespace aXLibraryTest
             MessageBox.Show(this, sender.Name + " says: " + errorText, "Error", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
         }
 
-        void variable_OnArrayValueChanged(AxVariable sender, ushort index)
+        void variable_OnArrayValueChanged(AxVariable sender, ushort index, AxVariableValue value, DateTime timestamp)
         {
-            //WriteLog("Array element with name \"" + sender.Name + "\" of instance \"" + sender.Instance.Name + "\" with index " + index.ToString() + " changed to: " + GetValueString(sender, index));
+            WriteLog("Array element with name \"" + sender.Name + "\" of instance \"" + sender.Instance.Name + "\" with index " + index.ToString() + " changed to: " + GetValueString(value));
         }
 
-        void variable_OnValueChanged(AxVariable sender)
+        void variable_OnValueChanged(AxVariable sender, AxVariableValue value, DateTime timestamp)
         {
-            //WriteLog("Variable \"" + sender.Name + "\" of instance \"" + sender.Instance.Name + "\" changed to: " + GetValueString(sender, -1));
+            WriteLog("Variable \"" + sender.Name + "\" of instance \"" + sender.Instance.Name + "\" changed to: " + GetValueString(value));
+            if(sender.Name == "systemuptime") sender.Instance["systemuptime1"].Set(value.IntegerValue);
         }
 
         private String GetValueString(AxVariable variable, int index)
@@ -313,6 +288,51 @@ namespace aXLibraryTest
                     break;
             }
             return value;
+        }
+
+        private String GetValueString(AxVariableValue value)
+        {
+            String stringValue = "";
+            switch (value.Type)
+            {
+                case AxVariableType.axAlarm:
+                    stringValue = value.BoolValue.ToString();
+                    break;
+                case AxVariableType.axBool:
+                    stringValue = value.BoolValue.ToString();
+                    break;
+                case AxVariableType.axByte:
+                    stringValue = value.ByteValue.ToString();
+                    break;
+                case AxVariableType.axInteger:
+                    stringValue = value.IntegerValue.ToString();
+                    break;
+                case AxVariableType.axLongInteger:
+                    stringValue = value.LongIntegerValue.ToString();
+                    break;
+                case AxVariableType.axLongReal:
+                    stringValue = value.LongRealValue.ToString();
+                    break;
+                case AxVariableType.axReal:
+                    stringValue = value.RealValue.ToString();
+                    break;
+                case AxVariableType.axShortInteger:
+                    stringValue = value.ShortIntegerValue.ToString();
+                    break;
+                case AxVariableType.axString:
+                    stringValue = value.StringValue.ToString();
+                    break;
+                case AxVariableType.axUnsignedInteger:
+                    stringValue = value.UnsignedIntegerValue.ToString();
+                    break;
+                case AxVariableType.axUnsignedLongInteger:
+                    stringValue = value.UnsignedLongIntegerValue.ToString();
+                    break;
+                case AxVariableType.axUnsignedShortInteger:
+                    stringValue = value.UnsignedShortIntegerValue.ToString();
+                    break;
+            }
+            return stringValue;
         }
 
         private void tvInstances_AfterSelect(object sender, TreeViewEventArgs e)
@@ -474,7 +494,7 @@ namespace aXLibraryTest
 
         private void txtCycleTime_TextChanged(object sender, EventArgs e)
         {
-            UInt32 interval = 100;
+            UInt32 interval = 1;
             UInt32.TryParse(txtCycleTime.Text, out interval);
             _aX.CycleTime = interval;
         }

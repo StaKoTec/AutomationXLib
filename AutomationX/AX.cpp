@@ -145,8 +145,13 @@ namespace AutomationX
 
 		void Ax::InvokeAddVariableToPoll(UInt32 id, AxVariable^ value)
 		{
-			_variablesToPoll->Add(id, value);
-			_variablesToPollCount += value->Length;
+			Lock variablesToPollGuard(_variablesToPollMutex);
+			Lock variablesToAddGuard(_variablesToAddMutex);
+			if (_variablesToAdd->Contains(id))
+			{
+				_variablesToPoll->Add(id, value);
+				_variablesToPollCount += value->Length;
+			}
 		}
 
 		UInt32 Ax::AddVariableToPoll(AxVariable^ value)
@@ -158,12 +163,16 @@ namespace AutomationX
 				while (id == 0) id = _variablesToPollId++;
 			}
 
+			{
+				Lock variablesToAddGuard(_variablesToAddMutex);
+				_variablesToAdd->Add(id);
+			}
 			QueueInitFunction(Binder::Bind(gcnew AddVariableToPollDelegate(this, &Ax::InvokeAddVariableToPoll), id, value));
 			
 			return id;
 		}
 
-		void Ax::InvokeRemoveVariableToPoll(UInt32 id)
+		/*void Ax::InvokeRemoveVariableToPoll(UInt32 id)
 		{
 			if (id == 0) return;
 			if (_variablesToPoll->ContainsKey(id))
@@ -171,12 +180,22 @@ namespace AutomationX
 				_variablesToPollCount -= _variablesToPoll[id]->Length;
 				_variablesToPoll->Remove(id);
 			}
-		}
+		}*/
 
 		void Ax::RemoveVariableToPoll(UInt32 id)
 		{
 			if (id == 0) return;
-			QueueInitFunction(Binder::Bind(gcnew RemoveVariableToPollDelegate(this, &Ax::InvokeRemoveVariableToPoll), id));
+			Lock variablesToPollGuard(_variablesToPollMutex);
+			{
+				Lock variablesToAddGuard(_variablesToAddMutex);
+				if (_variablesToAdd->Contains(id)) _variablesToAdd->Remove(id);
+			}
+			if (_variablesToPoll->ContainsKey(id))
+			{
+				_variablesToPollCount -= _variablesToPoll[id]->Length;
+				_variablesToPoll->Remove(id);
+			}
+			//QueueInitFunction(Binder::Bind(gcnew RemoveVariableToPollDelegate(this, &Ax::InvokeRemoveVariableToPoll), id));
 		}
 	//}}}
 
@@ -214,13 +233,22 @@ namespace AutomationX
 		while (!_stopEventThreads)
 		{
 			if(!_eventResetEvent->WaitOne(1000, false)) continue;
-			while (_eventQueue.Count > 0 && !_stopEventThreads)
+			while (!_eventQueue.IsEmpty && !_stopEventThreads)
 			{
-				AxVariableEventData^ eventData;
-				if (_eventQueue.TryDequeue(eventData))
+				try
 				{
-					if (eventData->Variable->IsArray) eventData->Variable->RaiseArrayValueChanged(eventData->Index);
-					else eventData->Variable->RaiseValueChanged();
+					AxVariableEventData^ eventData;
+					if (_eventQueue.TryDequeue(eventData))
+					{
+						TimeSpan processingTime = DateTime::Now - eventData->Timestamp;
+						if (processingTime.TotalSeconds >= 0) OnError(this, 3, "Event processing took " + processingTime.TotalSeconds.ToString("0.00") + " seconds.");
+						if (eventData->Variable->IsArray) eventData->Variable->RaiseArrayValueChanged(eventData->Index, eventData->Value, eventData->Timestamp);
+						else eventData->Variable->RaiseValueChanged(eventData->Value, eventData->Timestamp);
+					}
+				}
+				catch (Exception^ ex)
+				{
+					OnError(this, 4, ex->Message + " " + ex->StackTrace);
 				}
 			}
 		}
@@ -235,81 +263,100 @@ namespace AutomationX
 
 		while (!_stopWorkerThread)
 		{
-			time = DateTime::Now;
-			if (AxShutdownEvent() || !AxIsRunning())
+			try
 			{
-				ShuttingDown(this);
-				break;
-			}
-
-			if (spsIdChanged)
-			{
-				spsIdChanged = false;
-				SpsIdChangedBefore(this);
-				array<System::Action^>^ callbacks = nullptr;
+				time = DateTime::Now;
+				if (AxShutdownEvent() || !AxIsRunning())
 				{
-					Lock spsIdChangedInstanceCallbacksGuard(_spsIdChangedInstanceCallbacksMutex);
-					callbacks = gcnew array<System::Action^>(_spsIdChangedInstanceCallbacks->Values->Count);
-					_spsIdChangedInstanceCallbacks->Values->CopyTo(callbacks, 0);
+					ShuttingDown(this);
+					break;
 				}
 
-				for each (System::Action^ callback in callbacks)
+				if (spsIdChanged)
 				{
-					if (callback) callback();
-				}
-
-				if (_spsIdChangedThread) _spsIdChangedThread->Join();
-				_spsIdChangedThread = gcnew Thread(gcnew ThreadStart(this, &Ax::SpsIdChangedThread));
-				_spsIdChangedThread->Start();
-			}
-
-			while (_initQueue.Count > 0)
-			{
-				spsIdChanged = SpsIdChanged();
-				if (spsIdChanged) break;
-				
-				if (_initQueue.TryDequeue(action) && action) action();
-			}
-			
-			if (spsIdChanged) continue;
-
-			for each (KeyValuePair<UInt32, AxVariable^>^ pair in _variablesToPoll)
-			{
-				spsIdChanged = SpsIdChanged();
-				if (spsIdChanged) break;
-				if (pair->Value->Changed)
-				{
-					pair->Value->Push();
-				}
-				else
-				{
-					List<UInt16>^ changedIndexes = pair->Value->Pull();
-					if (changedIndexes->Count > 0)
+					spsIdChanged = false;
+					SpsIdChangedBefore(this);
+					array<System::Action^>^ callbacks = nullptr;
 					{
-						for each (UInt16 index in changedIndexes)
+						Lock spsIdChangedInstanceCallbacksGuard(_spsIdChangedInstanceCallbacksMutex);
+						callbacks = gcnew array<System::Action^>(_spsIdChangedInstanceCallbacks->Values->Count);
+						_spsIdChangedInstanceCallbacks->Values->CopyTo(callbacks, 0);
+					}
+
+					for each (System::Action^ callback in callbacks)
+					{
+						if (callback) callback();
+					}
+
+					if (_spsIdChangedThread) _spsIdChangedThread->Join();
+					_spsIdChangedThread = gcnew Thread(gcnew ThreadStart(this, &Ax::SpsIdChangedThread));
+					_spsIdChangedThread->Start();
+				}
+
+				while (_initQueue.Count > 0)
+				{
+					spsIdChanged = SpsIdChanged();
+					if (spsIdChanged) break;
+
+					if (_initQueue.TryDequeue(action) && action) action();
+				}
+
+				if (spsIdChanged) continue;
+
+				{
+					Lock variablesToPollGuard(_variablesToPollMutex);
+					for each (KeyValuePair<UInt32, AxVariable^>^ pair in _variablesToPoll)
+					{
+						spsIdChanged = SpsIdChanged();
+						if (spsIdChanged) break;
+						if (pair->Value->Changed)
 						{
-							_eventQueue.Enqueue(gcnew AxVariableEventData(pair->Value, index));
+							pair->Value->Push();
 						}
-						_eventResetEvent->Set();
+						else
+						{
+							List<UInt16>^ changedIndexes = pair->Value->Pull();
+							if (changedIndexes->Count > 0)
+							{
+								for each (UInt16 index in changedIndexes)
+								{
+									if (_eventQueue.Count > 1000000)
+									{
+										OnError(this, 2, "Event queue full. Dropping variable changed events.");
+										continue;
+									}
+									else if (_eventQueue.Count > 500000)
+									{
+										OnError(this, 1, "Event queue almost full.");
+									}
+									_eventQueue.Enqueue(gcnew AxVariableEventData(pair->Value, index, pair->Value->IsArray ? pair->Value->GetValue(index) : pair->Value->GetValue(), DateTime::Now));
+								}
+								_eventResetEvent->Set();
+							}
+						}
 					}
 				}
-			}
 
-			if (spsIdChanged) continue;
-			
-			for (Int32 i = 0; i < 100 && _synchronousQueue.Count > 0; i++)
+				if (spsIdChanged) continue;
+
+				for (Int32 i = 0; i < 100 && _synchronousQueue.Count > 0; i++)
+				{
+					spsIdChanged = SpsIdChanged();
+					if (spsIdChanged) break;
+					if (_synchronousQueue.TryDequeue(action) && action) action();
+				}
+
+				if (spsIdChanged) continue;
+
+				if (_stopWorkerThread) return;
+				_lastCycleTime = (Int32)DateTime::Now.Subtract(time).TotalMilliseconds;
+				timeToSleep = _cycleTime - _lastCycleTime;
+				if (timeToSleep > 0) Threading::Thread::Sleep(timeToSleep);
+			}
+			catch (Exception^ ex)
 			{
-				spsIdChanged = SpsIdChanged();
-				if (spsIdChanged) break;
-				if (_synchronousQueue.TryDequeue(action) && action) action();
+				OnError(this, 5, ex->Message + " " + ex->StackTrace);
 			}
-
-			if (spsIdChanged) continue;
-								
-			if (_stopWorkerThread) return;
-			_lastCycleTime = (Int32)DateTime::Now.Subtract(time).TotalMilliseconds;
-			timeToSleep = _cycleTime - _lastCycleTime;
-			if (timeToSleep > 0) Threading::Thread::Sleep(timeToSleep);
 		}
 	}
 }

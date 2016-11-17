@@ -2,4 +2,4 @@ GetEnumRemark
 GetGlobalEnums
 MinScale, MaxScale => String length?
 
-Destruktor wird noch nicht automatisch aufgerufen
+Ereignisse nicht-existenter Variablen werden noch ausgelöst

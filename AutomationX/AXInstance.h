@@ -85,9 +85,9 @@ namespace AutomationX
 		/// <summary>Gets a raw aX handle. Only call this method if within the main loop!!!</summary>
 		void* GetRawHandle();
 
-		void OnValueChanged(AxVariable^ sender);
+		void OnValueChanged(AxVariable^ sender, AxVariableValue^ value, DateTime timestamp);
 
-		void OnArrayValueChanged(AxVariable^ sender, UInt16 index);
+		void OnArrayValueChanged(AxVariable^ sender, UInt16 index, AxVariableValue^ value, DateTime timestamp);
 
 		bool SpsIdChanged();
 	internal:

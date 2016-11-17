@@ -59,7 +59,6 @@ namespace AutomationX
 
 	AxInstance::!AxInstance()
 	{
-		System::Diagnostics::Debug::WriteLine("Instanzdestruktor Start");
 		_ax->RemoveSpsIdChangedInstanceCallback(_spsIdChangedCallbackId);
 		Lock spsIdChangedGuard(_spsIdChangedMutex);
 		{
@@ -81,7 +80,6 @@ namespace AutomationX
 			_subinstances->Clear();
 		}
 		_ax = nullptr;
-		System::Diagnostics::Debug::WriteLine("Instanzdestruktor Ende");
 	}
 
 	void AxInstance::SetReloadRequired()
@@ -386,13 +384,13 @@ namespace AutomationX
 		return _subinstances->ContainsKey(instanceName);
 	}
 
-	void AxInstance::OnValueChanged(AxVariable ^sender)
+	void AxInstance::OnValueChanged(AxVariable ^sender, AxVariableValue^ value, DateTime timestamp)
 	{
-		VariableValueChanged(sender);
+		VariableValueChanged(sender, value, timestamp);
 	}
 
-	void AxInstance::OnArrayValueChanged(AxVariable ^sender, UInt16 index)
+	void AxInstance::OnArrayValueChanged(AxVariable ^sender, UInt16 index, AxVariableValue^ value, DateTime timestamp)
 	{
-		ArrayValueChanged(sender, index);
+		ArrayValueChanged(sender, index, value, timestamp);
 	}
 }

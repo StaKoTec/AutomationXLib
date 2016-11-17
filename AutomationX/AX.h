@@ -30,7 +30,10 @@ namespace AutomationX
 		UInt32 _variablesToPollCount = 0;
 		Object^ _variablesToPollIdMutex = gcnew Object();
 		UInt32 _variablesToPollId = 0;
+		Object^ _variablesToPollMutex = gcnew Object();
 		System::Collections::Generic::Dictionary<UInt32, AxVariable^>^ _variablesToPoll = gcnew System::Collections::Generic::Dictionary<UInt32, AxVariable^>();
+		Object^ _variablesToAddMutex = gcnew Object();
+		System::Collections::Generic::HashSet<UInt32>^ _variablesToAdd = gcnew System::Collections::Generic::HashSet<UInt32>();
 		Object^ _spsIdChangedInstanceIdMutex = gcnew Object();
 		UInt32 _spsIdChangedInstanceId = 0;
 		Object^ _spsIdChangedInstanceCallbacksMutex = gcnew Object();
@@ -52,8 +55,8 @@ namespace AutomationX
 			void InvokeGetInstanceNames(ManualResetEvent^ resetEvent, String^ className, List<String^>^ result);
 			delegate void AddVariableToPollDelegate(UInt32 id, AxVariable^ value);
 			void InvokeAddVariableToPoll(UInt32 id, AxVariable^ value);
-			delegate void RemoveVariableToPollDelegate(UInt32 id);
-			void InvokeRemoveVariableToPoll(UInt32 id);
+			//delegate void RemoveVariableToPollDelegate(UInt32 id);
+			//void InvokeRemoveVariableToPoll(UInt32 id);
 		//}}}
 	internal:
 		void QueueInitFunction(System::Action^ function);
@@ -65,8 +68,12 @@ namespace AutomationX
 		UInt32 AddSpsIdChangedInstanceCallback(System::Action^ function);
 		void RemoveSpsIdChangedInstanceCallback(UInt32 id);
 	public:
+		delegate void ErrorEventHandler(Ax^ sender, UInt32 errorId, String^ errorMessage);
 		delegate void ShutdownEventHandler(Ax^ sender);
 		delegate void SpsIdChangedEventHandler(Ax^ sender);
+
+		/// <summary>Fired when errors occur.</summary>
+		event ErrorEventHandler^ OnError;
 
 		/// <summary>Fired when aX is shutting down.</summary>
 		event ShutdownEventHandler^ ShuttingDown;

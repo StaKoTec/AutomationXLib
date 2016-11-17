@@ -94,6 +94,7 @@
     <ClInclude Include="AxException.h" />
     <ClInclude Include="AxInstance.h" />
     <ClInclude Include="AxVariable.h" />
+    <ClInclude Include="AxVariableValue.h" />
     <ClInclude Include="Binder.h" />
     <ClInclude Include="Lock.h" />
     <ClInclude Include="ManagedTypeConverter.h" />
@@ -107,6 +108,7 @@
     <ClCompile Include="AxException.cpp" />
     <ClCompile Include="AxInstance.cpp" />
     <ClCompile Include="AxVariable.cpp" />
+    <ClCompile Include="AxVariableValue.cpp" />
     <ClCompile Include="ManagedTypeConverter.cpp" />
     <ClCompile Include="Stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

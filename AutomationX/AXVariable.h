@@ -5,29 +5,13 @@ using namespace System::Collections::Generic;
 
 #include "axsapi32.h"
 #include "ManagedTypeConverter.h"
+#include "AxVariableValue.h"
 
 namespace AutomationX
 {
 	ref class AxInstance;
 	ref class Ax;
 	ref class AxVariable;
-
-	public enum class AxVariableType
-	{
-		axUndefined = 0,
-		axBool = AX_BT_BOOL,
-		axByte = AX_BT_BYTE,
-		axShortInteger = AX_BT_SINT,
-		axInteger = AX_BT_INT,
-		axLongInteger = AX_BT_DINT,
-		axUnsignedShortInteger = AX_BT_USINT,
-		axUnsignedInteger = AX_BT_UINT,
-		axUnsignedLongInteger = AX_BT_UDINT,
-		axReal = AX_BT_REAL,
-		axLongReal = AX_BT_LREAL,
-		axString = AX_BT_STRING,
-		axAlarm = AX_BT_ALARM
-	};
 
 	public enum class AxVariableDeclaration
 	{
@@ -45,10 +29,12 @@ namespace AutomationX
 	public:
 		UInt16 Index = 0;
 		AxVariable^ Variable = nullptr;
+		AxVariableValue^ Value = nullptr;
+		DateTime Timestamp;
 
 		AxVariableEventData() {}
 
-		AxVariableEventData(AxVariable^ variable, UInt16 index) : Variable(variable), Index(index) {}
+		AxVariableEventData(AxVariable^ variable, UInt16 index, AxVariableValue^ value, DateTime timestamp) : Variable(variable), Index(index), Value(value), Timestamp(timestamp) {}
 
 		virtual ~AxVariableEventData()
 		{
@@ -58,6 +44,7 @@ namespace AutomationX
 		!AxVariableEventData()
 		{
 			Variable = nullptr;
+			Value = nullptr;
 		}
 	};
 
@@ -146,15 +133,15 @@ namespace AutomationX
 
 		List<UInt16>^ Pull();
 		void Push();
-		void RaiseValueChanged();
-		void RaiseArrayValueChanged(UInt16 index);
+		void RaiseValueChanged(AxVariableValue^ value, DateTime timestamp);
+		void RaiseArrayValueChanged(UInt16 index, AxVariableValue^ value, DateTime timestamp);
 		void ReloadStaticProperties(bool wait);
 		void WaitForReloadCompleted();
 		void SetCleanUp() { _cleanUp = true; }
 		bool SpsIdChanged();
 	public:
-		delegate void ValueChangedEventHandler(AxVariable^ sender);
-		delegate void ArrayValueChangedEventHandler(AxVariable^ sender, UInt16 index);
+		delegate void ValueChangedEventHandler(AxVariable^ sender, AxVariableValue^ value, DateTime timestamp);
+		delegate void ArrayValueChangedEventHandler(AxVariable^ sender, UInt16 index, AxVariableValue^ value, DateTime timestamp);
 
 		/// <summary>Fired when the value of the variable is changed in aX. Only raised, after "EnableVariableEvents" has been called on the variable's instance object or after manually calling "Refresh".</summary>
 		event ValueChangedEventHandler^ ValueChanged;
@@ -243,6 +230,14 @@ namespace AutomationX
 		virtual ~AxVariable();
 		!AxVariable();
 
+		/// <summary>Gets the value of a variable.</summary>
+		/// <exception cref="AxVariableException">Thrown on handle errors.</exception>
+		AxVariableValue^ GetValue();
+
+		/// <summary>Gets the value of an array element.</summary>
+		/// <exception cref="AxVariableException">Thrown on handle errors.</exception>
+		AxVariableValue^ GetValue(UInt16 index);
+
 		/// <summary>Gets the value of a variable of type BOOL.</summary>
 		/// <exception cref="AxVariableException">Thrown on handle errors.</exception>
 		/// <exception cref="AxVariableTypeException">Thrown when variable is not of type BOOL.</exception>
@@ -312,8 +307,6 @@ namespace AutomationX
 		/// <exception cref="AxVariableException">Thrown on handle errors.</exception>
 		/// <exception cref="AxVariableTypeException">Thrown when variable is not of type SINT.</exception>
 		char GetShortInteger(UInt16 index);
-
-		//Set of BYTE is used
 
 		//{{{ INT
 			/// <summary>Gets the value of a variable of type INT.</summary>
