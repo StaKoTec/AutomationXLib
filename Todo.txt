@@ -2,4 +2,5 @@ GetEnumRemark
 GetGlobalEnums
 MinScale, MaxScale => String length?
 
-Ereignisse nicht-existenter Variablen werden noch ausgelöst
+Ereignisse nicht-existenter Variablen werden noch ausgelöst => Exception
+Kaffee trinken!!!
