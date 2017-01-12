@@ -89,6 +89,7 @@ namespace AutomationX
 		bool _changed = false;
 		Object^ _changedIndexesMutex = gcnew Object();
 		List<UInt16>^ _changedIndexes = gcnew List<UInt16>();
+		Object^ _pullMutex = gcnew Object();
 		// }}}
 
 		Dictionary<Int32, String^>^ _enumTexts = nullptr;
@@ -139,6 +140,8 @@ namespace AutomationX
 		void WaitForReloadCompleted();
 		void SetCleanUp() { _cleanUp = true; }
 		bool SpsIdChanged();
+		void LockPullMutex() { Monitor::Enter(_pullMutex); }
+		void UnlockPullMutex() { Monitor::Exit(_pullMutex); }
 	public:
 		delegate void ValueChangedEventHandler(AxVariable^ sender, AxVariableValue^ value, DateTime timestamp);
 		delegate void ArrayValueChangedEventHandler(AxVariable^ sender, UInt16 index, AxVariableValue^ value, DateTime timestamp);
