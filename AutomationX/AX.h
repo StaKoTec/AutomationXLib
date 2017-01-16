@@ -32,6 +32,8 @@ namespace AutomationX
 		UInt32 _variablesToPollId = 0;
 		Object^ _variablesToPollMutex = gcnew Object();
 		System::Collections::Generic::Dictionary<UInt32, AxVariable^>^ _variablesToPoll = gcnew System::Collections::Generic::Dictionary<UInt32, AxVariable^>();
+		Object^ _variablesToPushMutex = gcnew Object();
+		System::Collections::Generic::List<AxVariable^>^ _variablesToPush = gcnew System::Collections::Generic::List<AxVariable^>();
 		Object^ _variablesToAddMutex = gcnew Object();
 		System::Collections::Generic::HashSet<UInt32>^ _variablesToAdd = gcnew System::Collections::Generic::HashSet<UInt32>();
 		Object^ _spsIdChangedInstanceIdMutex = gcnew Object();
@@ -64,6 +66,8 @@ namespace AutomationX
 
 		UInt32 AddVariableToPoll(AxVariable^ value);
 		void RemoveVariableToPoll(UInt32 id);
+
+		void AddVariableToPush(AxVariable^ value);
 
 		UInt32 AddSpsIdChangedInstanceCallback(System::Action^ function);
 		void RemoveSpsIdChangedInstanceCallback(UInt32 id);

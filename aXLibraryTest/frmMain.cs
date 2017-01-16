@@ -242,7 +242,6 @@ namespace aXLibraryTest
         void variable_OnValueChanged(AxVariable sender, AxVariableValue value, DateTime timestamp)
         {
             WriteLog("Variable \"" + sender.Name + "\" of instance \"" + sender.Instance.Name + "\" changed to: " + GetValueString(value));
-            if(sender.Name == "systemuptime") sender.Instance["systemuptime1"].Set(value.IntegerValue);
         }
 
         private String GetValueString(AxVariable variable, int index)

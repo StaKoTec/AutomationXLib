@@ -197,6 +197,16 @@ namespace AutomationX
 			}
 			//QueueInitFunction(Binder::Bind(gcnew RemoveVariableToPollDelegate(this, &Ax::InvokeRemoveVariableToPoll), id));
 		}
+
+		void Ax::AddVariableToPush(AxVariable^ value)
+		{
+			if (!value) return;
+
+			{
+				Lock variablesToPushGuard(_variablesToPushMutex);
+				_variablesToPush->Add(value);
+			}
+		}
 	//}}}
 
 	UInt32 Ax::AddSpsIdChangedInstanceCallback(System::Action^ function)
@@ -241,7 +251,7 @@ namespace AutomationX
 					if (_eventQueue.TryDequeue(eventData))
 					{
 						TimeSpan processingTime = DateTime::Now - eventData->Timestamp;
-						if (processingTime.TotalSeconds >= 0) OnError(this, 3, "Event processing took " + processingTime.TotalSeconds.ToString("0.00") + " seconds.");
+						if (processingTime.TotalSeconds >= 1) OnError(this, 3, "Event processing took " + processingTime.TotalSeconds.ToString("0.00") + " seconds.");
 						if (eventData->Variable->IsArray) eventData->Variable->RaiseArrayValueChanged(eventData->Index, eventData->Value, eventData->Timestamp);
 						else eventData->Variable->RaiseValueChanged(eventData->Value, eventData->Timestamp);
 					}
@@ -303,37 +313,60 @@ namespace AutomationX
 
 				if (spsIdChanged) continue;
 
+				array<AxVariable^>^ variablesToPush;
+				{
+					Lock variablesToPushGuard(_variablesToPushMutex);
+					variablesToPush = _variablesToPush->ToArray();
+					_variablesToPush->Clear();
+				}
+				for each(AxVariable^ variable in variablesToPush)
+				{
+					spsIdChanged = SpsIdChanged();
+					if (spsIdChanged) break;
+					if (variable->Changed) variable->Push();
+				}
+
 				{
 					Lock variablesToPollGuard(_variablesToPollMutex);
 					for each (KeyValuePair<UInt32, AxVariable^>^ pair in _variablesToPoll)
 					{
 						spsIdChanged = SpsIdChanged();
 						if (spsIdChanged) break;
-						if (pair->Value->Changed)
+						pair->Value->LockPullMutex();
+						try
 						{
-							pair->Value->Push();
-						}
-						else
-						{
-							List<UInt16>^ changedIndexes = pair->Value->Pull();
-							if (changedIndexes->Count > 0)
+							if (pair->Value->Changed)
 							{
-								for each (UInt16 index in changedIndexes)
+								pair->Value->Push();
+							}
+							else
+							{
+								List<UInt16>^ changedIndexes = pair->Value->Pull();
+								if (changedIndexes->Count > 0)
 								{
-									if (_eventQueue.Count > 1000000)
+									for each (UInt16 index in changedIndexes)
 									{
-										OnError(this, 2, "Event queue full. Dropping variable changed events.");
-										continue;
+										if (_eventQueue.Count > 1000000)
+										{
+											OnError(this, 2, "Event queue full. Dropping variable changed events.");
+											pair->Value->UnlockPullMutex();
+											continue;
+										}
+										else if (_eventQueue.Count > 500000)
+										{
+											OnError(this, 1, "Event queue almost full.");
+										}
+										_eventQueue.Enqueue(gcnew AxVariableEventData(pair->Value, index, pair->Value->IsArray ? pair->Value->GetValue(index) : pair->Value->GetValue(), DateTime::Now));
 									}
-									else if (_eventQueue.Count > 500000)
-									{
-										OnError(this, 1, "Event queue almost full.");
-									}
-									_eventQueue.Enqueue(gcnew AxVariableEventData(pair->Value, index, pair->Value->IsArray ? pair->Value->GetValue(index) : pair->Value->GetValue(), DateTime::Now));
+									_eventResetEvent->Set();
 								}
-								_eventResetEvent->Set();
 							}
 						}
+						catch (Exception^ ex)
+						{
+							OnError(this, 5, ex->Message + " " + ex->StackTrace);
+						}
+						pair->Value->UnlockPullMutex();
 					}
 				}
 

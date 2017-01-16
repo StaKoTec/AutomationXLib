@@ -770,8 +770,12 @@ namespace AutomationX
 		{
 			if (_type != AxVariableType::axBool && _type != AxVariableType::axAlarm) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type BOOL.");
 			if (_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is an array. Please specify the element index.");
-			_boolValues[0] = value;
-			_changed = true;
+			{
+				Lock pullGuard(_pullMutex);
+				_boolValues[0] = value;
+				_changed = true;
+			}
+			if (!_events) _ax->AddVariableToPush(this);
 		}
 
 		void AxVariable::Set(UInt16 index, bool value)
@@ -779,8 +783,12 @@ namespace AutomationX
 			if (_type != AxVariableType::axBool && _type != AxVariableType::axAlarm) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type BOOL.");
 			if (!_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is no array.");
 			if (index >= _length) throw gcnew AxArrayIndexOutOfRangeException("Index for variable " + _path + " is out of range (" + index.ToString() + " >= " + _length.ToString() + ").");
-			_boolValues[index] = value;
-			_changed = true;
+			{
+				Lock pullGuard(_pullMutex);
+				_boolValues[index] = value;
+				_changed = true;
+			}
+			if (!_events) _ax->AddVariableToPush(this);
 			Lock changedIndexesGuard(_changedIndexesMutex);
 			_changedIndexes->Add(index);
 		}
@@ -805,8 +813,12 @@ namespace AutomationX
 		{
 			if (_type != AxVariableType::axByte && _type != AxVariableType::axShortInteger) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type BYTE or SINT.");
 			if (_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is an array. Please specify the element index.");
-			_integerValues[0] = value;
-			_changed = true;
+			{
+				Lock pullGuard(_pullMutex);
+				_integerValues[0] = value;
+				_changed = true;
+			}
+			if (!_events) _ax->AddVariableToPush(this);
 		}
 
 		void AxVariable::Set(UInt16 index, char value)
@@ -814,8 +826,12 @@ namespace AutomationX
 			if (_type != AxVariableType::axByte && _type != AxVariableType::axShortInteger) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type BYTE or SINT.");
 			if (!_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is no array.");
 			if (index >= _length) throw gcnew AxArrayIndexOutOfRangeException("Index for variable " + _path + " is out of range (" + index.ToString() + " >= " + _length.ToString() + ").");
-			_integerValues[index] = value;
-			_changed = true;
+			{
+				Lock pullGuard(_pullMutex);
+				_integerValues[index] = value;
+				_changed = true;
+			}
+			if (!_events) _ax->AddVariableToPush(this);
 			Lock changedIndexesGuard(_changedIndexesMutex);
 			_changedIndexes->Add(index);
 		}
@@ -840,8 +856,12 @@ namespace AutomationX
 		{
 			if (_type != AxVariableType::axUnsignedShortInteger) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type USINT.");
 			if (_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is an array. Please specify the element index.");
-			_integerValues[0] = value;
-			_changed = true;
+			{
+				Lock pullGuard(_pullMutex);
+				_integerValues[0] = value;
+				_changed = true;
+			}
+			if (!_events) _ax->AddVariableToPush(this);
 		}
 
 		void AxVariable::Set(UInt16 index, Byte value)
@@ -849,8 +869,12 @@ namespace AutomationX
 			if (_type != AxVariableType::axUnsignedShortInteger) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type USINT.");
 			if (!_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is no array.");
 			if (index >= _length) throw gcnew AxArrayIndexOutOfRangeException("Index for variable " + _path + " is out of range (" + index.ToString() + " >= " + _length.ToString() + ").");
-			_integerValues[index] = value;
-			_changed = true;
+			{
+				Lock pullGuard(_pullMutex);
+				_integerValues[index] = value;
+				_changed = true;
+			}
+			if (!_events) _ax->AddVariableToPush(this);
 			Lock changedIndexesGuard(_changedIndexesMutex);
 			_changedIndexes->Add(index);
 		}
@@ -891,8 +915,12 @@ namespace AutomationX
 		{
 			if (_type != AxVariableType::axInteger) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type INT.");
 			if (_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is an array. Please specify the element index.");
-			_integerValues[0] = value;
-			_changed = true;
+			{
+				Lock pullGuard(_pullMutex);
+				_integerValues[0] = value;
+				_changed = true;
+			}
+			if (!_events) _ax->AddVariableToPush(this);
 		}
 
 		void AxVariable::Set(UInt16 index, Int16 value)
@@ -900,8 +928,12 @@ namespace AutomationX
 			if (_type != AxVariableType::axInteger) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type INT.");
 			if (!_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is no array.");
 			if (index >= _length) throw gcnew AxArrayIndexOutOfRangeException("Index for variable " + _path + " is out of range (" + index.ToString() + " >= " + _length.ToString() + ").");
-			_integerValues[index] = value;
-			_changed = true;
+			{
+				Lock pullGuard(_pullMutex);
+				_integerValues[index] = value;
+				_changed = true;
+			}
+			if (!_events) _ax->AddVariableToPush(this);
 			Lock changedIndexesGuard(_changedIndexesMutex);
 			_changedIndexes->Add(index);
 		}
@@ -926,8 +958,12 @@ namespace AutomationX
 		{
 			if (_type != AxVariableType::axLongInteger) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type DINT.");
 			if (_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is an array. Please specify the element index.");
-			_integerValues[0] = value;
-			_changed = true;
+			{
+				Lock pullGuard(_pullMutex);
+				_integerValues[0] = value;
+				_changed = true;
+			}
+			if (!_events) _ax->AddVariableToPush(this);
 		}
 
 		void AxVariable::Set(UInt16 index, Int32 value)
@@ -935,8 +971,12 @@ namespace AutomationX
 			if (_type != AxVariableType::axLongInteger) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type DINT.");
 			if (!_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is no array.");
 			if (index >= _length) throw gcnew AxArrayIndexOutOfRangeException("Index for variable " + _path + " is out of range (" + index.ToString() + " >= " + _length.ToString() + ").");
-			_integerValues[index] = value;
-			_changed = true;
+			{
+				Lock pullGuard(_pullMutex);
+				_integerValues[index] = value;
+				_changed = true;
+			}
+			if (!_events) _ax->AddVariableToPush(this);
 			Lock changedIndexesGuard(_changedIndexesMutex);
 			_changedIndexes->Add(index);
 		}
@@ -961,8 +1001,12 @@ namespace AutomationX
 		{
 			if (_type != AxVariableType::axUnsignedInteger) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type UINT.");
 			if (_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is an array. Please specify the element index.");
-			_integerValues[0] = value;
-			_changed = true;
+			{
+				Lock pullGuard(_pullMutex);
+				_integerValues[0] = value;
+				_changed = true;
+			}
+			if (!_events) _ax->AddVariableToPush(this);
 		}
 
 		void AxVariable::Set(UInt16 index, UInt16 value)
@@ -970,8 +1014,12 @@ namespace AutomationX
 			if (_type != AxVariableType::axUnsignedInteger) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type UINT.");
 			if (!_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is no array.");
 			if (index >= _length) throw gcnew AxArrayIndexOutOfRangeException("Index for variable " + _path + " is out of range (" + index.ToString() + " >= " + _length.ToString() + ").");
-			_integerValues[index] = value;
-			_changed = true;
+			{
+				Lock pullGuard(_pullMutex);
+				_integerValues[index] = value;
+				_changed = true;
+			}
+			if (!_events) _ax->AddVariableToPush(this);
 			Lock changedIndexesGuard(_changedIndexesMutex);
 			_changedIndexes->Add(index);
 		}
@@ -996,8 +1044,12 @@ namespace AutomationX
 		{
 			if (_type != AxVariableType::axUnsignedLongInteger) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type UDINT.");
 			if (_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is an array. Please specify the element index.");
-			_integerValues[0] = value;
-			_changed = true;
+			{
+				Lock pullGuard(_pullMutex);
+				_integerValues[0] = value;
+				_changed = true;
+			}
+			if (!_events) _ax->AddVariableToPush(this);
 		}
 
 		void AxVariable::Set(UInt16 index, UInt32 value)
@@ -1005,8 +1057,12 @@ namespace AutomationX
 			if (_type != AxVariableType::axUnsignedLongInteger) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type UDINT.");
 			if (!_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is no array.");
 			if (index >= _length) throw gcnew AxArrayIndexOutOfRangeException("Index for variable " + _path + " is out of range (" + index.ToString() + " >= " + _length.ToString() + ").");
-			_integerValues[index] = value;
-			_changed = true;
+			{
+				Lock pullGuard(_pullMutex);
+				_integerValues[index] = value;
+				_changed = true;
+			}
+			if (!_events) _ax->AddVariableToPush(this);
 			Lock changedIndexesGuard(_changedIndexesMutex);
 			_changedIndexes->Add(index);
 		}
@@ -1031,8 +1087,12 @@ namespace AutomationX
 		{
 			if (_type != AxVariableType::axReal) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type REAL.");
 			if (_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is an array. Please specify the element index.");
-			_realValues[0] = value;
-			_changed = true;
+			{
+				Lock pullGuard(_pullMutex);
+				_realValues[0] = value;
+				_changed = true;
+			}
+			if (!_events) _ax->AddVariableToPush(this);
 		}
 
 		void AxVariable::Set(UInt16 index, Single value)
@@ -1040,8 +1100,12 @@ namespace AutomationX
 			if (_type != AxVariableType::axReal) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type REAL.");
 			if (!_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is no array.");
 			if (index >= _length) throw gcnew AxArrayIndexOutOfRangeException("Index for variable " + _path + " is out of range (" + index.ToString() + " >= " + _length.ToString() + ").");
-			_realValues[index] = value;
-			_changed = true;
+			{
+				Lock pullGuard(_pullMutex);
+				_realValues[index] = value;
+				_changed = true;
+			}
+			if (!_events) _ax->AddVariableToPush(this);
 			Lock changedIndexesGuard(_changedIndexesMutex);
 			_changedIndexes->Add(index);
 		}
@@ -1066,8 +1130,12 @@ namespace AutomationX
 		{
 			if (_type != AxVariableType::axLongReal) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type LREAL.");
 			if (_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is an array. Please specify the element index.");
-			_realValues[0] = value;
-			_changed = true;
+			{
+				Lock pullGuard(_pullMutex);
+				_realValues[0] = value;
+				_changed = true;
+			}
+			if (!_events) _ax->AddVariableToPush(this);
 		}
 
 		void AxVariable::Set(UInt16 index, Double value)
@@ -1075,8 +1143,12 @@ namespace AutomationX
 			if (_type != AxVariableType::axLongReal) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type LREAL.");
 			if (!_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is no array.");
 			if (index >= _length) throw gcnew AxArrayIndexOutOfRangeException("Index for variable " + _path + " is out of range (" + index.ToString() + " >= " + _length.ToString() + ").");
-			_realValues[index] = value;
-			_changed = true;
+			{
+				Lock pullGuard(_pullMutex);
+				_realValues[index] = value;
+				_changed = true;
+			}
+			if (!_events) _ax->AddVariableToPush(this);
 			Lock changedIndexesGuard(_changedIndexesMutex);
 			_changedIndexes->Add(index);
 		}
@@ -1102,8 +1174,12 @@ namespace AutomationX
 			if (_type != AxVariableType::axString) throw gcnew AxVariableTypeException("Variable " + _path + " is not of type STRING.");
 			if (_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is an array. Please specify the element index.");
 			if (value->Length > 1023) value = value->Substring(0, 1023);
-			_stringValues[0] = value;
-			_changed = true;
+			{
+				Lock pullGuard(_pullMutex);
+				_stringValues[0] = value;
+				_changed = true;
+			}
+			if (!_events) _ax->AddVariableToPush(this);
 		}
 
 		void AxVariable::Set(UInt16 index, String^ value)
@@ -1112,8 +1188,12 @@ namespace AutomationX
 			if (!_isArray) throw gcnew AxVariableTypeException("Variable " + _path + " is no array.");
 			if (index >= _length) throw gcnew AxArrayIndexOutOfRangeException("Index for variable " + _path + " is out of range (" + index.ToString() + " >= " + _length.ToString() + ").");
 			if (value->Length > 1023) value = value->Substring(0, 1023);
-			_stringValues[index] = value;
-			_changed = true;
+			{
+				Lock pullGuard(_pullMutex);
+				_stringValues[index] = value;
+				_changed = true;
+			}
+			if (!_events) _ax->AddVariableToPush(this);
 			Lock changedIndexesGuard(_changedIndexesMutex);
 			_changedIndexes->Add(index);
 		}
