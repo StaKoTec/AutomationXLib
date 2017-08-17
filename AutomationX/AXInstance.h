@@ -77,10 +77,12 @@ namespace AutomationX
 			delegate void GetSubinstancesDelegate(GetSubinstancesData^ data);
 			void InvokeGetSubinstances(GetSubinstancesData^ data);
 			GetSubinstancesData^ GetVariablesAndSubinstances();
-			delegate void InitFinishedDelegate(ManualResetEvent^ resetEvent, GetSubinstancesData^ data);
-			void InvokeInitFinished(ManualResetEvent^ resetEvent, GetSubinstancesData^ data);
+			delegate void InitFinishedDelegate(ManualResetEvent^ resetEvent, GetSubinstancesData^ data, bool wait);
+			void InvokeInitFinished(ManualResetEvent^ resetEvent, GetSubinstancesData^ data, bool wait);
 			void InitFinished(GetSubinstancesData^ data, bool wait);
 		//}}}
+
+		void LoadSubinstances(GetSubinstancesData^ data);
 
 		/// <summary>Gets a raw aX handle. Only call this method if within the main loop!!!</summary>
 		void* GetRawHandle();

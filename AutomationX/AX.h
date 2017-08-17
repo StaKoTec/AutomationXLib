@@ -20,6 +20,7 @@ namespace AutomationX
 		System::Threading::Thread^ _spsIdChangedThread = nullptr;
 		System::Threading::Thread^ _workerThread = nullptr;
 		System::Collections::Generic::List<System::Threading::Thread^>^ _eventThreads = gcnew System::Collections::Generic::List<System::Threading::Thread^>();
+		bool _enableVariablePollingByDefault = true;
 		UInt32 _cycleTime = 20;
 		UInt32 _lastCycleTime = 0;
 		UInt32 _eventThreadCount = 20;
@@ -95,6 +96,7 @@ namespace AutomationX
 		property UInt32 VariablesToPollCount { UInt32 get() { return _variablesToPollCount; }; }
 		property UInt32 EventThreadCount { UInt32 get() { return _eventThreadCount; }; }
 		property UInt32 CycleTime { UInt32 get() { return _cycleTime; }; void set(UInt32 value) { _cycleTime = value; }; }
+		property bool EnableVariablePollingByDefault { bool get() { return _enableVariablePollingByDefault; }; void set(bool value) { _enableVariablePollingByDefault = value; }; }
 		property UInt32 LastCycleTime { UInt32 get() { return _lastCycleTime; }; }
 
 		/// <summary>Returns the current SPS ID.</summary>

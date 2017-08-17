@@ -86,6 +86,7 @@ namespace AutomationX
 		bool _configurationValue = false;
 		bool _parameter = false;
 		bool _remote = false;
+		Object^ _changedMutex = gcnew Object();
 		bool _changed = false;
 		Object^ _changedIndexesMutex = gcnew Object();
 		List<UInt16>^ _changedIndexes = gcnew List<UInt16>();
@@ -226,7 +227,7 @@ namespace AutomationX
 
 		property bool ReloadComplete { bool get() { return _reloadComplete; } }
 
-		property bool Changed { bool get() { return _changed; } }
+		property bool Changed { bool get() { Lock changedGuard(_changedMutex); return _changed; } }
 
 		property List<UInt16>^ ChangedIndexes { List<UInt16>^ get() { return _changedIndexes; } }
 

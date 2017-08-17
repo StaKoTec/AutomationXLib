@@ -301,7 +301,7 @@ namespace AutomationX
 		return data;
 	}
 
-	void AxInstance::InvokeInitFinished(ManualResetEvent^ resetEvent, GetSubinstancesData^ data)
+	void AxInstance::InvokeInitFinished(ManualResetEvent^ resetEvent, GetSubinstancesData^ data, bool wait)
 	{
 		ResetEventLock resetEventGuard(resetEvent);
 		{
@@ -312,6 +312,25 @@ namespace AutomationX
 			}
 		}
 
+		if (!wait) LoadSubinstances(data);
+
+		_initComplete = true;
+	}
+
+	void AxInstance::InitFinished(GetSubinstancesData^ data, bool wait)
+	{
+		_initResetEvent->Reset();
+		_ax->QueueInitFunction(Binder::Bind(gcnew InitFinishedDelegate(this, &AxInstance::InvokeInitFinished), _initResetEvent, data, wait));
+		if (wait)
+		{
+			_initResetEvent->WaitOne();
+			LoadSubinstances(data);
+		}
+	}
+	//}}}
+
+	void AxInstance::LoadSubinstances(GetSubinstancesData^ data)
+	{
 		for (UInt32 i = 0; i < data->InstanceCount; i++)
 		{
 			String^ name = gcnew String(data->PInstanceList[i].instancePath);
@@ -323,16 +342,7 @@ namespace AutomationX
 			_subinstanceList->Add(instance);
 		}
 		data->CleanUp();
-		_initComplete = true;
 	}
-
-	void AxInstance::InitFinished(GetSubinstancesData^ data, bool wait)
-	{
-		_initResetEvent->Reset();
-		_ax->QueueInitFunction(Binder::Bind(gcnew InitFinishedDelegate(this, &AxInstance::InvokeInitFinished), _initResetEvent, data));
-		if (wait) _initResetEvent->WaitOne();
-	}
-	//}}}
 
 	void AxInstance::WaitForInitCompleted()
 	{
