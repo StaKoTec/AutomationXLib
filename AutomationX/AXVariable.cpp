@@ -5,12 +5,14 @@ namespace AutomationX
 {
 	bool AxVariable::Events::get()
 	{
+		Lock eventsGuard(_eventsMutex);
 		return _events;
 	}
 
 	void AxVariable::Events::set(bool value)
 	{
 		if (_cleanUp) return;
+		Lock eventsGuard(_eventsMutex);
 		_events = value;
 		if (_events)
 		{
@@ -20,6 +22,8 @@ namespace AutomationX
 		{
 			_ax->RemoveVariableToPoll(_pollId);
 			_pollId = 0;
+			Lock changedGuard(_changedMutex);
+			if (_changed) _ax->AddVariableToPush(this);
 		}
 	}
 
@@ -417,7 +421,7 @@ namespace AutomationX
 
 	void AxVariable::Push()
 	{
-		if (!_execData || !_reloadComplete || _cleanUp) return;
+		if (!_execData || !_reloadComplete) return;
 		if (_type == AxVariableType::axBool || _type == AxVariableType::axAlarm)
 		{
 			if (_isArray)
@@ -786,6 +790,7 @@ namespace AutomationX
 				Lock changedGuard(_changedMutex);
 				_changed = true;
 			}
+			Lock eventsGuard(_eventsMutex);
 			if (!_events) _ax->AddVariableToPush(this);
 		}
 
@@ -800,6 +805,7 @@ namespace AutomationX
 				Lock changedGuard(_changedMutex);
 				_changed = true;
 			}
+			Lock eventsGuard(_eventsMutex);
 			if (!_events) _ax->AddVariableToPush(this);
 			Lock changedIndexesGuard(_changedIndexesMutex);
 			_changedIndexes->Add(index);
@@ -831,6 +837,7 @@ namespace AutomationX
 				Lock changedGuard(_changedMutex);
 				_changed = true;
 			}
+			Lock eventsGuard(_eventsMutex);
 			if (!_events) _ax->AddVariableToPush(this);
 		}
 
@@ -845,6 +852,7 @@ namespace AutomationX
 				Lock changedGuard(_changedMutex);
 				_changed = true;
 			}
+			Lock eventsGuard(_eventsMutex);
 			if (!_events) _ax->AddVariableToPush(this);
 			Lock changedIndexesGuard(_changedIndexesMutex);
 			_changedIndexes->Add(index);
@@ -876,6 +884,7 @@ namespace AutomationX
 				Lock changedGuard(_changedMutex);
 				_changed = true;
 			}
+			Lock eventsGuard(_eventsMutex);
 			if (!_events) _ax->AddVariableToPush(this);
 		}
 
@@ -890,6 +899,7 @@ namespace AutomationX
 				Lock changedGuard(_changedMutex);
 				_changed = true;
 			}
+			Lock eventsGuard(_eventsMutex);
 			if (!_events) _ax->AddVariableToPush(this);
 			Lock changedIndexesGuard(_changedIndexesMutex);
 			_changedIndexes->Add(index);
@@ -937,6 +947,7 @@ namespace AutomationX
 				Lock changedGuard(_changedMutex);
 				_changed = true;
 			}
+			Lock eventsGuard(_eventsMutex);
 			if (!_events) _ax->AddVariableToPush(this);
 		}
 
@@ -951,6 +962,7 @@ namespace AutomationX
 				Lock changedGuard(_changedMutex);
 				_changed = true;
 			}
+			Lock eventsGuard(_eventsMutex);
 			if (!_events) _ax->AddVariableToPush(this);
 			Lock changedIndexesGuard(_changedIndexesMutex);
 			_changedIndexes->Add(index);
@@ -982,6 +994,7 @@ namespace AutomationX
 				Lock changedGuard(_changedMutex);
 				_changed = true;
 			}
+			Lock eventsGuard(_eventsMutex);
 			if (!_events) _ax->AddVariableToPush(this);
 		}
 
@@ -996,6 +1009,7 @@ namespace AutomationX
 				Lock changedGuard(_changedMutex);
 				_changed = true;
 			}
+			Lock eventsGuard(_eventsMutex);
 			if (!_events) _ax->AddVariableToPush(this);
 			Lock changedIndexesGuard(_changedIndexesMutex);
 			_changedIndexes->Add(index);
@@ -1027,6 +1041,7 @@ namespace AutomationX
 				Lock changedGuard(_changedMutex);
 				_changed = true;
 			}
+			Lock eventsGuard(_eventsMutex);
 			if (!_events) _ax->AddVariableToPush(this);
 		}
 
@@ -1041,6 +1056,7 @@ namespace AutomationX
 				Lock changedGuard(_changedMutex);
 				_changed = true;
 			}
+			Lock eventsGuard(_eventsMutex);
 			if (!_events) _ax->AddVariableToPush(this);
 			Lock changedIndexesGuard(_changedIndexesMutex);
 			_changedIndexes->Add(index);
@@ -1072,6 +1088,7 @@ namespace AutomationX
 				Lock changedGuard(_changedMutex);
 				_changed = true;
 			}
+			Lock eventsGuard(_eventsMutex);
 			if (!_events) _ax->AddVariableToPush(this);
 		}
 
@@ -1086,6 +1103,7 @@ namespace AutomationX
 				Lock changedGuard(_changedMutex);
 				_changed = true;
 			}
+			Lock eventsGuard(_eventsMutex);
 			if (!_events) _ax->AddVariableToPush(this);
 			Lock changedIndexesGuard(_changedIndexesMutex);
 			_changedIndexes->Add(index);
@@ -1117,6 +1135,7 @@ namespace AutomationX
 				Lock changedGuard(_changedMutex);
 				_changed = true;
 			}
+			Lock eventsGuard(_eventsMutex);
 			if (!_events) _ax->AddVariableToPush(this);
 		}
 
@@ -1131,6 +1150,7 @@ namespace AutomationX
 				Lock changedGuard(_changedMutex);
 				_changed = true;
 			}
+			Lock eventsGuard(_eventsMutex);
 			if (!_events) _ax->AddVariableToPush(this);
 			Lock changedIndexesGuard(_changedIndexesMutex);
 			_changedIndexes->Add(index);
@@ -1162,6 +1182,7 @@ namespace AutomationX
 				Lock changedGuard(_changedMutex);
 				_changed = true;
 			}
+			Lock eventsGuard(_eventsMutex);
 			if (!_events) _ax->AddVariableToPush(this);
 		}
 
@@ -1176,6 +1197,7 @@ namespace AutomationX
 				Lock changedGuard(_changedMutex);
 				_changed = true;
 			}
+			Lock eventsGuard(_eventsMutex);
 			if (!_events) _ax->AddVariableToPush(this);
 			Lock changedIndexesGuard(_changedIndexesMutex);
 			_changedIndexes->Add(index);
@@ -1208,6 +1230,7 @@ namespace AutomationX
 				Lock changedGuard(_changedMutex);
 				_changed = true;
 			}
+			Lock eventsGuard(_eventsMutex);
 			if (!_events) _ax->AddVariableToPush(this);
 		}
 
@@ -1223,6 +1246,7 @@ namespace AutomationX
 				Lock changedGuard(_changedMutex);
 				_changed = true;
 			}
+			Lock eventsGuard(_eventsMutex);
 			if (!_events) _ax->AddVariableToPush(this);
 			Lock changedIndexesGuard(_changedIndexesMutex);
 			_changedIndexes->Add(index);

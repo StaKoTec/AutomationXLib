@@ -62,6 +62,7 @@ namespace AutomationX
 		bool _initComplete = false;
 
 		// {{{ Properties
+		Object^ _eventsMutex = gcnew Object();
 		bool _events = false;
 		bool _cleanUp = false;
 		AxInstance^ _instance = nullptr;

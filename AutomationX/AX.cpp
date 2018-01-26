@@ -321,8 +321,7 @@ namespace AutomationX
 				}
 				for each(AxVariable^ variable in variablesToPush)
 				{
-					spsIdChanged = SpsIdChanged();
-					if (spsIdChanged) break;
+					//Don't check for changed SPS ID here => changed might stay "true" in AxVariable destructor
 					if (variable->Changed) variable->Push();
 				}
 
@@ -382,6 +381,7 @@ namespace AutomationX
 				if (spsIdChanged) continue;
 
 				if (_stopWorkerThread) return;
+
 				_lastCycleTime = (Int32)DateTime::Now.Subtract(time).TotalMilliseconds;
 				timeToSleep = _cycleTime - _lastCycleTime;
 				if (timeToSleep > 0) Threading::Thread::Sleep(timeToSleep);
