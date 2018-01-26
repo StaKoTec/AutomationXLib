@@ -140,7 +140,7 @@ namespace AutomationX
 	{
 		const char* reference = AxGetVarReference(_execData);
 		if (reference) _referenceName = gcnew String(reference);
-		// Todo: Wird nicht für Klassenreferenzen und Input-Referenzen zurückgegeben.
+		// Todo: Wird nicht fÃ¼r Klassenreferenzen und Input-Referenzen zurÃ¼ckgegeben.
 	}
 
 	void AxVariable::GetReferenceName()
@@ -421,7 +421,12 @@ namespace AutomationX
 
 	void AxVariable::Push()
 	{
-		if (!_execData || !_reloadComplete) return;
+		if (!_execData || !_reloadComplete)
+		{
+			Lock changedGuard(_changedMutex);
+			_changed = false; //Make variable disposeable
+			return;
+		}
 		if (_type == AxVariableType::axBool || _type == AxVariableType::axAlarm)
 		{
 			if (_isArray)
